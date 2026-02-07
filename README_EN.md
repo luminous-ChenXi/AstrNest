@@ -59,6 +59,25 @@ A modern image hosting and content governance platform built with Spring Boot 3.
 - **Real-time Monitoring**: System operation status monitoring and operation log auditing
 - **Email Service**: Integrated email templates and verification code sending functions, default preset Alibaba Cloud email SMTP
 
+<p align="center">
+  <b>🎨 Theme Preview</b>
+</p>
+
+<table align="center">
+  <tr>
+    <td align="center" width="50%">
+      <img src="./templates/dark.png" width="100%" alt="Dark Theme" />
+      <br>
+      <sub><b>🌙 Dark Mode</b></sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="./templates/light.png" width="100%" alt="Light Theme" />
+      <br>
+      <sub><b>☀️ Light Mode</b></sub>
+    </td>
+  </tr>
+</table>
+
 ---
 
 ⚠️ **Important License Notice** ⚠️

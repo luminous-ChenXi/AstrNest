@@ -57,9 +57,27 @@ _Modern full-stack image hosting platform built with Spring Boot 3.4.1 and Vue 3
 - **灵活的存储方案**: 支持本地存储与云对象存储（OSS/COS）
 - **安全管理**: Spring Security 6 + JWT认证 + 内容安全策略
 - **成员治理与配额**: 管理端“成员列表”支持查看头像/配额/点赞总数，并可一键调整每日上传与总存储额度、切换管理员/用户/游客角色
-- **响应式设计**: Tailwind CSS + Element Plus 现代化UI组件
+- **响应式设计**: 现代化UI组件库，支持PC端、移动端、平板端等多端适配
 - **实时监控**: 系统运行状态监控与操作日志审计
 - **邮件服务**: 集成邮件模板与验证码发送功能，默认预置阿里云邮局 SMTP
+<p align="center">
+  <b>🎨 主题预览 | Theme Preview</b>
+</p>
+
+<table align="center">
+  <tr>
+    <td align="center" width="50%">
+      <img src="./templates/dark.png" width="100%" alt="Dark Theme" />
+      <br>
+      <sub><b>🌙 Dark Mode</b></sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="./templates/light.png" width="100%" alt="Light Theme" />
+      <br>
+      <sub><b>☀️ Light Mode</b></sub>
+    </td>
+  </tr>
+</table>
 
 ## License Warning | GPL v3 开源协议警示
 ### ⚠️ **重要许可提醒** ⚠️
