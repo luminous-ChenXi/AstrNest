@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import './styles/chenxi-transitions.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --surface-bg: #0b0e19;
+  --surface-panel: rgba(22, 25, 36, 0.85);
+  --surface-panel-strong: rgba(35, 40, 62, 0.9);
+  --brand-primary: #7f7bff;
+  --brand-accent: #ff5f8f;
+  --brand-emerald: #34d399;
+  --brand-success: #4ade80;
+}
+
+* {
+  font-family: 'Plus Jakarta Sans', 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 20%, rgba(127, 123, 255, 0.25), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(255, 95, 143, 0.25), transparent 30%),
+    linear-gradient(135deg, #05060c, #0f1324 70%, #090b14);
+  color: #f1f5f9;
+}
+
+.glass-panel {
+  @apply bg-white/5 backdrop-blur-3xl border border-white/5 rounded-3xl shadow-[0_20px_60px_rgba(2,6,23,0.35)];
+}
+
+.text-gradient {
+  background: linear-gradient(120deg, #ffffff, #bbc5ff 40%, #ff9fd0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+}
