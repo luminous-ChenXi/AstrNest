@@ -34,7 +34,7 @@
 
 </div>
 
-<img src="./templates/1728x2304.png" width = "300" height = "400" alt="AstrNest" align=right />
+<img src="https://cdn.luminouschenxi.net/assets/others/templates/1728x2304.png" width = "300" height = "400" alt="AstrNest" align=right />
 <div align="center">
 
 # AstrNest
@@ -67,12 +67,12 @@ _Modern full-stack image hosting platform built with Spring Boot 3.4.1 and Vue 3
 <table align="center">
   <tr>
     <td align="center" width="50%">
-      <img src="./templates/dark.png" width="100%" alt="Dark Theme" />
+      <img src="https://cdn.luminouschenxi.net/assets/others/templates/dark.png" width="100%" alt="Dark Theme" />
       <br>
       <sub><b>🌙 Dark Mode</b></sub>
     </td>
     <td align="center" width="50%">
-      <img src="./templates/light.png" width="100%" alt="Light Theme" />
+      <img src="https://cdn.luminouschenxi.net/assets/others/templates/light.png" width="100%" alt="Light Theme" />
       <br>
       <sub><b>☀️ Light Mode</b></sub>
     </td>
