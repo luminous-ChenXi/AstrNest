@@ -1,0 +1,80 @@
+package com.chenxi.astrnest.user;
+
+import com.chenxi.astrnest.security.dto.UserProfileResponse;
+import com.chenxi.astrnest.security.user.UserAccount;
+import com.chenxi.astrnest.security.user.UserAccountRepository;
+import com.chenxi.astrnest.security.user.UserRole;
+import com.chenxi.astrnest.user.dto.LoginRequest;
+import com.chenxi.astrnest.user.dto.LoginResponse;
+import com.chenxi.astrnest.user.login.UserLoginEventService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+  private final AuthenticationManager authenticationManager;
+  private final UserAccountRepository userAccountRepository;
+  private final UserLoginEventService userLoginEventService;
+
+  @PostMapping("/login")
+  public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+    try {
+      Authentication authentication = authenticationManager.authenticate(
+          new UsernamePasswordAuthenticationToken(request.username(), request.password())
+      );
+      SecurityContextHolder.getContext().setAuthentication(authentication);
+      UserAccount user = resolveUserAccount(request.username());
+      String token = Base64.getEncoder()
+          .encodeToString((request.username() + ":" + request.password()).getBytes(StandardCharsets.UTF_8));
+      Set<String> roles = user.getRoles().stream().map(UserRole::getName).collect(Collectors.toSet());
+      userLoginEventService.recordLogin(user, httpRequest);
+      UserProfileResponse profile = new UserProfileResponse(
+          user.getId(),
+          user.getUsername(),
+          user.getDisplayName(),
+          user.getEmail(),
+          user.getAvatarUrl(),
+          user.getWebsite(),
+          user.getSignature(),
+          user.getLocation(),
+          user.getLoginIpHistory(),
+          user.getLastLoginIp(),
+          user.getLastLoginAt(),
+          roles
+      );
+      return new LoginResponse("Basic " + token, profile);
+    } catch (AuthenticationException ex) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "用户名或密码错误", ex);
+    }
+  }
+
+  private UserAccount resolveUserAccount(String principal) {
+    String normalized = principal == null ? "" : principal.trim();
+    if (normalized.isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "用户名或密码错误");
+    }
+    return userAccountRepository.findByUsername(normalized)
+        .or(() -> userAccountRepository.findByEmail(normalized.toLowerCase(Locale.ROOT)))
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "用户名或密码错误"));
+  }
+}

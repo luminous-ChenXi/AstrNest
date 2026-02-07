@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: astrnest-backend
+  datasource:
+    url: ${ASTRNEST_DB_URL:jdbc:mysql://localhost:3306/astrnest?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
+    username: ${ASTRNEST_DB_USERNAME:astrnest}
+    password: ${ASTRNEST_DB_PASSWORD:chenxi123}
+  servlet:
+    multipart:
+      max-file-size: ${ASTRNEST_MULTIPART_MAX_FILE_SIZE:20MB}
+      max-request-size: ${ASTRNEST_MULTIPART_MAX_REQUEST_SIZE:20MB}
+      resolve-lazily: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+astrnest:
+  storage:
+    strategy: ${ASTRNEST_STORAGE_STRATEGY:LOCAL}
+    local:
+      root: ${ASTRNEST_STORAGE_ROOT:/storage/upload}
+      public-base-url: ${ASTRNEST_STORAGE_PUBLIC:/upload}
+  admin:
+    username: ${ASTRNEST_ADMIN_USERNAME:admin}
+    password: ${ASTRNEST_ADMIN_PASSWORD:chenxi123}
+    display-name: ${ASTRNEST_ADMIN_DISPLAY:超级管理员}
+    email: ${ASTRNEST_ADMIN_EMAIL:admin@example.com}
+  api-key:
+    header-name: ${ASTRNEST_API_KEY_HEADER:X-API-Key}
+    default-daily-quota: ${ASTRNEST_API_DEFAULT_QUOTA:1000}
+  video-thumbnail:
+    enabled: ${ASTRNEST_VIDEO_THUMBNAIL_ENABLED:true}
+    ffmpeg-path: ${ASTRNEST_VIDEO_THUMBNAIL_FFMPEG:ffmpeg}
+    capture-offset: ${ASTRNEST_VIDEO_THUMBNAIL_CAPTURE:PT1S}
+    quality: ${ASTRNEST_VIDEO_THUMBNAIL_QUALITY:2}
+    timeout-seconds: ${ASTRNEST_VIDEO_THUMBNAIL_TIMEOUT:20}
+    cover-directory: ${ASTRNEST_VIDEO_THUMBNAIL_SUBDIR:cover}
+
+logging:
+  level:
+    root: INFO
+    com.chenxi.astrnest: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+  endpoint:
+    health:
+      show-details: when_authorized
