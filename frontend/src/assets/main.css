@@ -1,0 +1,271 @@
+@import './styles/fonts.css';
+@import './styles/chenxi-transitions.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  font-family: 'Plus Jakarta Sans', 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.glass-panel {
+  border-radius: 1.75rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(32px);
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 30%, #4ecdc4 70%, #6ee7d8 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 按钮样式 - 粉色主题 */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
+  border: none;
+  border-radius: 9999px;
+  box-shadow: 0 10px 35px rgba(255, 107, 157, 0.35), 
+              0 4px 15px rgba(255, 107, 157, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 45px rgba(255, 107, 157, 0.45), 
+              0 6px 20px rgba(255, 107, 157, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #ff7aa8 0%, #ff9eb8 100%);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 5px 20px rgba(255, 107, 157, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary .btn-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* 大号按钮 */
+.btn-lg {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+}
+
+.btn-lg .btn-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* 次要按钮 - 薄荷绿 */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #4ecdc4 0%, #6ee7d8 100%);
+  border: none;
+  border-radius: 9999px;
+  box-shadow: 0 10px 35px rgba(78, 205, 196, 0.35), 
+              0 4px 15px rgba(78, 205, 196, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 45px rgba(78, 205, 196, 0.45), 
+              0 6px 20px rgba(78, 205, 196, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #5fd4cc 0%, #7feadd 100%);
+}
+
+/* 幽灵按钮 */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: transparent;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 9999px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 107, 157, 0.08);
+  border-color: rgba(255, 107, 157, 0.4);
+  color: #ff6b9d;
+}
+
+/* 深色模式按钮调整 */
+:root.dark .btn-primary {
+  background: linear-gradient(135deg, #ff8fab 0%, #ffb3c1 100%);
+  box-shadow: 0 10px 35px rgba(255, 143, 171, 0.25), 
+              0 4px 15px rgba(255, 143, 171, 0.15);
+}
+
+:root.dark .btn-primary:hover {
+  background: linear-gradient(135deg, #ff9eb8 0%, #ffc2cd 100%);
+  box-shadow: 0 15px 45px rgba(255, 143, 171, 0.35), 
+              0 6px 20px rgba(255, 143, 171, 0.2);
+}
+
+:root.dark .btn-secondary {
+  background: linear-gradient(135deg, #6ee7d8 0%, #8ef0e4 100%);
+  box-shadow: 0 10px 35px rgba(110, 231, 216, 0.25), 
+              0 4px 15px rgba(110, 231, 216, 0.15);
+}
+
+:root.dark .btn-ghost:hover {
+  background: rgba(255, 143, 171, 0.12);
+  border-color: rgba(255, 143, 171, 0.4);
+  color: #ff8fab;
+}
+
+/* 蓝色按钮样式 - 用于外部链接等功能 */
+.btn-blue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #5b9bd5 0%, #4a90e2 100%);
+  border: none;
+  border-radius: 9999px;
+  box-shadow: 0 10px 35px rgba(91, 155, 213, 0.35), 
+              0 4px 15px rgba(91, 155, 213, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.btn-blue:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 45px rgba(91, 155, 213, 0.45), 
+              0 6px 20px rgba(91, 155, 213, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #6aa8e0 0%, #5a9ce8 100%);
+}
+
+:root.dark .btn-blue {
+  background: linear-gradient(135deg, #6aa8e0 0%, #7ab8f0 100%);
+  box-shadow: 0 10px 35px rgba(106, 168, 224, 0.25), 
+              0 4px 15px rgba(106, 168, 224, 0.15);
+}
+
+:root.dark .btn-blue:hover {
+  background: linear-gradient(135deg, #7ab8f0 0%, #8ac8ff 100%);
+  box-shadow: 0 15px 45px rgba(122, 184, 240, 0.35), 
+              0 6px 20px rgba(122, 184, 240, 0.2);
+}
+
+/* 蓝色图标样式 */
+.icon-blue {
+  color: #5b9bd5;
+}
+
+:root.dark .icon-blue {
+  color: #6aa8e0;
+}
+
+@layer utilities {
+  .text-body-primary {
+    color: var(--color-text-primary);
+  }
+
+  .text-body-secondary {
+    color: var(--color-text-secondary);
+  }
+
+  .text-body-muted {
+    color: var(--text-muted);
+  }
+
+  .text-body-soft {
+    color: var(--text-soft);
+  }
+
+  .text-body-faint {
+    color: var(--text-faint);
+  }
+
+  .border-body {
+    border-color: var(--border-soft);
+  }
+
+  .border-body-strong {
+    border-color: var(--border-strong);
+  }
+
+  .bg-surface-body {
+    background-color: var(--color-bg-primary);
+  }
+
+  .bg-surface-panel {
+    background-color: var(--color-bg-secondary);
+  }
+
+  .bg-surface-strong {
+    background-color: var(--color-bg-strong);
+  }
+
+  .bg-surface-overlay {
+    background-color: var(--panel-overlay);
+    backdrop-filter: blur(18px);
+  }
+
+  .chip-soft {
+    background-color: var(--chip-bg);
+    border: 1px solid var(--chip-border);
+    color: var(--chip-text);
+    border-radius: 999px;
+  }
+
+  .code-surface {
+    background-color: var(--code-bg);
+    border: 1px solid var(--border-soft);
+  }
+}
