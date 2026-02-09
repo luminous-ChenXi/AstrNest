@@ -1,6 +1,7 @@
 package com.chenxi.astrnest.upload.record;
 
 import com.chenxi.astrnest.ai.AiDecision;
+import com.chenxi.astrnest.album.Album;
 import com.chenxi.astrnest.security.apikey.ApiKey;
 import com.chenxi.astrnest.security.user.UserAccount;
 import com.chenxi.astrnest.tag.ChenxiTag;
@@ -130,6 +131,10 @@ public class UploadRecord {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "api_key_id")
   private ApiKey apiKey;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "album_id")
+  private Album album;
 
   @Column(nullable = false, updatable = false)
   private Instant uploadedAt = Instant.now();

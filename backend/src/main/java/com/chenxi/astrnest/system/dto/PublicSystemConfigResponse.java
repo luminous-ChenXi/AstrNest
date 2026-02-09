@@ -1,4 +1,4 @@
 package com.chenxi.astrnest.system.dto;
 
-public record PublicSystemConfigResponse(String customFooterHtml, Integer autoCleanupDays) {
+public record PublicSystemConfigResponse(String customFooterHtml, Integer autoCleanupDays, String assetDomain) {
 }

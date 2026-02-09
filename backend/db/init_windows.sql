@@ -1,29 +1,24 @@
-/*
-  AstrNest - Windows / Navicat 友好版初始化脚本
+-- 数据库与账号初始化 (Windows 版本)
+-- 注意：Windows 版本不包含 CREATE USER/GRANT 语句，请使用 root 账号执行
+-- 建议先在 MySQL 中手动创建数据库和用户：
+--   CREATE DATABASE IF NOT EXISTS astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
-  目标：解决 Windows 端使用 Navicat 导入 init.sql 时常见的报错（权限不足、DELIMITER 解析、PREPARE 多语句等）。
-  说明：
-  1) 本脚本【不包含】CREATE USER / GRANT / FLUSH PRIVILEGES（Navicat 常用的普通连接账号通常没有这些权限）。
-  2) 移除了大量用于“旧库字段自动对齐”的 PREPARE/EXECUTE 逻辑；在全新库初始化时不需要这些动态迁移段。
-  3) 触发器改为无需 DELIMITER 的单语句形式，避免 Navicat 对 DELIMITER 的兼容性差异。
+-- 设置字符集和排序规则，避免 collation 冲突
+-- 注意：MySQL 8.0 中 information_schema 使用 utf8mb3，需要特殊处理
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+SET collation_connection = utf8mb4_general_ci;
 
-  使用方式（推荐）：
-  - 先在 Navicat 手动创建数据库：astrnest（字符集 utf8mb4，排序规则 utf8mb4_general_ci 或 utf8mb4_unicode_ci）
-  - 选择该库后导入本文件（或直接执行）
-*/
+-- 设置数据库排序规则（如果数据库已存在且使用不同的排序规则）
+-- 注意：这需要足够的权限
+-- ALTER DATABASE astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
-SET NAMES utf8mb4 COLLATE utf8mb4_general_ci;
-SET FOREIGN_KEY_CHECKS = 0;
-
--- Windows/客户端初始化数据库（如无权限可手动执行本段）
-CREATE DATABASE IF NOT EXISTS astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE astrnest;
 
--- =====================
--- Core tables
--- =====================
+-- 获取数据库名，使用 utf8mb3 以匹配 information_schema
+SET @schema := CONVERT(DATABASE() USING utf8mb3);
 
-
+-- 核心表结构保障：确保全新库也可直接初始化
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(64) NOT NULL COMMENT '用户名',
@@ -101,9 +96,10 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 CREATE TABLE IF NOT EXISTS upload_records (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  media_uuid CHAR(36) NOT NULL COMMENT '对外 UUID',
+  media_uuid CHAR(36) NOT NULL  COMMENT '对外 UUID',
   user_id BIGINT NULL COMMENT '上传者',
   api_key_id BIGINT NULL COMMENT '使用的 API Key',
+  album_id BIGINT NULL COMMENT '所属图集',
   storage_path VARCHAR(255) NOT NULL COMMENT '存储文件名（含路径）',
   image_link VARCHAR(255) NOT NULL COMMENT '访问 URL（相对或绝对）',
   file_name VARCHAR(180) NOT NULL COMMENT '原始文件名',
@@ -113,10 +109,7 @@ CREATE TABLE IF NOT EXISTS upload_records (
   size BIGINT NOT NULL COMMENT '文件大小（字节）',
   width INT NULL COMMENT '宽度（像素）',
   height INT NULL COMMENT '高度（像素）',
-  -- 兼容字段（旧脚本/视图仍可能引用 duration）
   duration INT NULL DEFAULT 0 COMMENT '时长（秒）',
-  -- 与后端实体字段保持一致（UploadRecord.durationSeconds -> duration_seconds）
-  duration_seconds INT NULL DEFAULT 0 COMMENT '时长（秒）',
   title VARCHAR(200) NULL,
   description TEXT NULL,
   ai_description TEXT NULL,
@@ -152,6 +145,7 @@ CREATE TABLE IF NOT EXISTS upload_records (
   UNIQUE KEY uq_upload_records_media_uuid (media_uuid),
   INDEX idx_upload_records_user (user_id),
   INDEX idx_upload_records_api_key (api_key_id),
+  INDEX idx_upload_records_album (album_id),
   INDEX idx_upload_records_file_hash (file_hash),
   INDEX idx_upload_records_public_created (is_public, uploaded_at),
   INDEX idx_upload_records_media_type (media_type),
@@ -229,6 +223,124 @@ CREATE TABLE IF NOT EXISTS system_config (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   updated_by VARCHAR(120)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+-- system_config.max_video_upload_bytes
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'max_video_upload_bytes'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN max_video_upload_bytes BIGINT NOT NULL DEFAULT 104857600 AFTER max_upload_bytes;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.video_chunk_upload_enabled
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'video_chunk_upload_enabled'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN video_chunk_upload_enabled TINYINT(1) NOT NULL DEFAULT 1 AFTER max_video_upload_bytes;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.video_chunk_size_mb
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'video_chunk_size_mb'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN video_chunk_size_mb INT NOT NULL DEFAULT 5 AFTER video_chunk_upload_enabled;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.last_access_at
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'last_access_at'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN last_access_at DATETIME NULL AFTER invoke_count;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.thumbnail_storage_path
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'thumbnail_storage_path'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN thumbnail_storage_path VARCHAR(255) NULL AFTER thumbnail_url;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.album_id
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'album_id'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN album_id BIGINT NULL AFTER api_key_id;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'idx_upload_records_album'),
+  'SELECT 1;',
+  'CREATE INDEX idx_upload_records_album ON upload_records(album_id);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'albums')
+  AND NOT EXISTS (
+      SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+      WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND CONSTRAINT_NAME = 'fk_upload_record_album'
+  ),
+  'ALTER TABLE upload_records
+     ADD CONSTRAINT fk_upload_record_album FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE SET NULL;',
+  'SELECT 1;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.clear_legacy_video_thumbnails
+UPDATE upload_records
+SET thumbnail_url = NULL,
+    thumbnail_storage_path = NULL
+WHERE media_type = 'video'
+  AND thumbnail_url = image_link
+  AND (
+    LOWER(thumbnail_url) LIKE '%.mp4'
+    OR LOWER(thumbnail_url) LIKE '%.mp4?%'
+    OR LOWER(thumbnail_url) LIKE '%.mov'
+    OR LOWER(thumbnail_url) LIKE '%.mov?%'
+    OR LOWER(thumbnail_url) LIKE '%.mkv'
+    OR LOWER(thumbnail_url) LIKE '%.mkv?%'
+    OR LOWER(thumbnail_url) LIKE '%.avi'
+    OR LOWER(thumbnail_url) LIKE '%.avi?%'
+    OR LOWER(thumbnail_url) LIKE '%.webm'
+    OR LOWER(thumbnail_url) LIKE '%.webm?%'
+    OR LOWER(thumbnail_url) LIKE '%.flv'
+    OR LOWER(thumbnail_url) LIKE '%.flv?%'
+    OR LOWER(thumbnail_url) LIKE '%.ts'
+    OR LOWER(thumbnail_url) LIKE '%.ts?%'
+    OR LOWER(thumbnail_url) LIKE '%.m4v'
+    OR LOWER(thumbnail_url) LIKE '%.m4v?%'
+  );
+
+-- system_config.auto_cleanup_days
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'auto_cleanup_days'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN auto_cleanup_days INT NOT NULL DEFAULT 30 AFTER guest_like_enabled;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS content_policy (
   policy_key VARCHAR(32) PRIMARY KEY,
@@ -331,6 +443,1194 @@ CREATE TABLE IF NOT EXISTS announcements (
   CONSTRAINT fk_announcements_author_user FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT='站点公告';
 
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'announcements' AND COLUMN_NAME = 'author_user_id'),
+  'SELECT 1;',
+  'ALTER TABLE announcements ADD COLUMN author_user_id BIGINT NULL AFTER author;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'announcements' AND COLUMN_NAME = 'author_role'),
+  'SELECT 1;',
+  'ALTER TABLE announcements ADD COLUMN author_role VARCHAR(120) NULL AFTER author_user_id;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'announcements' AND COLUMN_NAME = 'author_avatar'),
+  'SELECT 1;',
+  'ALTER TABLE announcements ADD COLUMN author_avatar VARCHAR(512) NULL AFTER author_role;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'announcements' AND CONSTRAINT_NAME = 'fk_announcements_author_user'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE announcements ADD CONSTRAINT fk_announcements_author_user FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 元数据列自动对齐
+
+-- users.nickname
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'display_name'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'nickname'
+  ),
+  'ALTER TABLE users CHANGE COLUMN display_name nickname VARCHAR(120) NOT NULL;',
+  'SELECT 1;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'display_name'
+  ) AND EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'nickname'
+  ),
+  'UPDATE users SET nickname = COALESCE(NULLIF(nickname, ''''), display_name) WHERE nickname IS NULL OR nickname = '''';',
+  'SELECT 1;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.drop_display_name
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'display_name'
+  ) AND EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'nickname'
+  ),
+  'ALTER TABLE users DROP COLUMN display_name;',
+  'SELECT 1;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.login_ip_history
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'login_ip_history'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN login_ip_history TEXT NULL AFTER location;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.last_login_ip
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'last_login_ip'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN last_login_ip VARCHAR(64) NULL AFTER login_ip_history;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.last_login_at
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'last_login_at'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL AFTER last_login_ip;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.daily_upload_limit
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'daily_upload_limit'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN daily_upload_limit INT NULL AFTER active;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.storage_quota_mb
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'storage_quota_mb'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN storage_quota_mb BIGINT NULL AFTER daily_upload_limit;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.daily_upload_limit_default
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'daily_upload_limit'
+      AND (COLUMN_DEFAULT IS NULL OR COLUMN_DEFAULT = '0')
+  ),
+  'ALTER TABLE users MODIFY COLUMN daily_upload_limit INT NULL DEFAULT 100;',
+  'SELECT 1;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.storage_quota_mb_default
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'storage_quota_mb'
+      AND (COLUMN_DEFAULT IS NULL OR COLUMN_DEFAULT = '0')
+  ),
+  'ALTER TABLE users MODIFY COLUMN storage_quota_mb BIGINT NULL DEFAULT 200;',
+  'SELECT 1;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.bio
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'bio'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN bio TEXT NULL AFTER signature;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.email_verified
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'email_verified'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER email;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.two_factor_enabled
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'two_factor_enabled'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER email_verified;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.settings_json
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'settings'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN settings JSON NULL AFTER two_factor_enabled;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.role_label
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'),
+  'SELECT 1;',
+  "ALTER TABLE users ADD COLUMN role ENUM('user','admin','moderator') NOT NULL DEFAULT 'user' AFTER active;"
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.status_enum
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'status'),
+  'SELECT 1;',
+  "ALTER TABLE users ADD COLUMN status ENUM('active','inactive','banned') NOT NULL DEFAULT 'active' AFTER role;"
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.storage_quota_bytes
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'storage_quota_bytes'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN storage_quota_bytes BIGINT NULL DEFAULT 1073741824 AFTER storage_quota_mb;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.used_storage
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND COLUMN_NAME = 'used_storage'),
+  'SELECT 1;',
+  'ALTER TABLE users ADD COLUMN used_storage BIGINT NOT NULL DEFAULT 0 AFTER storage_quota_bytes;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.email_unique
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND INDEX_NAME = 'uq_users_email'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE users ADD UNIQUE KEY uq_users_email (email);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- users.status_index
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'users' AND INDEX_NAME = 'idx_users_status'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE users ADD INDEX idx_users_status (status);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.storage_path
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'storage_path'
+  ),
+  'SELECT 1;',
+  IF(
+    EXISTS (
+      SELECT 1 FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'object_key'
+    ),
+    'ALTER TABLE upload_records CHANGE COLUMN object_key storage_path VARCHAR(255) NOT NULL;',
+    'ALTER TABLE upload_records ADD COLUMN storage_path VARCHAR(255) NOT NULL AFTER image_name;'
+  )
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.image_link
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'image_link'
+  ),
+  'SELECT 1;',
+  IF(
+    EXISTS (
+      SELECT 1 FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'public_url'
+    ),
+    'ALTER TABLE upload_records CHANGE COLUMN public_url image_link VARCHAR(255) NOT NULL;',
+    'ALTER TABLE upload_records ADD COLUMN image_link VARCHAR(255) NOT NULL AFTER storage_path;'
+  )
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.file_name
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'file_name'
+  ),
+  'SELECT 1;',
+  IF(
+    EXISTS (
+      SELECT 1 FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'image_name'
+    ),
+    'ALTER TABLE upload_records CHANGE COLUMN image_name file_name VARCHAR(180) NOT NULL;',
+    'ALTER TABLE upload_records ADD COLUMN file_name VARCHAR(180) NOT NULL AFTER image_link;'
+  )
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.storage_provider
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'storage_provider'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN storage_provider VARCHAR(40) NULL AFTER review_status;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.storage_mode
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'storage_mode'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN storage_mode VARCHAR(40) NULL AFTER storage_provider;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.is_violation
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'is_violation'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN is_violation TINYINT(1) NOT NULL DEFAULT 0 AFTER storage_mode;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.is_public
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'is_public'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN is_public TINYINT(1) NOT NULL DEFAULT 1 AFTER is_violation;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.like_count
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'like_count'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN like_count BIGINT NOT NULL DEFAULT 0 AFTER is_public;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.invoke_count
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'invoke_count'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN invoke_count BIGINT NOT NULL DEFAULT 0 AFTER like_count;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.uploader_ip
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'uploader_ip'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN uploader_ip VARCHAR(64) NULL AFTER invoke_count;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.storage_full_path
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'storage_full_path'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN storage_full_path VARCHAR(512) NULL AFTER uploader_ip;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.media_uuid
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'media_uuid'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN media_uuid CHAR(36) NULL AFTER id;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+UPDATE upload_records SET media_uuid = UUID() WHERE media_uuid IS NULL;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'media_uuid' AND IS_NULLABLE = 'NO'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records MODIFY COLUMN media_uuid CHAR(36) NOT NULL AFTER id;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.statistics WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'uq_upload_records_media_uuid'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD UNIQUE KEY uq_upload_records_media_uuid (media_uuid);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.file_hash
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'file_hash'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN file_hash VARCHAR(64) NULL AFTER file_name;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.media_type
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'media_type'),
+  'SELECT 1;',
+  "ALTER TABLE upload_records ADD COLUMN media_type ENUM('image','video','gif','other') NOT NULL DEFAULT 'image' AFTER content_type;"
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.width
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'width'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN width INT NULL AFTER media_type;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.height
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'height'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN height INT NULL AFTER width;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.duration
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'duration'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN duration INT NULL DEFAULT 0 AFTER height;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.title
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'title'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN title VARCHAR(200) NULL AFTER duration;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.description
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'description'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN description TEXT NULL AFTER title;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.ai_description
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'ai_description'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN ai_description TEXT NULL AFTER description;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.thumbnail_url
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'thumbnail_url'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN thumbnail_url VARCHAR(500) NULL AFTER ai_description;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.embed_url
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'embed_url'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN embed_url VARCHAR(512) NULL AFTER thumbnail_url;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.is_sensitive
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'is_sensitive'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN is_sensitive TINYINT(1) NOT NULL DEFAULT 0 AFTER thumbnail_url;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.ai_decision
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'ai_decision'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN ai_decision VARCHAR(16) NULL AFTER review_status;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.ai_label_snapshot
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'ai_label_snapshot'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN ai_label_snapshot LONGTEXT NULL AFTER ai_decision;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.ai_error_code
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'ai_error_code'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN ai_error_code VARCHAR(64) NULL AFTER ai_label_snapshot;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.ai_error_message
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'ai_error_message'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN ai_error_message VARCHAR(255) NULL AFTER ai_error_code;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.ai_request_id
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'ai_request_id'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN ai_request_id VARCHAR(128) NULL AFTER ai_error_message;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.review_score
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'review_score'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN review_score FLOAT NULL AFTER ai_request_id;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.review_notes
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'review_notes'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN review_notes TEXT NULL AFTER review_score;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.view_count
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'view_count'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN view_count BIGINT NOT NULL DEFAULT 0 AFTER like_count;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.download_count
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'download_count'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN download_count BIGINT NOT NULL DEFAULT 0 AFTER view_count;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.report_count
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'report_count'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN report_count BIGINT NOT NULL DEFAULT 0 AFTER download_count;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.metadata
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'metadata'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN metadata JSON NULL AFTER report_count;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.version
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'version'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN version INT NOT NULL DEFAULT 1 AFTER metadata;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.file_hash_index
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.statistics WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'idx_upload_records_file_hash'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD INDEX idx_upload_records_file_hash (file_hash);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.public_created_index
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.statistics WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'idx_upload_records_public_created'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD INDEX idx_upload_records_public_created (is_public, uploaded_at);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.media_type_index
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.statistics WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'idx_upload_records_media_type'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD INDEX idx_upload_records_media_type (media_type);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.fulltext_description
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.statistics WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'ft_upload_records_text'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD FULLTEXT KEY ft_upload_records_text (title, description, ai_description);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.size_check
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+    WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND CONSTRAINT_NAME = 'chk_upload_records_size'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD CONSTRAINT chk_upload_records_size CHECK (size <= 20971520);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_likes.guest_token
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_likes' AND COLUMN_NAME = 'guest_token'),
+  'SELECT 1;',
+  'ALTER TABLE upload_likes ADD COLUMN guest_token VARCHAR(64) NULL AFTER user_id;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_likes.guest_display_name
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_likes' AND COLUMN_NAME = 'guest_display_name'),
+  'SELECT 1;',
+  'ALTER TABLE upload_likes ADD COLUMN guest_display_name VARCHAR(60) NULL AFTER guest_token;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_likes.guest_avatar_url
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_likes' AND COLUMN_NAME = 'guest_avatar_url'),
+  'SELECT 1;',
+  'ALTER TABLE upload_likes ADD COLUMN guest_avatar_url VARCHAR(255) NULL AFTER guest_display_name;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_likes.liked_as_guest
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_likes' AND COLUMN_NAME = 'liked_as_guest'),
+  'SELECT 1;',
+  'ALTER TABLE upload_likes ADD COLUMN liked_as_guest TINYINT(1) NOT NULL DEFAULT 0 AFTER guest_avatar_url;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_likes.user_id_nullable
+SET @sql := IF(
+  EXISTS (
+    SELECT 1
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema
+      AND TABLE_NAME = 'upload_likes'
+      AND COLUMN_NAME = 'user_id'
+      AND IS_NULLABLE = 'NO'
+  ),
+  'ALTER TABLE upload_likes MODIFY COLUMN user_id BIGINT NULL;',
+  'SELECT 1;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_likes.unique_indexes
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_likes' AND INDEX_NAME = 'uq_upload_like_user'),
+  'SELECT 1;',
+  IF(
+    EXISTS (SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_likes' AND INDEX_NAME = 'uq_upload_like'),
+    'ALTER TABLE upload_likes RENAME INDEX uq_upload_like TO uq_upload_like_user;',
+    'SELECT 1;'
+  )
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_likes' AND INDEX_NAME = 'uq_upload_like_user'),
+  'SELECT 1;',
+  'ALTER TABLE upload_likes ADD UNIQUE KEY uq_upload_like_user (upload_id, user_id);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_likes' AND INDEX_NAME = 'uq_upload_like_guest'),
+  'SELECT 1;',
+  'ALTER TABLE upload_likes ADD UNIQUE KEY uq_upload_like_guest (upload_id, guest_token);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- chenxi_captcha_ticket.captcha_code
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'chenxi_captcha_ticket' AND COLUMN_NAME = 'captcha_code'),
+  'SELECT 1;',
+  'ALTER TABLE chenxi_captcha_ticket ADD COLUMN captcha_code VARCHAR(16) NULL AFTER tolerance;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- chenxi_captcha_ticket.attempts
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'chenxi_captcha_ticket' AND COLUMN_NAME = 'attempts'),
+  'SELECT 1;',
+  'ALTER TABLE chenxi_captcha_ticket ADD COLUMN attempts INT NOT NULL DEFAULT 0 AFTER captcha_code;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.asset_domain
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'asset_domain'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN asset_domain VARCHAR(255) NULL AFTER registration_enabled;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.custom_footer_html
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'custom_footer_html'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN custom_footer_html TEXT NULL AFTER asset_domain;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.guest_like_enabled
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'guest_like_enabled'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN guest_like_enabled TINYINT(1) NOT NULL DEFAULT 1 AFTER registration_enabled;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.ai_moderation_enabled
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'ai_moderation_enabled'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN ai_moderation_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER custom_footer_html;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.ai_labeling_enabled
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'ai_labeling_enabled'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN ai_labeling_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER ai_moderation_enabled;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.ai_tencent_secret_id
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'ai_tencent_secret_id'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN ai_tencent_secret_id VARCHAR(128) NULL AFTER ai_labeling_enabled;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.ai_tencent_secret_key
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'ai_tencent_secret_key'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN ai_tencent_secret_key VARCHAR(128) NULL AFTER ai_tencent_secret_id;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.ai_tencent_region
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'ai_tencent_region'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN ai_tencent_region VARCHAR(64) NULL AFTER ai_tencent_secret_key;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.ai_tencent_bucket
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'ai_tencent_bucket'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN ai_tencent_bucket VARCHAR(128) NULL AFTER ai_tencent_region;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.ai_tencent_detect_scenes
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'ai_tencent_detect_scenes'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN ai_tencent_detect_scenes VARCHAR(128) NULL AFTER ai_tencent_bucket;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.ai_moderation_block_confidence
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'ai_moderation_block_confidence'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN ai_moderation_block_confidence INT NOT NULL DEFAULT 90 AFTER ai_tencent_detect_scenes;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.ai_moderation_review_confidence
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'ai_moderation_review_confidence'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN ai_moderation_review_confidence INT NOT NULL DEFAULT 60 AFTER ai_moderation_block_confidence;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- system_config.ai_label_min_confidence
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'system_config' AND COLUMN_NAME = 'ai_label_min_confidence'),
+  'SELECT 1;',
+  'ALTER TABLE system_config ADD COLUMN ai_label_min_confidence INT NOT NULL DEFAULT 60 AFTER ai_moderation_review_confidence;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+UPDATE system_config
+SET asset_domain = NULL
+WHERE asset_domain IN ('http://localhost:8080', 'http://127.0.0.1:8080');
+
+UPDATE system_config SET guest_like_enabled = IFNULL(guest_like_enabled, 1);
+
+-- tags.type
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'tags' AND COLUMN_NAME = 'type'),
+  'SELECT 1;',
+  "ALTER TABLE tags ADD COLUMN type ENUM('user','system','ai') NOT NULL DEFAULT 'user' AFTER slug;"
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- tags.media_count
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'tags' AND COLUMN_NAME = 'media_count'),
+  'SELECT 1;',
+  'ALTER TABLE tags ADD COLUMN media_count INT NOT NULL DEFAULT 0 AFTER type;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- tags.type_index
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.statistics WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'tags' AND INDEX_NAME = 'idx_tags_type'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE tags ADD INDEX idx_tags_type (type);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_record_tags.source
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_record_tags' AND COLUMN_NAME = 'source'),
+  'SELECT 1;',
+  "ALTER TABLE upload_record_tags ADD COLUMN source ENUM('user','ai','system') NOT NULL DEFAULT 'user' AFTER tag_id;"
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_record_tags.confidence
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_record_tags' AND COLUMN_NAME = 'confidence'),
+  'SELECT 1;',
+  'ALTER TABLE upload_record_tags ADD COLUMN confidence FLOAT NULL AFTER source;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_record_tags.created_at
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_record_tags' AND COLUMN_NAME = 'created_at'),
+  'SELECT 1;',
+  'ALTER TABLE upload_record_tags ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER confidence;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_record_tags.tag_index
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.statistics WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_record_tags' AND INDEX_NAME = 'idx_upload_record_tags_tag'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE upload_record_tags ADD INDEX idx_upload_record_tags_tag (tag_id);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- api_keys.per_minute_quota
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'api_keys' AND COLUMN_NAME = 'per_minute_quota'),
+  'SELECT 1;',
+  'ALTER TABLE api_keys ADD COLUMN per_minute_quota INT NOT NULL DEFAULT 120 AFTER requests_today;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- api_keys.requests_current_minute
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'api_keys' AND COLUMN_NAME = 'requests_current_minute'),
+  'SELECT 1;',
+  'ALTER TABLE api_keys ADD COLUMN requests_current_minute INT NOT NULL DEFAULT 0 AFTER per_minute_quota;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- api_keys.current_minute_window
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'api_keys' AND COLUMN_NAME = 'current_minute_window'),
+  'SELECT 1;',
+  'ALTER TABLE api_keys ADD COLUMN current_minute_window DATETIME NULL AFTER requests_current_minute;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- api_keys.owner_id
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'api_keys' AND COLUMN_NAME = 'owner_id'),
+  'SELECT 1;',
+  'ALTER TABLE api_keys ADD COLUMN owner_id BIGINT NULL AFTER id;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- api_keys.prefix
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'api_keys' AND COLUMN_NAME = 'prefix'),
+  'SELECT 1;',
+  'ALTER TABLE api_keys ADD COLUMN prefix VARCHAR(10) NULL AFTER masked_key;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- api_keys.scopes
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'api_keys' AND COLUMN_NAME = 'scopes'),
+  'SELECT 1;',
+  'ALTER TABLE api_keys ADD COLUMN scopes JSON NULL AFTER prefix;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- api_keys.status
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'api_keys' AND COLUMN_NAME = 'status'),
+  'SELECT 1;',
+  "ALTER TABLE api_keys ADD COLUMN status ENUM('active','revoked','expired') NOT NULL DEFAULT 'active' AFTER active;"
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- api_keys.expires_at
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'api_keys' AND COLUMN_NAME = 'expires_at'),
+  'SELECT 1;',
+  'ALTER TABLE api_keys ADD COLUMN expires_at DATETIME NULL AFTER last_used_at;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- api_keys.prefix_index
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.statistics WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'api_keys' AND INDEX_NAME = 'idx_api_keys_prefix'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE api_keys ADD INDEX idx_api_keys_prefix (prefix);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- api_keys.status_index
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.statistics WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'api_keys' AND INDEX_NAME = 'idx_api_keys_status_expires'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE api_keys ADD INDEX idx_api_keys_status_expires (status, expires_at);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.REFERENTIAL_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA COLLATE utf8mb3_general_ci = @schema COLLATE utf8mb3_general_ci
+      AND CONSTRAINT_NAME COLLATE utf8mb3_general_ci = 'fk_api_keys_owner'
+
+  ),
+  'SELECT 1;',
+  'ALTER TABLE api_keys ADD CONSTRAINT fk_api_keys_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS interactions (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
@@ -349,39 +1649,58 @@ CREATE TABLE IF NOT EXISTS interactions (
   CONSTRAINT fk_interactions_media_uuid FOREIGN KEY (media_uuid) REFERENCES upload_records(media_uuid) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT='用户互动表';
 
--- Auth and security throttling (auth_lock_states)
-CREATE TABLE IF NOT EXISTS auth_lock_states (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  username VARCHAR(191) NOT NULL DEFAULT '',
-  ip VARCHAR(64) NOT NULL DEFAULT '',
-  dimension VARCHAR(32) NOT NULL,
-  stage VARCHAR(16) NOT NULL,
-  fail_count INT NOT NULL DEFAULT 0,
-  locked_until DATETIME NULL,
-  last_failed_at DATETIME NULL,
-  window_date DATE NULL,
-  lock_reason VARCHAR(255) NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_auth_lock (username, ip, dimension),
-  KEY idx_auth_lock_ip (ip),
-  KEY idx_auth_lock_window (window_date)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- interactions.media_uuid retro-fit
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'interactions' AND COLUMN_NAME = 'media_uuid'),
+  'SELECT 1;',
+  'ALTER TABLE interactions ADD COLUMN media_uuid CHAR(36) NULL AFTER media_id;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
-CREATE TABLE IF NOT EXISTS security_logs (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  event_type VARCHAR(64) NOT NULL,
-  username VARCHAR(191) NULL,
-  ip VARCHAR(64) NULL,
-  message VARCHAR(512) NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_security_logs_type (event_type),
-  KEY idx_security_logs_created (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+UPDATE interactions i
+JOIN upload_records ur ON ur.id = i.media_id
+SET i.media_uuid = ur.media_uuid
+WHERE i.media_uuid IS NULL;
 
--- =====================
--- Views
--- =====================
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'interactions' AND COLUMN_NAME = 'media_uuid' AND IS_NULLABLE = 'YES'
+  ),
+  'ALTER TABLE interactions MODIFY COLUMN media_uuid CHAR(36) NOT NULL;',
+  'SELECT 1;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'interactions' AND INDEX_NAME = 'idx_interactions_media_uuid'
+  ),
+  'SELECT 1;',
+  'ALTER TABLE interactions ADD INDEX idx_interactions_media_uuid (media_uuid);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (
+    SELECT 1 FROM information_schema.REFERENTIAL_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA COLLATE utf8mb3_general_ci = @schema COLLATE utf8mb3_general_ci
+      AND CONSTRAINT_NAME COLLATE utf8mb3_general_ci = 'fk_interactions_media_uuid'
+
+  ),
+  'SELECT 1;',
+  'ALTER TABLE interactions ADD CONSTRAINT fk_interactions_media_uuid FOREIGN KEY (media_uuid) REFERENCES upload_records(media_uuid) ON DELETE CASCADE;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 DROP VIEW IF EXISTS media;
 CREATE VIEW media AS
@@ -396,7 +1715,7 @@ SELECT
   ur.media_type,
   ur.width,
   ur.height,
-  COALESCE(ur.duration_seconds, ur.duration) AS duration,
+  ur.duration,
   ur.title,
   ur.description,
   ur.ai_description,
@@ -419,7 +1738,9 @@ SELECT
   ur.uploaded_at AS updated_at
 FROM upload_records ur;
 
+-- 先删除已存在的视图，再创建（MySQL 不支持 IF NOT EXISTS）
 DROP VIEW IF EXISTS media_tags;
+
 CREATE VIEW media_tags AS
 SELECT
   upload_id AS media_id,
@@ -429,17 +1750,14 @@ SELECT
   created_at
 FROM upload_record_tags;
 
--- =====================
--- Seed data
--- =====================
-
+-- 角色与管理员账号（若已存在则更新描述）
 INSERT INTO roles (id, name, description) VALUES
     (1, 'ADMIN', '管理员'),
     (2, 'USER', '用户'),
     (3, 'GUEST', '访客')
 ON DUPLICATE KEY UPDATE description = VALUES(description);
 
-INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, 'admin', '$2b$12$1uLnox51dsclaN4VP7wQnen64wtIuBZyp98vltJgmOgEoTjC6/En2', 'Admin', 'admin@example.com', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;
+INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, 'admin', '$2b$12$eBfVIe.azf9M6rMHvFdYh.9fkn7qetZM//GS56iOSwVkeiZBbIj8.', 'Admin', 'admin@example.com', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;
 
 INSERT IGNORE INTO user_roles (user_id, role_id)
 SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ADMIN' WHERE u.username = 'admin';
@@ -529,6 +1847,10 @@ ON DUPLICATE KEY UPDATE
     ai_label_min_confidence = VALUES(ai_label_min_confidence),
     updated_at = NOW();
 
+UPDATE system_config
+SET max_upload_bytes = 20971520
+WHERE id = 1 AND max_upload_bytes <> 20971520;
+
 INSERT INTO chenxi_mail_config (id, smtp_host, smtp_port, smtp_username, smtp_password, secure_type, from_email, from_name, enabled, updated_at, updated_by)
 VALUES (1, 'smtp.example.com', 465, 'no-reply@example.com', 'CHANGE_ME', 'ssl', 'no-reply@example.com', 'AstrNest Mailer', 0, NOW(), 'init-script')
 ON DUPLICATE KEY UPDATE
@@ -554,20 +1876,97 @@ UPDATE system_config
 SET asset_domain = NULL
 WHERE id = 1 AND (asset_domain IS NULL OR asset_domain IN ('http://localhost:8080', 'http://127.0.0.1:8080'));
 
--- 将本地文件链接对齐为可直连的 /upload/ 路径（新库为空时无影响）
+-- 将本地文件链接对齐为可直连的 /upload/ 路径，便于使用统一反代规则
 UPDATE upload_records
 SET image_link = CONCAT('/upload/', REPLACE(storage_path, '\\', '/'))
 WHERE storage_path IS NOT NULL
   AND (storage_provider IS NULL OR storage_provider IN ('LOCAL', 'LOCAL_DISK'));
 
--- =====================
--- Trigger (no DELIMITER needed)
--- =====================
-
 DROP TRIGGER IF EXISTS trg_upload_records_before_insert;
+DELIMITER $$
 CREATE TRIGGER trg_upload_records_before_insert
 BEFORE INSERT ON upload_records
 FOR EACH ROW
-  SET NEW.media_uuid = IF(NEW.media_uuid IS NULL OR NEW.media_uuid = '', UUID(), NEW.media_uuid);
+BEGIN
+  IF NEW.media_uuid IS NULL OR NEW.media_uuid = '' THEN
+    SET NEW.media_uuid = UUID();
+  END IF;
+END$$
+DELIMITER ;
 
-SET FOREIGN_KEY_CHECKS = 1;
+-- Auth and security throttling (auth_lock_states)
+CREATE TABLE IF NOT EXISTS auth_lock_states (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(191) NOT NULL DEFAULT '',
+  ip VARCHAR(64) NOT NULL DEFAULT '',
+  dimension VARCHAR(32) NOT NULL,
+  stage VARCHAR(16) NOT NULL,
+  fail_count INT NOT NULL DEFAULT 0,
+  locked_until DATETIME NULL,
+  last_failed_at DATETIME NULL,
+  window_date DATE NULL,
+  lock_reason VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_auth_lock (username, ip, dimension),
+  KEY idx_auth_lock_ip (ip),
+  KEY idx_auth_lock_window (window_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==================== 图集功能表 ====================
+
+CREATE TABLE IF NOT EXISTS albums (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  album_uuid CHAR(36) NOT NULL UNIQUE COMMENT '图集UUID',
+  user_id BIGINT NOT NULL COMMENT '创建者ID',
+  path_slug VARCHAR(50) UNIQUE NOT NULL COMMENT 'URL路径标识，如 "pc"',
+  name VARCHAR(100) NOT NULL COMMENT '图集名称',
+  description TEXT COMMENT '描述',
+  is_public BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否公开',
+  cover_image_uuid CHAR(36) COMMENT '封面图UUID',
+  access_count BIGINT NOT NULL DEFAULT 0 COMMENT '访问次数',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_albums_user_id (user_id),
+  INDEX idx_albums_path_slug (path_slug),
+  INDEX idx_albums_public (is_public),
+  CONSTRAINT fk_albums_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT='用户图集表';
+
+CREATE TABLE IF NOT EXISTS album_media (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  album_id BIGINT NOT NULL COMMENT '图集ID',
+  media_uuid CHAR(36) NOT NULL COMMENT '图片UUID',
+  added_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
+  added_by BIGINT COMMENT '操作者用户ID',
+  sort_order INT DEFAULT 0 COMMENT '自定义排序',
+  UNIQUE KEY uq_album_media (album_id, media_uuid),
+  INDEX idx_album_media_media_uuid (media_uuid),
+  INDEX idx_album_media_sort (album_id, sort_order),
+  CONSTRAINT fk_album_media_album FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+  CONSTRAINT fk_album_media_user FOREIGN KEY (added_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT='图集与图片关联表';
+
+CREATE TABLE IF NOT EXISTS album_access_logs (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  album_id BIGINT NOT NULL COMMENT '图集ID',
+  media_uuid CHAR(36) COMMENT '返回的图片UUID',
+  client_ip VARCHAR(64) COMMENT '访问者IP',
+  user_agent VARCHAR(512) COMMENT 'User-Agent',
+  referer VARCHAR(512) COMMENT '来源页面',
+  accessed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_album_access_logs_album_id (album_id),
+  INDEX idx_album_access_logs_accessed_at (accessed_at),
+  CONSTRAINT fk_album_access_logs_album FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT='图集访问日志表';
+
+CREATE TABLE IF NOT EXISTS security_logs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  event_type VARCHAR(64) NOT NULL,
+  username VARCHAR(191) NULL,
+  ip VARCHAR(64) NULL,
+  message VARCHAR(512) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_security_logs_type (event_type),
+  KEY idx_security_logs_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

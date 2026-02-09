@@ -34,7 +34,8 @@ http.interceptors.request.use(async (config) => {
     config.headers = {}
   }
   if (auth.isAuthenticated && auth.token) {
-    config.headers.Authorization = auth.token
+    const token = auth.token.startsWith('Basic ') ? auth.token : `Basic ${auth.token}`
+    config.headers.Authorization = token
     auth.touchSession()
   }
   const visitorToken = ensureVisitorToken()
@@ -71,9 +72,11 @@ http.interceptors.response.use(
       console.error('API error', error.response.status, error.response.data)
       if (!isAuthAttempt && (error.response.status === 401 || error.response.status === 403)) {
         const auth = await getAuthStore()
+        // 清理本地失效凭据，避免反复带无效 Authorization 触发 401 循环
         auth.logout()
+        const redirect = encodeURIComponent(window.location.pathname + window.location.search)
         if (!window.location.search.includes('login=1')) {
-          window.location.href = '/?login=1'
+          window.location.href = `/?login=1&redirect=${redirect}`
         }
       }
     } else {

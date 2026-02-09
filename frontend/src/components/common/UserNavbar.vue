@@ -23,6 +23,7 @@ const closeLoginModal = () => {
 const FALLBACK_TABS = Object.freeze([
   { name: 'user-home', label: '仪表盘' },
   { name: 'user-images', label: '媒体管理' },
+  { name: 'user-albums', label: '我的图集' },
   { name: 'user-profile', label: '资料信息' },
   { name: 'user-security', label: '安全设置' },
   { name: 'user-api', label: 'API 接口管理' },
