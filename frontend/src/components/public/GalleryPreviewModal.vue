@@ -60,6 +60,24 @@
                   <span>{{ objectKeyLabel }}</span>
                 </li>
               </ul>
+              <!-- 图集信息 -->
+              <div v-if="item?.album" class="info-card">
+                <p class="section-label">所属图集</p>
+                <button
+                  type="button"
+                  class="uploader-btn"
+                  @click="handleAlbumClick"
+                >
+                  <div class="uploader-fallback album-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  </div>
+                  <div class="flex-1 text-left">
+                    <p class="heading-sm">{{ item.album.title }}</p>
+                    <p class="subheading-sm">查看图集详情</p>
+                  </div>
+                  <ChevronRight class="h-4 w-4 muted-icon" />
+                </button>
+              </div>
               <div class="info-card">
                 <p class="section-label">上传者</p>
                 <button
@@ -190,7 +208,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['close', 'like', 'copy', 'open-uploader', 'open-latest-liker'])
+const emit = defineEmits(['close', 'like', 'copy', 'open-uploader', 'open-latest-liker', 'open-album'])
 
 const resolvedMediaUrl = computed(() => (props.item ? props.resolvePublicUrl?.(props.item) || '' : ''))
 const resolvedPosterUrl = computed(() => (props.item ? props.resolvePosterUrl?.(props.item) || '' : ''))
@@ -207,6 +225,11 @@ const handleCopy = () => emit('copy', resolvedMediaUrl.value)
 const handleLike = (event) => emit('like', { event, item: props.item })
 const handleUploader = () => emit('open-uploader', props.item)
 const handleLatestLiker = () => emit('open-latest-liker', props.item)
+const handleAlbumClick = () => {
+  if (props.item?.album?.pathSlug) {
+    emit('open-album', props.item.album)
+  }
+}
 
 </script>
 

@@ -21,5 +21,12 @@ public record PublicGalleryItemResponse(
     boolean publicAccessible,
     boolean likedByMe,
     List<ChenxiTagResponse> tags,
-    PublicRecentLikeResponse latestLike
-) {}
+    PublicRecentLikeResponse latestLike,
+    PublicGalleryAlbumInfo album
+) {
+  public record PublicGalleryAlbumInfo(
+      Long id,
+      String title,
+      String pathSlug
+  ) {}
+}
