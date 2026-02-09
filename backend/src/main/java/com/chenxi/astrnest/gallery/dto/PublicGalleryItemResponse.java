@@ -26,7 +26,7 @@ public record PublicGalleryItemResponse(
 ) {
   public record PublicGalleryAlbumInfo(
       Long id,
-      String title,
+      String name,
       String pathSlug
   ) {}
 }
