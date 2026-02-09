@@ -9,14 +9,17 @@ SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
 SET collation_connection = utf8mb4_general_ci;
 
+-- 若数据库不存在，自动创建（需要有创建权限）；如无权限请手工创建后再执行
+CREATE DATABASE IF NOT EXISTS astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE astrnest;
+
 -- 设置数据库排序规则（如果数据库已存在且使用不同的排序规则）
 -- 注意：这需要足够的权限
 -- ALTER DATABASE astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
-USE astrnest;
-
 -- 获取数据库名，使用 utf8mb3 以匹配 information_schema
 SET @schema := CONVERT(DATABASE() USING utf8mb3);
+
 
 -- 核心表结构保障：确保全新库也可直接初始化
 CREATE TABLE IF NOT EXISTS users (
@@ -294,6 +297,15 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'idx_upload_records_album_public'),
+  'SELECT 1;',
+  'CREATE INDEX idx_upload_records_album_public ON upload_records(album_id, is_public, is_violation);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
   EXISTS (SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'albums')
   AND NOT EXISTS (
       SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
@@ -303,6 +315,7 @@ SET @sql := IF(
      ADD CONSTRAINT fk_upload_record_album FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE SET NULL;',
   'SELECT 1;'
 );
+
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
@@ -1757,7 +1770,7 @@ INSERT INTO roles (id, name, description) VALUES
     (3, 'GUEST', '访客')
 ON DUPLICATE KEY UPDATE description = VALUES(description);
 
-INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, 'admin', '$2b$12$eBfVIe.azf9M6rMHvFdYh.9fkn7qetZM//GS56iOSwVkeiZBbIj8.', 'Admin', 'admin@example.com', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;
+INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, 'chenxi', '$2b$12$r8QrgDJetf5B4bpWs10cx.zrOU5u8pIjVWe0fQw8LAPTm4Z0bcAYu', 'Admin', 'luminouschenxi@outlook.com', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;
 
 INSERT IGNORE INTO user_roles (user_id, role_id)
 SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ADMIN' WHERE u.username = 'admin';

@@ -4,6 +4,21 @@ import dayjs from 'dayjs'
 import { RouterLink, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import { 
+  Megaphone, 
+  Search, 
+  Filter, 
+  ArrowRight, 
+  Calendar, 
+  User, 
+  AlertTriangle, 
+  Info,
+  Pin,
+  X,
+  ChevronRight,
+  RefreshCw,
+  FileText
+} from 'lucide-vue-next'
 import ChenxiGlobalFooter from '../../components/common/ChenxiGlobalFooter.vue'
 import UserNavbar from '../../components/common/UserNavbar.vue'
 import { fetchPublicAnnouncementDetail, fetchPublicAnnouncements } from '../../services/announcements'
@@ -12,7 +27,7 @@ const router = useRouter()
 const loading = ref(false)
 const items = ref([])
 const page = ref(1)
-const size = ref(8)
+const size = ref(9)
 const total = ref(0)
 const level = ref('ALL')
 const keyword = ref('')
@@ -22,9 +37,9 @@ const detailLoading = ref(false)
 const activeDetail = ref(null)
 
 const levelOptions = [
-  { value: 'ALL', label: '全部等级' },
-  { value: 'EMERGENCY', label: '紧急' },
-  { value: 'NOTICE', label: '注意' },
+  { value: 'ALL', label: '全部公告' },
+  { value: 'EMERGENCY', label: '紧急通知' },
+  { value: 'NOTICE', label: '一般公告' },
 ]
 
 const sanitizedContent = computed(() => {
@@ -37,7 +52,7 @@ const buildAuthorInfo = (announcement) => {
     return {
       name: '系统公告',
       role: '系统',
-      initials: 'SYS',
+      initials: '系',
       avatar: null,
       link: null,
     }
@@ -51,7 +66,7 @@ const buildAuthorInfo = (announcement) => {
   return {
     name,
     role,
-    initials: name.slice(0, 2).toUpperCase(),
+    initials: name.slice(0, 1),
     avatar,
     link,
   }
@@ -93,6 +108,10 @@ const openDetail = async (id) => {
   }
 }
 
+const closeDetail = () => {
+  detailVisible.value = false
+}
+
 onMounted(load)
 
 const handlePageChange = (value) => {
@@ -100,115 +119,154 @@ const handlePageChange = (value) => {
   load()
 }
 
-const levelBadgeClass = (value) => {
-  if (value === 'EMERGENCY') return 'border border-rose-400/30 bg-rose-500/15 text-rose-100'
-  return 'border border-amber-300/30 bg-amber-400/15 text-amber-50'
+const getLevelIcon = (level) => {
+  return level === 'EMERGENCY' ? AlertTriangle : Info
+}
+
+const getLevelClass = (level) => {
+  return level === 'EMERGENCY' ? 'emergency' : 'notice'
+}
+
+const getLevelLabel = (level) => {
+  return level === 'EMERGENCY' ? '紧急' : '公告'
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-surface-body pt-32 text-white">
+  <div class="announcements-page">
     <UserNavbar />
-    <div class="relative border-b border-white/10 bg-[radial-gradient(circle_at_20%_20%,rgba(127,123,255,0.25),transparent_55%)]">
-      <div class="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-16 md:flex-row md:items-center md:justify-between">
-        <div class="space-y-3">
-          <p class="hero-eyebrow text-xs uppercase tracking-[0.45em]">公告中心</p>
-          <h1 class="hero-title text-3xl font-semibold leading-tight md:text-4xl">站内公告</h1>
-          <p class="hero-desc text-sm">服务变更、维护提醒、紧急通知，一站查看。</p>
+    
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-container">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <Megaphone class="badge-icon" />
+            <span>公告中心</span>
+          </div>
+          <h1 class="hero-title">站内公告</h1>
+          <p class="hero-subtitle">服务变更、维护提醒、紧急通知，一站查看</p>
         </div>
-        <button
-          class="hero-cta inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition"
-          @click="router.push('/')"
-        >
+        <button class="btn-secondary" @click="router.push('/')">
           返回首页
         </button>
       </div>
-    </div>
+      <div class="hero-decoration">
+        <div class="decoration-circle circle-1"></div>
+        <div class="decoration-circle circle-2"></div>
+        <div class="decoration-circle circle-3"></div>
+      </div>
+    </section>
 
-    <main class="mx-auto max-w-6xl space-y-8 px-6 py-10">
-      <section class="glass-panel rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-card md:p-7">
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-          <div class="relative flex-1">
-            <input
-              v-model="keyword"
-              type="text"
-              maxlength="120"
-              placeholder="搜索标题或摘要"
-              class="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
-              @keyup.enter="load"
-            />
+    <main class="main-container">
+      <!-- Search & Filter Section -->
+      <section class="filter-section">
+        <div class="filter-card">
+          <div class="filter-row">
+            <div class="search-box">
+              <Search class="search-icon" />
+              <input
+                v-model="keyword"
+                type="text"
+                maxlength="120"
+                placeholder="搜索公告标题或内容..."
+                @keyup.enter="load"
+              />
+            </div>
+            <div class="filter-group">
+              <div class="select-wrapper">
+                <Filter class="select-icon" />
+                <select v-model="level" @change="load">
+                  <option v-for="item in levelOptions" :key="item.value" :value="item.value">
+                    {{ item.label }}
+                  </option>
+                </select>
+              </div>
+              <button class="btn-primary" @click="load">
+                <RefreshCw class="btn-icon" />
+                刷新
+              </button>
+            </div>
           </div>
-          <select
-            v-model="level"
-            class="w-full rounded-2xl border border-white/15 bg-black/30 px-3 py-3 text-sm text-white/80 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/30 md:w-40"
-            @change="load"
-          >
-            <option v-for="item in levelOptions" :key="item.value" :value="item.value" class="text-slate-900">{{ item.label }}</option>
-          </select>
-          <button
-            class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-accent px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(127,123,255,0.35)] transition hover:translate-y-0.5"
-            @click="load"
-          >
-            刷新
-          </button>
         </div>
-        <p class="mt-2 text-xs login-hint">登录后可看到更多与您相关的更新。</p>
       </section>
 
-      <section class="space-y-4">
-        <div
-          v-if="!loading && items.length === 0"
-          class="rounded-3xl border border-white/10 bg-white/5 px-6 py-10 text-center text-white/70"
-        >
-          暂无公告，敬请期待。
+      <!-- Announcements Grid -->
+      <section class="announcements-section">
+        <!-- Empty State -->
+        <div v-if="!loading && items.length === 0" class="empty-state">
+          <div class="empty-illustration">
+            <FileText class="empty-icon" />
+          </div>
+          <h3 class="empty-title">暂无公告</h3>
+          <p class="empty-desc">暂时没有相关公告，请稍后再来查看</p>
         </div>
 
-        <div v-else class="grid gap-5 md:grid-cols-2">
+        <!-- Loading State -->
+        <div v-else-if="loading" class="loading-grid">
+          <div v-for="i in 6" :key="i" class="skeleton-card">
+            <div class="skeleton-header">
+              <div class="skeleton-badge"></div>
+              <div class="skeleton-date"></div>
+            </div>
+            <div class="skeleton-title"></div>
+            <div class="skeleton-desc"></div>
+            <div class="skeleton-footer"></div>
+          </div>
+        </div>
+
+        <!-- Announcements Grid -->
+        <div v-else class="announcements-grid">
           <article
             v-for="announcement in decoratedItems"
             :key="announcement.id"
-            class="announcement-card group cursor-pointer rounded-[32px] p-7 transition hover:-translate-y-1"
+            class="announcement-card"
+            :class="{ 'is-pinned': announcement.pinned, 'is-emergency': announcement.level === 'EMERGENCY' }"
             @click="openDetail(announcement.id)"
           >
-            <div class="flex items-start justify-between gap-4">
-              <div class="flex items-center gap-2 text-xs card-muted">
-                <span class="h-2 w-2 rounded-full bg-brand-primary"></span>
-                <p class="font-semibold uppercase tracking-wide">{{ dayjs(announcement.publishedAt || announcement.updatedAt).format('YYYY/MM/DD HH:mm') }}</p>
+            <!-- Card Header -->
+            <div class="card-header">
+              <div class="level-badge" :class="getLevelClass(announcement.level)">
+                <component :is="getLevelIcon(announcement.level)" class="badge-icon" />
+                <span>{{ getLevelLabel(announcement.level) }}</span>
               </div>
-              <span class="rounded-full px-3 py-1 text-xs font-semibold badge-soft" :class="levelBadgeClass(announcement.level)">
-                {{ announcement.level === 'EMERGENCY' ? '紧急' : '注意' }}
-              </span>
+              <div class="card-meta">
+                <span v-if="announcement.pinned" class="pin-badge">
+                  <Pin class="pin-icon" />
+                  置顶
+                </span>
+                <span class="publish-date">
+                  <Calendar class="date-icon" />
+                  {{ dayjs(announcement.publishedAt || announcement.updatedAt).format('MM/DD') }}
+                </span>
+              </div>
             </div>
-            <h3 class="mt-3 text-xl font-semibold card-title group-hover:text-brand-primary">{{ announcement.title }}</h3>
-            <p class="mt-2 line-clamp-3 text-sm leading-6 card-desc">{{ announcement.summary || '暂未提供摘要。' }}</p>
-            <div class="mt-5 flex flex-wrap items-center justify-between gap-4 text-xs card-muted">
-              <div class="flex flex-wrap items-center gap-3 author-block">
-                <RouterLink
-                  v-if="announcement.authorInfo.link"
-                  :to="announcement.authorInfo.link"
-                  class="author-inline clickable"
-                  @click.stop
-                >
-                  <span class="author-name">{{ announcement.authorInfo.name }}</span>
-                  <span class="author-divider" v-if="announcement.authorInfo.role">·</span>
-                  <span class="author-role" v-if="announcement.authorInfo.role">{{ announcement.authorInfo.role }}</span>
-                </RouterLink>
-                <div v-else class="author-inline">
-                  <span class="author-name">{{ announcement.authorInfo.name }}</span>
-                  <span class="author-divider" v-if="announcement.authorInfo.role">·</span>
-                  <span class="author-role" v-if="announcement.authorInfo.role">{{ announcement.authorInfo.role }}</span>
+
+            <!-- Card Content -->
+            <div class="card-content">
+              <h3 class="card-title">{{ announcement.title }}</h3>
+              <p class="card-summary">{{ announcement.summary || '暂无摘要' }}</p>
+            </div>
+
+            <!-- Card Footer -->
+            <div class="card-footer">
+              <div class="author-info">
+                <div class="author-avatar">
+                  <img v-if="announcement.authorInfo.avatar" :src="announcement.authorInfo.avatar" :alt="announcement.authorInfo.name" />
+                  <span v-else>{{ announcement.authorInfo.initials }}</span>
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="status-chip">{{ announcement.status === 'PUBLISHED' ? '已发布' : '草稿' }}</span>
-                  <span v-if="announcement.pinned" class="rounded-full border border-amber-300/30 bg-amber-400/15 px-2 py-1 text-amber-100">置顶</span>
-                </div>
+                <span class="author-name">{{ announcement.authorInfo.name }}</span>
               </div>
-              <span class="text-brand-primary">查看详情 →</span>
+              <span class="read-more">
+                查看详情
+                <ChevronRight class="arrow-icon" />
+              </span>
             </div>
           </article>
         </div>
 
-        <div v-if="total > size" class="flex justify-center pt-2">
+        <!-- Pagination -->
+        <div v-if="total > size" class="pagination-wrapper">
           <el-pagination
             background
             layout="prev, pager, next"
@@ -218,289 +276,1218 @@ const levelBadgeClass = (value) => {
             @current-change="handlePageChange"
           />
         </div>
-
-        <div v-if="loading" class="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
-          正在加载公告...
-        </div>
       </section>
     </main>
 
     <ChenxiGlobalFooter />
 
-    <el-dialog
-      v-model="detailVisible"
-      :title="activeDetail?.title || '公告详情'"
-      width="720px"
-      align-center
-      class="chenxi-dialog dark"
-    >
-      <template #header>
-        <div class="space-y-3">
-          <div class="flex items-start justify-between gap-4">
-            <div class="space-y-2">
-              <p class="text-xs uppercase tracking-[0.25em] text-white/50">公告详情</p>
-              <h3 class="detail-title">{{ activeDetail?.title || '公告详情' }}</h3>
-              <div class="detail-meta" v-if="activeDetail">
-                <span>{{ dayjs(activeDetail.publishedAt || activeDetail.updatedAt).format('YYYY/MM/DD HH:mm') }}</span>
-                <span class="level-pill">{{ activeDetail.level === 'EMERGENCY' ? '紧急' : '注意' }}</span>
+    <!-- Detail Modal -->
+    <Transition name="modal">
+      <div v-if="detailVisible" class="modal-overlay" @click.self="closeDetail">
+        <div class="modal-panel">
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <div class="header-content">
+              <div class="header-badge" :class="activeDetail?.level === 'EMERGENCY' ? 'emergency' : 'notice'">
+                <component :is="getLevelIcon(activeDetail?.level)" class="badge-icon" />
+                <span>{{ getLevelLabel(activeDetail?.level) }}</span>
+              </div>
+              <h2 class="modal-title">{{ activeDetail?.title || '公告详情' }}</h2>
+              <div class="modal-meta">
+                <span class="meta-item">
+                  <Calendar class="meta-icon" />
+                  {{ activeDetail ? dayjs(activeDetail.publishedAt || activeDetail.updatedAt).format('YYYY年MM月DD日 HH:mm') : '' }}
+                </span>
+                <span v-if="activeDetail?.pinned" class="meta-item pin">
+                  <Pin class="meta-icon" />
+                  置顶公告
+                </span>
               </div>
             </div>
-            <span v-if="activeDetail?.pinned" class="rounded-full border border-amber-300/30 bg-amber-400/15 px-3 py-1 text-xs text-amber-100">置顶</span>
+            <button class="close-btn" @click="closeDetail">
+              <X class="close-icon" />
+            </button>
           </div>
-          <RouterLink
-            v-if="detailAuthorInfo.link"
-            :to="detailAuthorInfo.link"
-            class="author-tile clickable"
-          >
-            <div class="author-avatar">
-              <img v-if="detailAuthorInfo.avatar" :src="detailAuthorInfo.avatar" alt="avatar" />
-              <span v-else>{{ detailAuthorInfo.initials }}</span>
-            </div>
-            <div class="tile-text">
-              <p class="tile-name">{{ detailAuthorInfo.name }}</p>
-              <p class="tile-role">{{ detailAuthorInfo.role || '查看发布者详情' }}</p>
-            </div>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </RouterLink>
-          <div v-else class="author-tile disabled">
-            <div class="author-avatar">
-              <span>{{ detailAuthorInfo.initials }}</span>
-            </div>
-            <div class="tile-text">
-              <p class="tile-name">{{ detailAuthorInfo.name }}</p>
-              <p class="tile-role">{{ detailAuthorInfo.role || '系统' }}</p>
-            </div>
-          </div>
-        </div>
-      </template>
 
-      <div v-if="detailLoading" class="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">正在加载...</div>
-      <div v-else-if="activeDetail" class="dialog-body space-y-5 text-sm text-white/85">
-        <p class="text-white/80">{{ activeDetail.summary || '暂无摘要' }}</p>
-        <div class="prose prose-invert max-w-none prose-headings:font-semibold prose-a:text-brand-primary prose-strong:text-white">
-          <div v-html="sanitizedContent"></div>
+          <!-- Modal Body -->
+          <div class="modal-body">
+            <div v-if="detailLoading" class="loading-state">
+              <div class="loading-spinner"></div>
+              <p>正在加载公告内容...</p>
+            </div>
+            
+            <template v-else-if="activeDetail">
+              <!-- Author Info -->
+              <RouterLink
+                v-if="detailAuthorInfo.link"
+                :to="detailAuthorInfo.link"
+                class="author-card clickable"
+                @click.stop
+              >
+                <div class="author-avatar">
+                  <img v-if="detailAuthorInfo.avatar" :src="detailAuthorInfo.avatar" alt="avatar" />
+                  <span v-else>{{ detailAuthorInfo.initials }}</span>
+                </div>
+                <div class="author-details">
+                  <span class="author-name">{{ detailAuthorInfo.name }}</span>
+                  <span class="author-role">{{ detailAuthorInfo.role }}</span>
+                </div>
+                <ChevronRight class="arrow-icon" />
+              </RouterLink>
+              
+              <div v-else class="author-card">
+                <div class="author-avatar">
+                  <span>{{ detailAuthorInfo.initials }}</span>
+                </div>
+                <div class="author-details">
+                  <span class="author-name">{{ detailAuthorInfo.name }}</span>
+                  <span class="author-role">{{ detailAuthorInfo.role }}</span>
+                </div>
+              </div>
+
+              <!-- Summary -->
+              <div v-if="activeDetail.summary" class="summary-box">
+                <Info class="summary-icon" />
+                <p>{{ activeDetail.summary }}</p>
+              </div>
+
+              <!-- Content -->
+              <div class="content-box">
+                <div class="markdown-content" v-html="sanitizedContent"></div>
+              </div>
+            </template>
+
+            <div v-else class="error-state">
+              <AlertTriangle class="error-icon" />
+              <p>未找到公告或已下线</p>
+            </div>
+          </div>
         </div>
       </div>
-      <div v-else class="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">未找到公告或已下线。</div>
-    </el-dialog>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
-:deep(.chenxi-dialog) {
-  background: radial-gradient(circle at 20% 20%, rgba(127, 123, 255, 0.25), transparent 55%), rgba(10, 12, 24, 0.98);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(28px);
-  border-radius: 28px;
-  color: #f8fafc;
+.announcements-page {
+  min-height: 100vh;
+  background: var(--bg-body, #fafafa);
 }
 
-:deep(.chenxi-dialog .el-dialog__body) {
-  padding: 28px 32px 32px;
+/* Hero Section */
+.hero-section {
+  position: relative;
+  padding: 120px 24px 60px;
+  background: linear-gradient(135deg, #FADCE9 0%, #AED0ED 50%, #f0fbf4 100%);
+  overflow: hidden;
 }
 
-.dialog-body {
-  border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(9, 11, 24, 0.7);
-  padding: 24px 26px 28px;
+:global(.dark) .hero-section {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
 }
 
-.hero-eyebrow {
-  color: var(--text-soft, rgba(255, 255, 255, 0.6));
-}
-
-.hero-title {
-  color: var(--color-text-primary, #0f172a);
-}
-
-.hero-desc {
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-}
-
-.hero-cta {
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.2));
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
-  background: var(--panel-overlay, rgba(255, 255, 255, 0.06));
-}
-
-.hero-cta:hover {
-  border-color: var(--brand-primary, #7f7bff);
-  color: var(--color-text-primary, #fff);
-}
-
-.announcement-card {
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
-  background: var(--glass-bg, color-mix(in srgb, var(--color-bg-primary, #0b1021) 88%, rgba(255, 255, 255, 0.04)));
-  box-shadow: var(--shadow-card, 0 20px 50px rgba(0, 0, 0, 0.35));
-}
-
-.announcement-card:hover {
-  border-color: color-mix(in srgb, var(--brand-primary, #7f7bff) 50%, var(--border-soft, rgba(255, 255, 255, 0.1)) 50%);
-  background: color-mix(in srgb, var(--glass-bg, #0b1021) 85%, rgba(255, 255, 255, 0.07));
-}
-
-.card-title {
-  color: var(--color-text-primary, #fff);
-}
-
-.card-desc {
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.72));
-}
-
-.card-muted {
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.65));
-}
-
-.badge-soft {
-  border-color: var(--border-soft, rgba(255, 255, 255, 0.2));
-  background: var(--panel-overlay, rgba(255, 255, 255, 0.04));
-  color: var(--color-text-primary, #fff);
-}
-
-.status-chip {
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.2));
-  background: var(--panel-overlay, rgba(255, 255, 255, 0.04));
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  color: var(--color-text-primary, #0f172a);
-}
-
-.author-block {
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-}
-
-.author-inline {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-}
-
-.author-inline.clickable {
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.author-inline.clickable:hover {
-  color: var(--color-text-primary, #fff);
-}
-
-.author-name {
-  font-weight: 600;
-  color: var(--color-text-primary, #0f172a);
-}
-
-.author-role {
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.55));
-}
-
-.author-divider {
-  color: var(--text-soft, rgba(255, 255, 255, 0.35));
-}
-
-.author-tile {
-  margin-top: 18px;
+.hero-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.02);
-  padding: 12px 16px;
-  text-align: left;
-  transition: all 0.2s ease;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 24px;
 }
 
-.author-tile.clickable:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.author-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #7c3aed, #f472b6);
-  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.35);
-}
-
-.author-avatar img {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.author-tile .tile-text {
+.hero-content {
   flex: 1;
 }
 
-.author-tile .tile-name {
-  font-size: 0.95rem;
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #fff;
+  color: #ff6b9d;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 15px rgba(255, 107, 157, 0.2);
 }
 
-.author-tile .tile-role {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.65);
+:global(.dark) .hero-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ff8fab;
 }
 
-.author-tile svg {
+.badge-icon {
   width: 18px;
   height: 18px;
+}
+
+.hero-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.02em;
+}
+
+:global(.dark) .hero-title {
+  color: #ffffff;
+}
+
+.hero-subtitle {
+  font-size: 1.1rem;
+  color: #4a4a5c;
+  margin: 0;
+  max-width: 400px;
+}
+
+:global(.dark) .hero-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4a4a5c;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+:global(.dark) .btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Hero Decoration */
+.hero-decoration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.decoration-circle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.circle-1 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(255, 107, 157, 0.3) 0%, transparent 70%);
+  top: -100px;
+  right: 10%;
+}
+
+.circle-2 {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(174, 208, 237, 0.4) 0%, transparent 70%);
+  bottom: -50px;
+  left: 5%;
+}
+
+.circle-3 {
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(240, 251, 244, 0.5) 0%, transparent 70%);
+  top: 50%;
+  right: 20%;
+}
+
+/* Main Container */
+.main-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+/* Filter Section */
+.filter-section {
+  margin-bottom: 32px;
+}
+
+.filter-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-soft, rgba(0, 0, 0, 0.08));
+  border-radius: 20px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+:global(.dark) .filter-card {
+  background: #1a1a2e;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.filter-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 280px;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: #9ca3af;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 14px 16px 14px 48px;
+  border: 1px solid var(--border-soft, rgba(0, 0, 0, 0.1));
+  border-radius: 12px;
+  font-size: 0.95rem;
+  background: var(--bg-input, #f9fafb);
+  color: var(--text-primary, #1a1a2e);
+  transition: all 0.2s ease;
+}
+
+:global(.dark) .search-box input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: #ff6b9d;
+  box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1);
+}
+
+.search-box input::placeholder {
+  color: #9ca3af;
+}
+
+.filter-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.select-wrapper {
+  position: relative;
+}
+
+.select-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.select-wrapper select {
+  padding: 14px 40px 14px 42px;
+  border: 1px solid var(--border-soft, rgba(0, 0, 0, 0.1));
+  border-radius: 12px;
+  font-size: 0.95rem;
+  background: var(--bg-input, #f9fafb);
+  color: var(--text-primary, #1a1a2e);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  min-width: 140px;
+}
+
+:global(.dark) .select-wrapper select {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.select-wrapper select:focus {
+  outline: none;
+  border-color: #ff6b9d;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 107, 157, 0.35);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 157, 0.45);
+}
+
+.btn-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Announcements Section */
+.announcements-section {
+  min-height: 400px;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.empty-illustration {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.1) 0%, rgba(255, 143, 171, 0.1) 100%);
+  border-radius: 24px;
+  margin-bottom: 24px;
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  color: #ff6b9d;
+}
+
+.empty-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a2e);
+  margin: 0 0 8px 0;
+}
+
+:global(.dark) .empty-title {
+  color: #ffffff;
+}
+
+.empty-desc {
+  font-size: 1rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+
+:global(.dark) .empty-desc {
   color: rgba(255, 255, 255, 0.6);
 }
 
-.author-tile.disabled {
-  cursor: default;
+/* Loading Grid */
+.loading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
 }
 
-.detail-title {
-  font-size: 1.65rem;
+.skeleton-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-soft, rgba(0, 0, 0, 0.08));
+  border-radius: 20px;
+  padding: 24px;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+:global(.dark) .skeleton-card {
+  background: #1a1a2e;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.skeleton-badge {
+  width: 60px;
+  height: 24px;
+  background: var(--border-soft, rgba(0, 0, 0, 0.1));
+  border-radius: 999px;
+}
+
+.skeleton-date {
+  width: 80px;
+  height: 20px;
+  background: var(--border-soft, rgba(0, 0, 0, 0.1));
+  border-radius: 6px;
+}
+
+.skeleton-title {
+  height: 28px;
+  background: var(--border-soft, rgba(0, 0, 0, 0.1));
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.skeleton-desc {
+  height: 60px;
+  background: var(--border-soft, rgba(0, 0, 0, 0.1));
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.skeleton-footer {
+  height: 40px;
+  background: var(--border-soft, rgba(0, 0, 0, 0.1));
+  border-radius: 6px;
+}
+
+/* Announcements Grid */
+.announcements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
+}
+
+.announcement-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-soft, rgba(0, 0, 0, 0.08));
+  border-radius: 20px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+:global(.dark) .announcement-card {
+  background: #1a1a2e;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.announcement-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-color: rgba(255, 107, 157, 0.3);
+}
+
+:global(.dark) .announcement-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.announcement-card.is-pinned {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: linear-gradient(135deg, var(--bg-card, #ffffff) 0%, rgba(251, 191, 36, 0.05) 100%);
+}
+
+:global(.dark) .announcement-card.is-pinned {
+  background: linear-gradient(135deg, #1a1a2e 0%, rgba(251, 191, 36, 0.08) 100%);
+}
+
+.announcement-card.is-emergency {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: linear-gradient(135deg, var(--bg-card, #ffffff) 0%, rgba(239, 68, 68, 0.05) 100%);
+}
+
+:global(.dark) .announcement-card.is-emergency {
+  background: linear-gradient(135deg, #1a1a2e 0%, rgba(239, 68, 68, 0.08) 100%);
+}
+
+/* Card Header */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--color-text-primary, #0f172a);
 }
 
-.detail-meta {
+.level-badge.emergency {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.level-badge.notice {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.level-badge .badge-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(251, 191, 36, 0.15);
+  color: #d97706;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pin-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.publish-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b7280);
+}
+
+:global(.dark) .publish-date {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.date-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Card Content */
+.card-content {
+  flex: 1;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a2e);
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+:global(.dark) .card-title {
+  color: #ffffff;
+}
+
+.announcement-card:hover .card-title {
+  color: #ff6b9d;
+}
+
+.card-summary {
+  font-size: 0.9rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+:global(.dark) .card-summary {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Card Footer */
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-soft, rgba(0, 0, 0, 0.08));
+}
+
+:global(.dark) .card-footer {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.author-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+}
+
+.author-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.author-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary, #4a4a5c);
+}
+
+:global(.dark) .author-name {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.read-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ff6b9d;
+  transition: all 0.2s ease;
+}
+
+.arrow-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.announcement-card:hover .arrow-icon {
+  transform: translateX(4px);
+}
+
+/* Pagination */
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  background: var(--bg-card, #ffffff);
+  border-radius: 24px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:global(.dark) .modal-panel {
+  background: #1a1a2e;
+}
+
+/* Modal Header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 28px 32px;
+  border-bottom: 1px solid var(--border-soft, rgba(0, 0, 0, 0.08));
+}
+
+:global(.dark) .modal-header {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-content {
+  flex: 1;
+}
+
+.header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.header-badge.emergency {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.header-badge.notice {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.header-badge .badge-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a2e);
+  margin: 0 0 12px 0;
+  line-height: 1.3;
+}
+
+:global(.dark) .modal-title {
+  color: #ffffff;
+}
+
+.modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text-muted, #6b7280);
+}
+
+:global(.dark) .meta-item {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.meta-item.pin {
+  color: #d97706;
+}
+
+.meta-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: var(--border-soft, rgba(0, 0, 0, 0.08));
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-muted, #6b7280);
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+:global(.dark) .close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.close-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.close-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Modal Body */
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-soft, rgba(0, 0, 0, 0.1));
+  border-top-color: #ff6b9d;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+
+/* Author Card */
+.author-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 16px;
+  margin-bottom: 24px;
+}
+
+:global(.dark) .author-card {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.author-card.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.author-card.clickable:hover {
+  background: rgba(255, 107, 157, 0.1);
+}
+
+.author-card .author-avatar {
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
+}
+
+.author-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.author-details .author-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a2e);
+}
+
+:global(.dark) .author-details .author-name {
+  color: #ffffff;
+}
+
+.author-role {
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b7280);
+}
+
+:global(.dark) .author-role {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.author-card .arrow-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted, #6b7280);
+}
+
+/* Summary Box */
+.summary-box {
   display: flex;
   gap: 12px;
-  font-size: 0.82rem;
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+  padding: 16px 20px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  margin-bottom: 24px;
 }
 
-.detail-meta .level-pill {
-  padding: 2px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.18));
-  font-size: 0.75rem;
-  background: var(--panel-overlay, rgba(255, 255, 255, 0.04));
+.summary-icon {
+  width: 20px;
+  height: 20px;
+  color: #3b82f6;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
-.login-hint {
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+.summary-box p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary, #4a4a5c);
+  line-height: 1.6;
 }
 
-:deep(.prose) {
-  color: var(--color-text-secondary, #e5e7eb);
+:global(.dark) .summary-box p {
+  color: rgba(255, 255, 255, 0.8);
 }
 
-:deep(.prose strong) {
-  color: #fff;
+/* Content Box */
+.content-box {
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 16px;
+  padding: 28px;
 }
 
-:deep(.prose p) {
-  color: #dce1f0;
+:global(.dark) .content-box {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.markdown-content {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--text-primary, #1a1a2e);
+}
+
+:global(.dark) .markdown-content {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.markdown-content :deep(h1),
+.markdown-content :deep(h2),
+.markdown-content :deep(h3),
+.markdown-content :deep(h4) {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a2e);
+}
+
+:global(.dark) .markdown-content :deep(h1),
+:global(.dark) .markdown-content :deep(h2),
+:global(.dark) .markdown-content :deep(h3),
+:global(.dark) .markdown-content :deep(h4) {
+  color: #ffffff;
+}
+
+.markdown-content :deep(p) {
+  margin-bottom: 1em;
+}
+
+.markdown-content :deep(a) {
+  color: #ff6b9d;
+  text-decoration: none;
+}
+
+.markdown-content :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) {
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+
+.markdown-content :deep(li) {
+  margin-bottom: 0.5em;
+}
+
+.markdown-content :deep(blockquote) {
+  border-left: 4px solid #ff6b9d;
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--text-muted, #6b7280);
+}
+
+:global(.dark) .markdown-content :deep(blockquote) {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.markdown-content :deep(code) {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'SF Mono', monospace;
+  font-size: 0.9em;
+}
+
+:global(.dark) .markdown-content :deep(code) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.markdown-content :deep(pre) {
+  background: #1a1a2e;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.markdown-content :deep(pre code) {
+  background: none;
+  padding: 0;
+  color: #e2e8f0;
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  color: #ef4444;
+  margin-bottom: 16px;
+}
+
+.error-state p {
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+
+/* Modal Transition */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal-panel,
+.modal-leave-to .modal-panel {
+  transform: scale(0.95) translateY(20px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-section {
+    padding: 100px 20px 40px;
+  }
+  
+  .hero-title {
+    font-size: 1.8rem;
+  }
+  
+  .hero-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .main-container {
+    padding: 24px 16px;
+  }
+  
+  .filter-row {
+    flex-direction: column;
+  }
+  
+  .search-box {
+    min-width: 100%;
+  }
+  
+  .filter-group {
+    width: 100%;
+  }
+  
+  .select-wrapper {
+    flex: 1;
+  }
+  
+  .select-wrapper select {
+    width: 100%;
+  }
+  
+  .btn-primary {
+    flex-shrink: 0;
+  }
+  
+  .announcements-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-overlay {
+    padding: 16px;
+  }
+  
+  .modal-header,
+  .modal-body {
+    padding: 20px 24px;
+  }
+  
+  .modal-title {
+    font-size: 1.2rem;
+  }
 }
 </style>

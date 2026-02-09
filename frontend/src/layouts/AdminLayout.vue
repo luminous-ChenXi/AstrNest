@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Home, LogOut, User, ChevronLeft, ChevronRight, Activity } from 'lucide-vue-next'
+import { Home, LogOut, User, ChevronLeft, ChevronRight, Activity, LayoutDashboard, Image, Users, Settings, Database, Megaphone, Mail, Shield, Link2 } from 'lucide-vue-next'
 import { useUiStore } from '../stores/ui'
 import { useAuthStore } from '../stores/auth'
 import { usePendingChangesStore } from '../stores/pendingChanges'
@@ -11,15 +11,15 @@ import '../assets/styles/chenxi-interactions.css'
 
 const auth = useAuthStore()
 const navigation = [
-  { name: 'admin-dashboard', label: '总览控制台', icon: '🏠' },
-  { name: 'admin-images', label: '媒体管理', icon: '🖼️' },
-  { name: 'admin-users', label: '用户管理', icon: '👥' },
-  { name: 'admin-system', label: '系统配置', icon: '⚙️' },
-  { name: 'admin-storage', label: '存储策略', icon: '🗄️' },
-  { name: 'admin-announcements', label: '公告管理', icon: '📢' },
-  { name: 'admin-mail-settings', label: '邮件设置', icon: '✉️' },
-  { name: 'admin-security', label: '权限与安全', icon: '🛡️' },
-  { name: 'admin-integration', label: '集成与 API', icon: '🔗' },
+  { name: 'admin-dashboard', label: '总览控制台', icon: LayoutDashboard },
+  { name: 'admin-images', label: '媒体管理', icon: Image },
+  { name: 'admin-users', label: '用户管理', icon: Users },
+  { name: 'admin-system', label: '系统配置', icon: Settings },
+  { name: 'admin-storage', label: '存储策略', icon: Database },
+  { name: 'admin-announcements', label: '公告管理', icon: Megaphone },
+  { name: 'admin-mail-settings', label: '邮件设置', icon: Mail },
+  { name: 'admin-security', label: '权限与安全', icon: Shield },
+  { name: 'admin-integration', label: '集成与 API', icon: Link2 },
 ]
 
 const route = useRoute()
@@ -95,7 +95,7 @@ const isCollapsed = computed(() => uiStore.isSidebarCollapsed)
             ]"
             :title="isCollapsed ? item.label : ''"
           >
-            <span class="admin-nav-icon">{{ item.icon }}</span>
+            <component :is="item.icon" class="admin-nav-icon" />
             <span v-if="!isCollapsed" class="admin-nav-label">{{ item.label }}</span>
           </RouterLink>
         </nav>
@@ -337,8 +337,8 @@ const isCollapsed = computed(() => uiStore.isSidebarCollapsed)
 }
 
 .admin-nav-icon {
-  font-size: 1.25rem;
-  line-height: 1;
+  width: 1.25rem;
+  height: 1.25rem;
   flex-shrink: 0;
 }
 

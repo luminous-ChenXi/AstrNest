@@ -294,6 +294,15 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'idx_upload_records_album_public'),
+  'SELECT 1;',
+  'CREATE INDEX idx_upload_records_album_public ON upload_records(album_id, is_public, is_violation);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
   EXISTS (SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'albums')
   AND NOT EXISTS (
       SELECT 1 FROM information_schema.TABLE_CONSTRAINTS

@@ -20,4 +20,7 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
 
   @Query("select count(distinct u) from UserAccount u join u.roles r where r.name = :roleName")
   long countUsersByRole(@Param("roleName") String roleName);
+
+  @Query("select case when count(r)>0 then true else false end from UserAccount u join u.roles r where u.id = :userId and upper(r.name) = upper(:roleName)")
+  boolean existsByIdAndRolesNameIgnoreCase(@Param("userId") Long userId, @Param("roleName") String roleName);
 }

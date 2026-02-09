@@ -136,16 +136,18 @@ const viewAlbumDetail = async (album) => {
 }
 
 const copyAlbumLink = (album) => {
-  const link = `${window.location.origin}/picture/${album.pathSlug}`
+  // 复制图集详情页链接（图片瀑布流瀑布流页面）
+  const link = `${window.location.origin}/album/${album.pathSlug}`
   navigator.clipboard.writeText(link).then(() => {
-    ElMessage.success('链接已复制到剪贴板')
+    ElMessage.success('图集链接已复制到剪贴板')
   }).catch(() => {
     ElMessage.error('复制失败')
   })
 }
 
 const openAlbumLink = (album) => {
-  window.open(`/picture/${album.pathSlug}`, '_blank')
+  // 跳转到图集详情页面（图片瀑布流瀑布流）
+  window.open(`/album/${album.pathSlug}`, '_blank')
 }
 
 const formatDate = (date) => {
@@ -300,7 +302,7 @@ onMounted(() => {
             <!-- 路径 -->
             <div class="album-card-path" @click="copyAlbumLink(album)">
               <Link class="path-icon" />
-              <code class="path-code">/picture/{{ album.pathSlug }}</code>
+              <code class="path-code">/album/{{ album.pathSlug }}</code>
               <Copy class="copy-icon" />
             </div>
           </div>
@@ -356,7 +358,8 @@ onMounted(() => {
           >
             <template #prepend>/picture/</template>
           </el-input>
-          <p class="form-hint">访问链接：{{ `${normalizedDomain}/picture/${createForm.pathSlug || slugSuggestion || 'slug'}` }}</p>
+          <p class="form-hint">图集页面：{{ `${normalizedDomain}/album/${createForm.pathSlug || slugSuggestion || 'slug'}` }}</p>
+          <p class="form-hint">随机图片：{{ `${normalizedDomain}/picture/random/${createForm.pathSlug || slugSuggestion || 'slug'}` }}</p>
           <p class="form-hint text-warning" v-if="slugSuggestion && createForm.pathSlug !== slugSuggestion">
             <AlertTriangle class="inline-icon" /> 建议使用：{{ slugSuggestion }}（避免中文或空格）
           </p>
@@ -860,6 +863,7 @@ onMounted(() => {
   margin: 0 0 1rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-height: 2.5rem;

@@ -26,7 +26,7 @@ public class WebConfig implements WebMvcConfigurer {
         .maxAge(corsProperties.getMaxAge());
   }
 
-  private String[] toArray(java.util.List<String> values) {
+  private @NonNull String[] toArray(java.util.List<String> values) {
     if (values == null || values.isEmpty()) {
       return new String[0];
     }

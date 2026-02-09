@@ -6,8 +6,8 @@ import { User, Menu, X } from 'lucide-vue-next'
 
 import ThemeSwitcher from './ThemeSwitcher.vue'
 import LoginModal from '../chenxi/LoginModal.vue'
+import LogoSvg from './LogoSvg.vue'
 import { useAuthStore } from '../../stores/auth'
-import siteLogo from '../../assets/img/favicon.png'
 
 const showLoginModal = ref(false)
 const isMobileMenuOpen = ref(false)
@@ -94,7 +94,7 @@ const toggleMobileMenu = () => {
       <!-- Logo 区域 -->
       <RouterLink to="/" class="logo-link">
         <div class="logo-badge">
-          <img :src="siteLogo" alt="AstrNest" />
+          <LogoSvg :width="32" :height="32" />
         </div>
         <div class="logo-text">
           <span class="logo-eyebrow">member space</span>
@@ -319,6 +319,13 @@ const toggleMobileMenu = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--color-text-primary);
+  transition: all 0.3s ease;
+}
+
+/* 暗色主题下 logo 容器更亮 */
+:global(.dark) .logo-badge {
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.95) 12%, transparent);
 }
 
 @media (min-width: 768px) {
@@ -330,11 +337,10 @@ const toggleMobileMenu = () => {
   }
 }
 
-.logo-badge img {
+.logo-badge svg {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  border-radius: 0.5rem;
 }
 
 .logo-text {
