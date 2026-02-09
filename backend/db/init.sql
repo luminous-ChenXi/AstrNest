@@ -9,7 +9,14 @@ FLUSH PRIVILEGES;
 
 USE astrnest;
 
-SET @schema := DATABASE();
+-- 设置字符集和排序规则，避免 collation 冲突
+-- 注意：MySQL 8.0 中 information_schema 使用 utf8mb3，需要特殊处理
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+SET collation_connection = utf8mb4_general_ci;
+
+-- 获取数据库名，使用 utf8mb3 以匹配 information_schema
+SET @schema := CONVERT(DATABASE() USING utf8mb3);
 
 -- 核心表结构保障：确保全新库也可直接初始化
 CREATE TABLE IF NOT EXISTS users (
@@ -92,6 +99,7 @@ CREATE TABLE IF NOT EXISTS upload_records (
   media_uuid CHAR(36) NOT NULL  COMMENT '对外 UUID',
   user_id BIGINT NULL COMMENT '上传者',
   api_key_id BIGINT NULL COMMENT '使用的 API Key',
+  album_id BIGINT NULL COMMENT '所属图集',
   storage_path VARCHAR(255) NOT NULL COMMENT '存储文件名（含路径）',
   image_link VARCHAR(255) NOT NULL COMMENT '访问 URL（相对或绝对）',
   file_name VARCHAR(180) NOT NULL COMMENT '原始文件名',
@@ -137,6 +145,7 @@ CREATE TABLE IF NOT EXISTS upload_records (
   UNIQUE KEY uq_upload_records_media_uuid (media_uuid),
   INDEX idx_upload_records_user (user_id),
   INDEX idx_upload_records_api_key (api_key_id),
+  INDEX idx_upload_records_album (album_id),
   INDEX idx_upload_records_file_hash (file_hash),
   INDEX idx_upload_records_public_created (is_public, uploaded_at),
   INDEX idx_upload_records_media_type (media_type),
@@ -260,6 +269,39 @@ SET @sql := IF(
   EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'thumbnail_storage_path'),
   'SELECT 1;',
   'ALTER TABLE upload_records ADD COLUMN thumbnail_storage_path VARCHAR(255) NULL AFTER thumbnail_url;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.album_id
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'album_id'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN album_id BIGINT NULL AFTER api_key_id;'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'idx_upload_records_album'),
+  'SELECT 1;',
+  'CREATE INDEX idx_upload_records_album ON upload_records(album_id);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'albums')
+  AND NOT EXISTS (
+      SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+      WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND CONSTRAINT_NAME = 'fk_upload_record_album'
+  ),
+  'ALTER TABLE upload_records
+     ADD CONSTRAINT fk_upload_record_album FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE SET NULL;',
+  'SELECT 1;'
 );
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
@@ -1579,7 +1621,8 @@ DEALLOCATE PREPARE stmt;
 SET @sql := IF(
   EXISTS (
     SELECT 1 FROM information_schema.REFERENTIAL_CONSTRAINTS
-    WHERE CONSTRAINT_SCHEMA = @schema AND CONSTRAINT_NAME = 'fk_api_keys_owner'
+    WHERE CONSTRAINT_SCHEMA COLLATE utf8mb3_general_ci = @schema COLLATE utf8mb3_general_ci
+      AND CONSTRAINT_NAME COLLATE utf8mb3_general_ci = 'fk_api_keys_owner'
   ),
   'SELECT 1;',
   'ALTER TABLE api_keys ADD CONSTRAINT fk_api_keys_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL;'
@@ -1648,7 +1691,8 @@ DEALLOCATE PREPARE stmt;
 SET @sql := IF(
   EXISTS (
     SELECT 1 FROM information_schema.REFERENTIAL_CONSTRAINTS
-    WHERE CONSTRAINT_SCHEMA = @schema AND CONSTRAINT_NAME = 'fk_interactions_media_uuid'
+    WHERE CONSTRAINT_SCHEMA COLLATE utf8mb3_general_ci = @schema COLLATE utf8mb3_general_ci
+      AND CONSTRAINT_NAME COLLATE utf8mb3_general_ci = 'fk_interactions_media_uuid'
   ),
   'SELECT 1;',
   'ALTER TABLE interactions ADD CONSTRAINT fk_interactions_media_uuid FOREIGN KEY (media_uuid) REFERENCES upload_records(media_uuid) ON DELETE CASCADE;'
@@ -1865,6 +1909,53 @@ CREATE TABLE IF NOT EXISTS auth_lock_states (
   KEY idx_auth_lock_ip (ip),
   KEY idx_auth_lock_window (window_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==================== 图集功能表 ====================
+
+CREATE TABLE IF NOT EXISTS albums (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  album_uuid CHAR(36) NOT NULL UNIQUE COMMENT '图集UUID',
+  user_id BIGINT NOT NULL COMMENT '创建者ID',
+  path_slug VARCHAR(50) UNIQUE NOT NULL COMMENT 'URL路径标识，如 "pc"',
+  name VARCHAR(100) NOT NULL COMMENT '图集名称',
+  description TEXT COMMENT '描述',
+  is_public BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否公开',
+  cover_image_uuid CHAR(36) COMMENT '封面图UUID',
+  access_count BIGINT NOT NULL DEFAULT 0 COMMENT '访问次数',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_albums_user_id (user_id),
+  INDEX idx_albums_path_slug (path_slug),
+  INDEX idx_albums_public (is_public),
+  CONSTRAINT fk_albums_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT='用户图集表';
+
+CREATE TABLE IF NOT EXISTS album_media (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  album_id BIGINT NOT NULL COMMENT '图集ID',
+  media_uuid CHAR(36) NOT NULL COMMENT '图片UUID',
+  added_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
+  added_by BIGINT COMMENT '操作者用户ID',
+  sort_order INT DEFAULT 0 COMMENT '自定义排序',
+  UNIQUE KEY uq_album_media (album_id, media_uuid),
+  INDEX idx_album_media_media_uuid (media_uuid),
+  INDEX idx_album_media_sort (album_id, sort_order),
+  CONSTRAINT fk_album_media_album FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE,
+  CONSTRAINT fk_album_media_user FOREIGN KEY (added_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT='图集与图片关联表';
+
+CREATE TABLE IF NOT EXISTS album_access_logs (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  album_id BIGINT NOT NULL COMMENT '图集ID',
+  media_uuid CHAR(36) COMMENT '返回的图片UUID',
+  client_ip VARCHAR(64) COMMENT '访问者IP',
+  user_agent VARCHAR(512) COMMENT 'User-Agent',
+  referer VARCHAR(512) COMMENT '来源页面',
+  accessed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_album_access_logs_album_id (album_id),
+  INDEX idx_album_access_logs_accessed_at (accessed_at),
+  CONSTRAINT fk_album_access_logs_album FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT='图集访问日志表';
 
 CREATE TABLE IF NOT EXISTS security_logs (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,

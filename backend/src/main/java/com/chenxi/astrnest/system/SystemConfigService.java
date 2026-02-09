@@ -38,7 +38,7 @@ public class SystemConfigService {
 
   public PublicSystemConfigResponse getPublicConfig() {
     SystemConfig config = loadConfig();
-    return new PublicSystemConfigResponse(config.getCustomFooterHtml(), config.getAutoCleanupDays());
+    return new PublicSystemConfigResponse(config.getCustomFooterHtml(), config.getAutoCleanupDays(), config.getAssetDomain());
   }
 
   @Transactional

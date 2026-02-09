@@ -178,35 +178,129 @@ def execute_sql_file(host: str, port: str, user: str, password: str, db_name: st
         return False
 
 def update_sql_file_with_admin(filepath: str, username: str, email: str, hashed_pass: str) -> bool:
-    """Update SQL file with new admin credentials"""
+    """
+    Update SQL file with new admin credentials using regex matching
+    使用正则匹配更新 SQL 文件中的管理员账号信息
+
+    支持两种 SQL 文件格式：
+    - init.sql (Linux/macOS): 包含 CREATE USER/GRANT 语句
+    - init_windows.sql (Windows): 不包含 CREATE USER/GRANT 语句
+    """
     try:
         content = Path(filepath).read_text(encoding='utf-8')
-        
+
+        # Escape single quotes for SQL
+        u = username.replace("'", "''")
+        e = email.replace("'", "''")
+
+        # New INSERT statement - 保持与原始 SQL 文件相同的字段列表
+        # 注意：users 表有 role 和 status 字段，但 INSERT 语句使用 active 字段
+        new_insert = f"""INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, '{u}', '{hashed_pass}', 'Admin', '{e}', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;"""
+
+        # 正则匹配模式列表 - 按优先级排序
+        # 支持多行、不同字段顺序、不同值的 INSERT 语句
+        patterns = [
+            # 模式1: 完整的 INSERT ... ON DUPLICATE KEY UPDATE 语句（最精确）
+            # 匹配: INSERT INTO users (...) VALUES (...) ON DUPLICATE KEY UPDATE ...;
+            (r'INSERT\s+INTO\s+users\s*\([^)]+\)\s*VALUES\s*\([^)]+\)\s*ON\s+DUPLICATE\s+KEY\s+UPDATE[^;]+;',
+             re.DOTALL | re.IGNORECASE, "完整 INSERT ON DUPLICATE"),
+
+            # 模式2: 简单的 INSERT ... VALUES 语句（没有 ON DUPLICATE KEY UPDATE）
+            # 匹配: INSERT INTO users (...) VALUES (...);
+            (r'INSERT\s+INTO\s+users\s*\([^)]+\)\s*VALUES\s*\([^)]+\)\s*;',
+             re.DOTALL | re.IGNORECASE, "简单 INSERT VALUES"),
+
+            # 模式3: 宽松的匹配，捕获从 INSERT 到分号的整个语句
+            # 匹配: INSERT INTO users ...;
+            (r'INSERT\s+INTO\s+users\s+.*?;',
+             re.DOTALL | re.IGNORECASE, "宽松 INSERT"),
+        ]
+
+        matched = False
+        matched_pattern_name = None
+        matched_text = None
+
+        for pattern, flags, pattern_name in patterns:
+            match = re.search(pattern, content, flags)
+            if match:
+                matched = True
+                matched_pattern_name = pattern_name
+                matched_text = match.group(0)[:80] + "..." if len(match.group(0)) > 80 else match.group(0)
+
+                # 使用正则替换 - 只替换第一个匹配
+                new_content = re.sub(pattern, new_insert, content, count=1, flags=flags)
+
+                if new_content == content:
+                    print(f"{Colors.WARNING}[警告] 正则替换未产生变化，尝试下一个模式...{Colors.ENDC}")
+                    matched = False
+                    continue
+
+                break
+
+        if not matched:
+            print(f"{Colors.WARNING}[警告] 在 {filepath} 中找不到匹配的 INSERT 语句{Colors.ENDC}")
+            print(f"{Colors.WARNING}      将尝试在文件末尾追加管理员账号...{Colors.ENDC}")
+            # 如果找不到，在文件末尾追加（在文件最后一个分号之后）
+            new_content = content.rstrip() + '\n\n-- 管理员账号（由 init-admin.py 自动添加）\n' + new_insert + '\n'
+
+        # 写入更新后的内容
+        Path(filepath).write_text(new_content, encoding='utf-8')
+
+        if matched_pattern_name:
+            print(f"{Colors.OKGREEN}[OK] 已使用正则模式更新: {filepath}{Colors.ENDC}")
+            print(f"{Colors.OKCYAN}      匹配模式: {matched_pattern_name}{Colors.ENDC}")
+            print(f"{Colors.OKCYAN}      匹配内容: {matched_text}{Colors.ENDC}")
+        else:
+            print(f"{Colors.OKGREEN}[OK] 已在文件末尾追加管理员账号: {filepath}{Colors.ENDC}")
+
+        return True
+
+    except FileNotFoundError:
+        print(f"{Colors.FAIL}[错误] 找不到文件: {filepath}{Colors.ENDC}")
+        return False
+    except PermissionError:
+        print(f"{Colors.FAIL}[错误] 没有权限写入文件: {filepath}{Colors.ENDC}")
+        return False
+    except Exception as e:
+        print(f"{Colors.FAIL}[错误] 更新 {filepath} 失败: {e}{Colors.ENDC}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def update_sql_file_with_admin_legacy(filepath: str, username: str, email: str, hashed_pass: str) -> bool:
+    """
+    Legacy method for updating SQL file - kept for reference
+    This method uses simple string replacement without regex
+    """
+    try:
+        content = Path(filepath).read_text(encoding='utf-8')
+
         # Escape single quotes
         u = username.replace("'", "''")
         e = email.replace("'", "''")
-        
+
         # New INSERT statement
         new_insert = f"""INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, '{u}', '{hashed_pass}', 'Admin', '{e}', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;"""
-        
+
         # 尝试多种模式匹配
         patterns = [
             r'INSERT INTO users\s*\([^)]+\)\s*VALUES\s*\([^)]+\)\s*ON DUPLICATE KEY UPDATE[^;]+;',
             r'INSERT INTO users.*?active = 1;',
             r'INSERT INTO users[^;]+;',
         ]
-        
+
         matched = False
         for pattern in patterns:
             if re.search(pattern, content, re.DOTALL | re.IGNORECASE):
                 new_content = re.sub(pattern, new_insert, content, flags=re.DOTALL | re.IGNORECASE)
                 matched = True
                 break
-        
+
         if not matched:
             print(f"{Colors.WARNING}[警告] 在 {filepath} 中找不到 INSERT 语句{Colors.ENDC}")
             return False
-        
+
         Path(filepath).write_text(new_content, encoding='utf-8')
         print(f"{Colors.OKGREEN}[OK] 已更新: {filepath}{Colors.ENDC}")
         return True

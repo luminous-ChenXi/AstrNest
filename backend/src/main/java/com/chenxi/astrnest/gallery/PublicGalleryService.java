@@ -59,12 +59,13 @@ public class PublicGalleryService {
       int normalizedPage = Math.max(page, 0);
       int normalizedSize = Math.min(Math.max(size, 1), 24);
       Pageable pageable = PageRequest.of(normalizedPage, normalizedSize, Sort.by(Sort.Direction.DESC, "uploadedAt"));
-      Page<UploadRecord> result = uploadRecordRepository.findByPublicAccessibleTrueAndViolationFalse(pageable);
+      UserAccount viewer = resolveUser(authentication);
+      Specification<UploadRecord> specification = buildPublicListSpecification(viewer);
+      Page<UploadRecord> result = uploadRecordRepository.findAll(specification, pageable);
       List<UploadRecord> records = result.getContent();
       List<Long> recordIds = records.stream().map(UploadRecord::getId).toList();
       Map<Long, List<ChenxiTagResponse>> tagMap = resolveTags(recordIds);
 
-      UserAccount viewer = resolveUser(authentication);
       String sanitizedVisitorToken = sanitizeVisitorToken(visitorToken);
       Set<Long> likedIds = resolveLikedIds(recordIds, viewer, sanitizedVisitorToken);
       Map<Long, PublicRecentLikeResponse> latestLikeMap = buildLatestLikeMap(recordIds);
@@ -322,12 +323,22 @@ public class PublicGalleryService {
       }
       List<Predicate> predicates = new ArrayList<>();
       predicates.add(criteriaBuilder.isFalse(root.get("violation")));
+      var albumJoin = root.join("album", JoinType.LEFT);
       if (viewer == null) {
         predicates.add(criteriaBuilder.isTrue(root.get("publicAccessible")));
+        predicates.add(criteriaBuilder.or(
+            criteriaBuilder.isNull(albumJoin.get("id")),
+            criteriaBuilder.isTrue(albumJoin.get("isPublic"))
+        ));
       } else {
         predicates.add(criteriaBuilder.or(
             criteriaBuilder.isTrue(root.get("publicAccessible")),
             criteriaBuilder.equal(root.get("user").get("id"), viewer.getId())
+        ));
+        predicates.add(criteriaBuilder.or(
+            criteriaBuilder.isNull(albumJoin.get("id")),
+            criteriaBuilder.isTrue(albumJoin.get("isPublic")),
+            criteriaBuilder.equal(albumJoin.get("user").get("id"), viewer.getId())
         ));
       }
       var tagJoin = root.join("tags", JoinType.INNER);
@@ -339,6 +350,32 @@ public class PublicGalleryService {
           criteriaBuilder.like(criteriaBuilder.lower(tagJoin.get("slug")), likePattern)
       );
       predicates.add(criteriaBuilder.or(matchName, matchSlug));
+      return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+    };
+  }
+
+  private Specification<UploadRecord> buildPublicListSpecification(UserAccount viewer) {
+    return (root, query, criteriaBuilder) -> {
+      List<Predicate> predicates = new ArrayList<>();
+      predicates.add(criteriaBuilder.isFalse(root.get("violation")));
+      var albumJoin = root.join("album", JoinType.LEFT);
+      if (viewer == null) {
+        predicates.add(criteriaBuilder.isTrue(root.get("publicAccessible")));
+        predicates.add(criteriaBuilder.or(
+            criteriaBuilder.isNull(albumJoin.get("id")),
+            criteriaBuilder.isTrue(albumJoin.get("isPublic"))
+        ));
+      } else {
+        predicates.add(criteriaBuilder.or(
+            criteriaBuilder.isTrue(root.get("publicAccessible")),
+            criteriaBuilder.equal(root.get("user").get("id"), viewer.getId())
+        ));
+        predicates.add(criteriaBuilder.or(
+            criteriaBuilder.isNull(albumJoin.get("id")),
+            criteriaBuilder.isTrue(albumJoin.get("isPublic")),
+            criteriaBuilder.equal(albumJoin.get("user").get("id"), viewer.getId())
+        ));
+      }
       return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
     };
   }

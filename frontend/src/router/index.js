@@ -128,6 +128,12 @@ const router = createRouter({
           component: () => import('../views/user/UserApiManagerView.vue'),
           meta: { label: 'API 接口管理' },
         },
+        {
+          path: 'albums',
+          name: 'user-albums',
+          component: () => import('../views/user/AlbumView.vue'),
+          meta: { label: '我的图集' },
+        },
       ],
     },
     {

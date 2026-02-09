@@ -67,7 +67,8 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiErrorResponse> handleOther(Exception ex) {
-    return buildResponse("服务器内部错误", HttpStatus.INTERNAL_SERVER_ERROR);
+    ex.printStackTrace();
+    return buildResponse("服务器内部错误: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
   private ResponseEntity<ApiErrorResponse> buildResponse(String message, HttpStatus status) {
