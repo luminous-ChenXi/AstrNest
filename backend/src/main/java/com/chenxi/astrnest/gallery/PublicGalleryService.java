@@ -235,7 +235,7 @@ public class PublicGalleryService {
     if (record.getAlbum() != null) {
       albumInfo = new PublicGalleryItemResponse.PublicGalleryAlbumInfo(
           record.getAlbum().getId(),
-          record.getAlbum().getTitle(),
+          record.getAlbum().getName(),
           record.getAlbum().getPathSlug()
       );
     }
