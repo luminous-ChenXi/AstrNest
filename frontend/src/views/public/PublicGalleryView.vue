@@ -357,6 +357,7 @@
       @copy="handleModalCopy"
       @like="handleModalLike"
       @open-uploader="handleModalUploader"
+      @open-album="handleModalAlbum"
     />
 
     <ChenxiGlobalFooter />
@@ -781,13 +782,22 @@ const getCardStyle = (item) => {
       gridRow: `span ${Math.ceil((height / width) * 10)}`,
     }
   }
-  return {}
+  // 默认高度：如果没有宽高信息，使用固定高度
+  return {
+    gridRow: 'span 20',
+  }
 }
 
 const handleImageError = (e) => {
   const target = e.target
-  target.style.background = getPlaceholderGradient(target.src)
+  target.style.background = 'linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%)'
   target.style.minHeight = '200px'
+  target.style.display = 'flex'
+  target.style.alignItems = 'center'
+  target.style.justifyContent = 'center'
+  // 显示错误图标
+  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2"%3E%3Crect x="3" y="3" width="18" height="18" rx="2" ry="2"/%3E%3Ccircle cx="8.5" cy="8.5" r="1.5"/%3E%3Cpath d="M21 15l-5-5L5 21"/%3E%3C/svg%3E'
+  target.style.objectFit = 'scale-down'
 }
 
 const resolveAspectRatio = (item) => {
@@ -932,6 +942,13 @@ const handleModalLike = ({ event, item }) => {
 const handleModalUploader = (item) => {
   if (!item) return
   goToUserProfile(item.ownerId)
+}
+
+const handleModalAlbum = (album) => {
+  if (!album?.pathSlug) return
+  // 关闭弹窗并跳转到图集详情页
+  closeModal()
+  router.push(`/album/${album.pathSlug}`)
 }
 
 const openModal = (item) => {

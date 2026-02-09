@@ -64,7 +64,10 @@ public class PublicGalleryService {
       Page<UploadRecord> result = uploadRecordRepository.findAll(specification, pageable);
       List<UploadRecord> records = result.getContent();
       List<Long> recordIds = records.stream().map(UploadRecord::getId).toList();
+      
+      // 预加载 tags 和 album 数据
       Map<Long, List<ChenxiTagResponse>> tagMap = resolveTags(recordIds);
+      Map<Long, UploadRecord> recordWithAlbumMap = resolveAlbums(recordIds);
 
       String sanitizedVisitorToken = sanitizeVisitorToken(visitorToken);
       Set<Long> likedIds = resolveLikedIds(recordIds, viewer, sanitizedVisitorToken);
@@ -72,12 +75,16 @@ public class PublicGalleryService {
       boolean guestLikeEnabled = systemConfigService.isGuestLikeEnabled();
 
       List<PublicGalleryItemResponse> items = records.stream()
-          .map(record -> mapItem(
-              record,
-              likedIds.contains(record.getId()),
-              latestLikeMap.get(record.getId()),
-              tagMap.getOrDefault(record.getId(), List.of())
-          ))
+          .map(record -> {
+            // 使用预加载了 album 数据的 record
+            UploadRecord recordWithAlbum = recordWithAlbumMap.getOrDefault(record.getId(), record);
+            return mapItem(
+                recordWithAlbum,
+                likedIds.contains(record.getId()),
+                latestLikeMap.get(record.getId()),
+                tagMap.getOrDefault(record.getId(), List.of())
+            );
+          })
           .toList();
 
       return new PublicGalleryPageResponse(
@@ -131,7 +138,10 @@ public class PublicGalleryService {
       Page<UploadRecord> result = uploadRecordRepository.findAll(specification, pageable);
       List<UploadRecord> records = result.getContent();
       List<Long> recordIds = records.stream().map(UploadRecord::getId).toList();
+      
+      // 预加载 tags 和 album 数据
       Map<Long, List<ChenxiTagResponse>> tagMap = resolveTags(recordIds);
+      Map<Long, UploadRecord> recordWithAlbumMap = resolveAlbums(recordIds);
 
       String sanitizedVisitorToken = sanitizeVisitorToken(visitorToken);
       Set<Long> likedIds = resolveLikedIds(recordIds, viewer, sanitizedVisitorToken);
@@ -139,12 +149,16 @@ public class PublicGalleryService {
       boolean guestLikeEnabled = systemConfigService.isGuestLikeEnabled();
 
       List<PublicGalleryItemResponse> items = records.stream()
-          .map(record -> mapItem(
-              record,
-              likedIds.contains(record.getId()),
-              latestLikeMap.get(record.getId()),
-              tagMap.getOrDefault(record.getId(), List.of())
-          ))
+          .map(record -> {
+            // 使用预加载了 album 数据的 record
+            UploadRecord recordWithAlbum = recordWithAlbumMap.getOrDefault(record.getId(), record);
+            return mapItem(
+                recordWithAlbum,
+                likedIds.contains(record.getId()),
+                latestLikeMap.get(record.getId()),
+                tagMap.getOrDefault(record.getId(), List.of())
+            );
+          })
           .toList();
 
       return new PublicGalleryPageResponse(
@@ -215,6 +229,17 @@ public class PublicGalleryService {
     Long ownerId = uploader != null ? uploader.getId() : null;
     String ownerName = uploader != null ? uploader.getDisplayName() : "匿名用户";
     String ownerAvatar = uploader != null ? uploader.getAvatarUrl() : null;
+    
+    // 构建图集信息
+    PublicGalleryItemResponse.PublicGalleryAlbumInfo albumInfo = null;
+    if (record.getAlbum() != null) {
+      albumInfo = new PublicGalleryItemResponse.PublicGalleryAlbumInfo(
+          record.getAlbum().getId(),
+          record.getAlbum().getTitle(),
+          record.getAlbum().getPathSlug()
+      );
+    }
+    
     return new PublicGalleryItemResponse(
         record.getId(),
         record.getFileName(),
@@ -232,7 +257,8 @@ public class PublicGalleryService {
         record.isPublicAccessible(),
         likedByMe,
         tags,
-        latestLike
+        latestLike,
+        albumInfo
     );
   }
 
@@ -271,6 +297,16 @@ public class PublicGalleryService {
           tagMap.put(record.getId(), tags);
         });
     return tagMap;
+  }
+
+  private Map<Long, UploadRecord> resolveAlbums(List<Long> uploadIds) {
+    Map<Long, UploadRecord> albumMap = new HashMap<>();
+    if (uploadIds == null || uploadIds.isEmpty()) {
+      return albumMap;
+    }
+    uploadRecordRepository.findWithAlbumByIdIn(uploadIds)
+        .forEach(record -> albumMap.put(record.getId(), record));
+    return albumMap;
   }
 
   private String resolvedThumbnailUrl(UploadRecord record) {

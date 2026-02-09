@@ -73,6 +73,13 @@ public interface UploadRecordRepository extends JpaRepository<UploadRecord, Long
   List<UploadRecord> findWithTagsByIdIn(@Param("ids") Collection<Long> ids);
 
   @Query("""
+      select distinct r from UploadRecord r
+      left join fetch r.album a
+      where r.id in :ids
+      """)
+  List<UploadRecord> findWithAlbumByIdIn(@Param("ids") Collection<Long> ids);
+
+  @Query("""
       select r from UploadRecord r
       where (r.lastAccessAt IS NULL AND r.invokeCount = 0 AND r.uploadedAt < :threshold)
          OR (r.lastAccessAt IS NOT NULL AND r.lastAccessAt < :threshold)
