@@ -182,6 +182,9 @@ public abstract class AbstractS3StorageHandler implements StorageHandler {
       s3().putObject(request, RequestBody.fromInputStream(stream, file.getSize()));
     } catch (IOException ex) {
       throw new StorageWriteException("上传到 S3 失败", ex);
+    } catch (RuntimeException ex) {
+      // 捕获 AWS SDK 运行时异常（如 UnknownHostException、S3Exception 等）
+      throw new StorageWriteException("上传到 S3 失败: " + ex.getMessage(), ex);
     }
   }
 
@@ -220,7 +223,7 @@ public abstract class AbstractS3StorageHandler implements StorageHandler {
           .build());
     } catch (IOException | RuntimeException ex) {
       abortMultipartUpload(config, objectKey, uploadId);
-      throw new StorageWriteException("S3 分片上传失败", ex);
+      throw new StorageWriteException("S3 分片上传失败: " + ex.getMessage(), ex);
     }
   }
 
@@ -255,9 +258,13 @@ public abstract class AbstractS3StorageHandler implements StorageHandler {
       S3ClientBuilder builder = S3Client.builder()
           .region(resolveRegion(cfg))
           .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(cfg.getAccessKey(), cfg.getSecretKey())));
-      if (StringUtils.hasText(cfg.getEndpoint())) {
-        builder.endpointOverride(URI.create(cfg.getEndpoint()));
+      
+      // 确定 endpoint
+      String endpoint = resolveEndpoint(cfg);
+      if (StringUtils.hasText(endpoint)) {
+        builder.endpointOverride(URI.create(endpoint));
       }
+      
       S3Configuration.Builder serviceConfig = S3Configuration.builder()
           .pathStyleAccessEnabled(cfg.isPathStyle());
       if (cfg.isAccelerate()) {
@@ -268,6 +275,43 @@ public abstract class AbstractS3StorageHandler implements StorageHandler {
     }
     return client;
   }
+  
+  /**
+   * 解析 endpoint，支持自动构建各云服务商的 endpoint
+   */
+  private String resolveEndpoint(StorageProperties.S3Like cfg) {
+    // 如果用户明确配置了 endpoint，优先使用用户配置
+    if (StringUtils.hasText(cfg.getEndpoint())) {
+      return cfg.getEndpoint();
+    }
+    
+    // 根据存储策略类型自动构建 endpoint
+    StorageStrategy strategy = handlerStrategy();
+    String region = cfg.getRegion();
+    
+    if (!StringUtils.hasText(region)) {
+      return null;
+    }
+    
+    switch (strategy) {
+      case TENCENT_COS:
+        // 腾讯云 COS: https://cos.<region>.myqcloud.com
+        return "https://cos." + region + ".myqcloud.com";
+      case QINIU_KODO:
+        // 七牛云 Kodo: https://s3-<region>.qiniucs.com
+        return "https://s3-" + region + ".qiniucs.com";
+      case HUAWEI_OBS:
+        // 华为云 OBS: https://obs.<region>.myhuaweicloud.com
+        return "https://obs." + region + ".myhuaweicloud.com";
+      case KS3:
+        // 金山云 KS3: https://ks3-<region>.ksyun.com
+        return "https://ks3-" + region + ".ksyun.com";
+      case S3_COMPATIBLE:
+        // S3 兼容存储: 不需要额外配置，SDK 会根据 region 自动构建或使用用户配置的 endpoint
+      default:
+        return null;
+    }
+  }
 
   private S3Presigner presigner() {
     if (presigner == null) {
@@ -276,8 +320,9 @@ public abstract class AbstractS3StorageHandler implements StorageHandler {
       S3Presigner.Builder builder = S3Presigner.builder()
           .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(cfg.getAccessKey(), cfg.getSecretKey())))
           .region(resolveRegion(cfg));
-      if (StringUtils.hasText(cfg.getEndpoint())) {
-        builder.endpointOverride(URI.create(cfg.getEndpoint()));
+      String endpoint = resolveEndpoint(cfg);
+      if (StringUtils.hasText(endpoint)) {
+        builder.endpointOverride(URI.create(endpoint));
       }
       presigner = builder.build();
     }

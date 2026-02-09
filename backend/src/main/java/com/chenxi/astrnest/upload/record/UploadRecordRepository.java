@@ -81,6 +81,10 @@ public interface UploadRecordRepository extends JpaRepository<UploadRecord, Long
 
   long countByPublicAccessibleTrueAndViolationFalse();
 
+  long countByAlbumIdAndPublicAccessibleTrueAndViolationFalse(Long albumId);
+
+  List<UploadRecord> findByAlbumIdAndPublicAccessibleTrueAndViolationFalseOrderByUploadedAtDesc(Long albumId);
+
   @Query("select count(r) from UploadRecord r where r.apiKey is not null")
   long countApiUploads();
 

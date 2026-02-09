@@ -69,8 +69,8 @@
           <p class="sync-time">刚刚更新 · {{ lastUpdated || '同步中' }}</p>
         </div>
 
-        <!-- Hero 视觉区 - 精选卡片 -->
-        <div class="hero-visual">
+        <!-- Hero 视觉区 - 精选图集卡片 -->
+        <div v-if="heroTiles.length > 0" class="hero-visual">
           <div 
             v-for="(tile, index) in heroTiles" 
             :key="tile.id"
@@ -78,6 +78,10 @@
             :class="`tile-${index + 1}`"
             :style="getTileStyle(tile)"
             v-lazy-animate="{ fromY: 40, delay: index * 0.15, duration: 0.7 }"
+            @click="goToAlbum(tile.pathSlug)"
+            role="button"
+            tabindex="0"
+            @keydown.enter="goToAlbum(tile.pathSlug)"
           >
             <div class="tile-overlay"></div>
             <div class="tile-content">
@@ -374,6 +378,7 @@ import GalleryPreviewModal from '../../components/public/GalleryPreviewModal.vue
 import { usePublicGallery } from '../../composables/usePublicGallery'
 import { likeImage, unlikeImage, searchGalleryByTag } from '../../services/gallery'
 import { useAuthStore } from '../../stores/auth'
+import { albumApi } from '../../api/album'
 import '../../assets/styles/chenxi-interactions.css'
 
 const router = useRouter()
@@ -397,6 +402,10 @@ const lastSubmittedKeyword = ref('')
 const searchSeenIds = new Set()
 const galleryFeedRef = ref(null)
 const totalImages = ref(0)
+
+// Featured 图集数据
+const featuredAlbums = ref([])
+const featuredAlbumsLoading = ref(false)
 
 const filterOptions = [
   { id: 'all', label: '综合' },
@@ -610,15 +619,21 @@ const heroStats = computed(() => [
 ])
 
 const heroTiles = computed(() => {
-  const base = galleryItems.value.slice(0, 3).map((item, index) => ({
-    id: item.id ?? `hero-${index}`,
-    title: item.fileName || `灵感速记 #${index + 1}`,
-    tag: item.mediaCategory === 'VIDEO' ? '视频集' : '图集',
-    meta: `${item.ownerDisplayName || '匿名创作者'} · ${numberFormatter.format(item.likeCount || 0)} 喜欢`,
-    cover: resolvePublicUrl(item),
-    gradient: getPlaceholderGradient(item.id),
-  }))
-  return base.length ? base : defaultHeroTiles
+  // 优先使用 featuredAlbums（真实图集数据）
+  if (featuredAlbums.value.length > 0) {
+    return featuredAlbums.value.map((album, index) => ({
+      id: album.albumUuid ?? `album-${index}`,
+      title: album.name || `图集 #${index + 1}`,
+      tag: '图集',
+      meta: `${album.username || '匿名创作者'} · ${numberFormatter.format(album.totalLikes || 0)} 喜欢`,
+      cover: album.coverImageUuid ? `/api/images/${album.coverImageUuid}` : null,
+      gradient: getPlaceholderGradient(album.id),
+      pathSlug: album.pathSlug, // 用于点击跳转
+      isAlbum: true, // 标记这是图集
+    }))
+  }
+  // 如果没有图集数据，返回空数组（不显示卡片）
+  return []
 })
 
 const featuredStories = computed(() => {
@@ -1006,6 +1021,29 @@ function goToUserProfile(userId) {
   router.push({ name: 'public-user-profile', params: { userId } })
 }
 
+// 跳转到图集详情页
+function goToAlbum(pathSlug) {
+  if (!pathSlug) {
+    ElMessage.warning('图集链接无效')
+    return
+  }
+  router.push({ name: 'album-detail', params: { pathSlug } })
+}
+
+// 加载 Featured 图集
+const loadFeaturedAlbums = async () => {
+  featuredAlbumsLoading.value = true
+  try {
+    const response = await albumApi.getFeaturedAlbums()
+    featuredAlbums.value = response.data || []
+  } catch (error) {
+    console.error('加载Featured图集失败', error)
+    featuredAlbums.value = []
+  } finally {
+    featuredAlbumsLoading.value = false
+  }
+}
+
 const copyLink = async (link) => {
   if (!link) {
     ElMessage.warning('暂无可复制的链接')
@@ -1026,6 +1064,7 @@ const copyLink = async (link) => {
 
 onMounted(() => {
   loadGallery(0, { reset: true })
+  loadFeaturedAlbums()
 })
 </script>
 

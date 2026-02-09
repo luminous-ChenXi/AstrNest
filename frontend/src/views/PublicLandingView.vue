@@ -24,7 +24,7 @@
       <div class="header-inner mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
         <div class="flex items-center gap-3 md:gap-4">
           <div class="logo-wrapper">
-            <img :src="siteLogo" alt="AstrNest" class="logo-img" />
+            <LogoSvg :width="40" :height="40" />
           </div>
           <div class="logo-text">
             <p class="logo-title">AstrNest</p>
@@ -79,19 +79,19 @@
         <div v-if="isNavOpen" class="mobile-nav md:hidden">
           <div class="mobile-nav-inner">
             <RouterLink to="/gallery" class="mobile-nav-link" @click="isNavOpen = false">
-              <span class="mobile-nav-icon">🖼️</span>
+              <Image class="mobile-nav-icon" />
               <span>公开图库</span>
             </RouterLink>
             <RouterLink to="/gallery#gallery-search" class="mobile-nav-link" @click="isNavOpen = false">
-              <span class="mobile-nav-icon">🔍</span>
+              <Search class="mobile-nav-icon" />
               <span>智能检索</span>
             </RouterLink>
             <RouterLink to="/announcements" class="mobile-nav-link" @click="isNavOpen = false">
-              <span class="mobile-nav-icon">📢</span>
+              <Megaphone class="mobile-nav-icon" />
               <span>公告</span>
             </RouterLink>
             <a href="#contact" class="mobile-nav-link" @click="isNavOpen = false">
-              <span class="mobile-nav-icon">📖</span>
+              <BookOpen class="mobile-nav-icon" />
               <span>文档</span>
             </a>
             <div class="mobile-nav-divider"></div>
@@ -242,7 +242,7 @@
                 <ShieldCheck class="badge-icon" />
                 <span>安全承诺</span>
               </div>
-              <h3 class="trust-title">你的图，<br>只有你能删</h3>
+              <h3 class="trust-title">安全保障</h3>
               <ul class="trust-list">
                 <li class="trust-item">
                   <span class="trust-dot"></span>
@@ -287,7 +287,7 @@
           <div class="contact-asymmetric">
             <div class="contact-left">
               <span class="contact-label">有问题？</span>
-              <h3 class="contact-title">随时找我们<br>聊聊</h3>
+              <h3 class="contact-title">联系我们</h3>
             </div>
             <div class="contact-right">
               <p class="contact-desc">
@@ -300,7 +300,7 @@
                 </a>
                 <a href="https://luminouschenxi.com" target="_blank" rel="noopener noreferrer" class="btn-blue">
                   <ExternalLink class="btn-icon" />
-                  了解更多
+                  博客网站
                 </a>
               </div>
             </div>
@@ -320,7 +320,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
-import { Sparkles, Search, ShieldCheck, UploadCloud, Zap, ArrowRight, Mail, ExternalLink } from 'lucide-vue-next'
+import { Sparkles, Search, ShieldCheck, UploadCloud, Zap, ArrowRight, Mail, ExternalLink, Image, Megaphone, BookOpen } from 'lucide-vue-next'
 import UserQuickMenu from '../components/common/UserQuickMenu.vue'
 import LoginModal from '../components/chenxi/LoginModal.vue'
 import { useAuthStore } from '../stores/auth'
@@ -330,7 +330,7 @@ import PublicGalleryGrid from '../components/public/PublicGalleryGrid.vue'
 import PublicAnnouncementSpotlight from '../components/public/PublicAnnouncementSpotlight.vue'
 import ChenxiGlobalFooter from '../components/common/ChenxiGlobalFooter.vue'
 import ThemeSwitcher from '../components/common/ThemeSwitcher.vue'
-import siteLogo from '../assets/img/favicon.png'
+import LogoSvg from '../components/common/LogoSvg.vue'
 import '../assets/styles/chenxi-transitions.css'
 import '../assets/styles/chenxi-interactions.css'
 
@@ -613,6 +613,14 @@ watch(
   align-items: center;
   justify-content: center;
   padding: 6px;
+  color: var(--color-text-primary);
+  transition: all 0.3s ease;
+}
+
+/* 暗色主题下 logo 更亮 */
+.dark .logo-wrapper {
+  background: linear-gradient(135deg, rgba(127, 123, 255, 0.25), rgba(255, 95, 143, 0.2));
+  color: rgba(255, 255, 255, 0.95);
 }
 
 @media (min-width: 768px) {
@@ -624,10 +632,10 @@ watch(
   }
 }
 
-.logo-img {
+.logo-wrapper svg {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  color: var(--color-text-primary);
 }
 
 .logo-text {

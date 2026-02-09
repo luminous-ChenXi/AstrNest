@@ -37,6 +37,12 @@ const router = createRouter({
       meta: { public: true, pageTransitionOrder: 0 },
     },
     {
+      path: '/album/:pathSlug',
+      name: 'album-detail',
+      component: () => import('../views/public/AlbumDetailView.vue'),
+      meta: { public: true, pageTransitionOrder: 5 },
+    },
+    {
       path: '/login',
       name: 'login',
       redirect: { path: '/', query: { login: '1' } },

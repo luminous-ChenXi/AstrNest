@@ -21,6 +21,14 @@ function disableDevCachePlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
+  // ============================================
+  // [CDN 配置 1] 设置基础路径 - 部署到 CDN 时必须修改
+  // 作用：所有资源引用都会加上这个前缀
+  // 示例：'https://cdn.example.com/' 或 'https://your-bucket.oss-cn-beijing.aliyuncs.com/'
+  // 注意：末尾必须带斜杠 /
+  // ============================================
+  base: './',  // 默认相对路径，部署到 CDN 时改为你的 CDN 地址，如 'https://cdn.example.com/'
+  // base: 'https://assets.luminouschenxi.net/',
   plugins: [
     vue(),
     disableDevCachePlugin(),
@@ -68,6 +76,10 @@ export default defineConfig({
         manualChunks: {
           vendor: ['vue', 'vue-router', 'pinia', 'element-plus', '@element-plus/icons-vue']
         },
+        // ============================================
+        // [CDN 配置 2] 资源文件名配置（已配置好，无需修改）
+        // 作用：确保资源文件有 hash，适合 CDN 长期缓存
+        // ============================================
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]'

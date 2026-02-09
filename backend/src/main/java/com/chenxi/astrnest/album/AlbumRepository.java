@@ -33,4 +33,9 @@ public interface AlbumRepository extends JpaRepository<Album, Long> {
 
   @Query("SELECT COUNT(a) FROM Album a WHERE a.user.id = :userId")
   long countByUserId(@Param("userId") Long userId);
+
+  /**
+   * 查询所有公开图集
+   */
+  List<Album> findByIsPublicTrue();
 }
