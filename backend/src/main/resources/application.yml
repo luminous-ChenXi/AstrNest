@@ -7,7 +7,7 @@ spring:
   datasource:
     url: ${ASTRNEST_DB_URL:jdbc:mysql://localhost:3306/astrnest?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
     username: ${ASTRNEST_DB_USERNAME:astrnest}
-    password: ${ASTRNEST_DB_PASSWORD:chenxi123!}
+    password: ${ASTRNEST_DB_PASSWORD:chenxi123}
     hikari:
       pool-name: AstrNestHikari
       minimum-idle: ${ASTRNEST_DB_MIN_IDLE:5}
