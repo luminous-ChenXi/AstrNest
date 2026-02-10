@@ -255,8 +255,9 @@ public abstract class AbstractS3StorageHandler implements StorageHandler {
       S3ClientBuilder builder = S3Client.builder()
           .region(resolveRegion(cfg))
           .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(cfg.getAccessKey(), cfg.getSecretKey())));
-      if (StringUtils.hasText(cfg.getEndpoint())) {
-        builder.endpointOverride(URI.create(cfg.getEndpoint()));
+      String endpoint = resolveEndpoint(cfg);
+      if (StringUtils.hasText(endpoint)) {
+        builder.endpointOverride(URI.create(endpoint));
       }
       S3Configuration.Builder serviceConfig = S3Configuration.builder()
           .pathStyleAccessEnabled(cfg.isPathStyle());
@@ -276,8 +277,9 @@ public abstract class AbstractS3StorageHandler implements StorageHandler {
       S3Presigner.Builder builder = S3Presigner.builder()
           .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(cfg.getAccessKey(), cfg.getSecretKey())))
           .region(resolveRegion(cfg));
-      if (StringUtils.hasText(cfg.getEndpoint())) {
-        builder.endpointOverride(URI.create(cfg.getEndpoint()));
+      String endpoint = resolveEndpoint(cfg);
+      if (StringUtils.hasText(endpoint)) {
+        builder.endpointOverride(URI.create(endpoint));
       }
       presigner = builder.build();
     }
@@ -286,6 +288,60 @@ public abstract class AbstractS3StorageHandler implements StorageHandler {
 
   private Region resolveRegion(StorageProperties.S3Like cfg) {
     return StringUtils.hasText(cfg.getRegion()) ? Region.of(cfg.getRegion()) : Region.US_EAST_1;
+  }
+
+  /**
+   * 根据存储策略类型自动构建正确的 endpoint
+   * 如果用户已配置 endpoint，则优先使用用户配置的值
+   */
+  private String resolveEndpoint(StorageProperties.S3Like cfg) {
+    // 如果用户已配置 endpoint，优先使用用户配置的值
+    if (StringUtils.hasText(cfg.getEndpoint())) {
+      return cfg.getEndpoint();
+    }
+
+    // 根据存储策略类型自动构建 endpoint
+    StorageStrategy strategy = handlerStrategy();
+    String region = cfg.getRegion();
+
+    switch (strategy) {
+      case TENCENT_COS:
+        // 腾讯云 COS: https://cos.<region>.myqcloud.com
+        if (StringUtils.hasText(region)) {
+          return "https://cos." + region + ".myqcloud.com";
+        }
+        break;
+      case QINIU_KODO:
+        // 七牛云 Kodo: https://s3-<region>.qiniucs.com
+        if (StringUtils.hasText(region)) {
+          return "https://s3-" + region + ".qiniucs.com";
+        }
+        break;
+      case HUAWEI_OBS:
+        // 华为云 OBS: https://obs.<region>.myhuaweicloud.com
+        if (StringUtils.hasText(region)) {
+          return "https://obs." + region + ".myhuaweicloud.com";
+        }
+        break;
+      case KS3:
+        // 金山云 KS3: https://ks3-<region>.ksyun.com
+        if (StringUtils.hasText(region)) {
+          return "https://ks3-" + region + ".ksyun.com";
+        }
+        break;
+      case ALIYUN_OSS:
+        // 阿里云 OSS: https://oss-<region>.aliyuncs.com
+        if (StringUtils.hasText(region)) {
+          return "https://oss-" + region + ".aliyuncs.com";
+        }
+        break;
+      case S3_COMPATIBLE:
+      default:
+        // S3 兼容或其他：使用 SDK 默认 endpoint，不设置
+        break;
+    }
+
+    return null;
   }
 
   private void ensureEnabled(StorageProperties.S3Like config) {

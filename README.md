@@ -67,14 +67,13 @@ _Modern full-stack image hosting platform built with Spring Boot 3.4.1 and Vue 3
 <table align="center">
   <tr>
     <td align="center" width="50%">
-      <img src="./templates/dark.png" width="100%" alt="Dark Theme" />
+      <img src="./templates/index.png" width="100%" alt="userIndex" />
       <br>
-      <sub><b>🌙 Dark Mode</b></sub>
+      <sub><b>用户前端首页</b></sub>
     </td>
     <td align="center" width="50%">
-      <img src="./templates/light.png" width="100%" alt="Light Theme" />
-      <br>
-      <sub><b>☀️ Light Mode</b></sub>
+      <img src="./templates/managerIndex.png" width="100%" alt="adminIndex" />
+      <br>管理前端首页</b></sub>
     </td>
   </tr>
 </table>

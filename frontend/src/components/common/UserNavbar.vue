@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User } from 'lucide-vue-next'
+import { User, Menu, X } from 'lucide-vue-next'
 
 import ThemeSwitcher from './ThemeSwitcher.vue'
 import LoginModal from '../chenxi/LoginModal.vue'
@@ -10,6 +10,7 @@ import { useAuthStore } from '../../stores/auth'
 import siteLogo from '../../assets/img/favicon.png'
 
 const showLoginModal = ref(false)
+const isMobileMenuOpen = ref(false)
 
 const openLoginModal = () => {
   showLoginModal.value = true
@@ -77,131 +78,189 @@ const goAdmin = () => {
 const logout = () => {
   auth.logout()
   ElMessage.success('登出成功')
+  isMobileMenuOpen.value = false
   router.replace({ path: '/', query: { login: '1' } })
+}
+
+const toggleMobileMenu = () => {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
 </script>
 
 <template>
-  <header class="user-navbar fixed inset-x-0 top-0 z-50">
-    <div class="user-navbar__inner mx-auto flex max-w-6xl items-center justify-between px-3 py-3 lg:px-6 lg:py-4">
+  <header class="user-navbar">
+    <div class="navbar-container">
       <!-- Logo 区域 -->
-      <RouterLink to="/" class="flex items-center gap-2 lg:gap-3">
-        <div class="user-navbar__logo-badge">
-          <img :src="siteLogo" alt="AstrNest 徽标" class="h-full w-full rounded-xl object-contain drop-shadow-lg" />
+      <RouterLink to="/" class="logo-link">
+        <div class="logo-badge">
+          <img :src="siteLogo" alt="AstrNest" />
         </div>
-        <div class="hidden sm:block">
-          <p class="user-navbar__eyebrow">member space</p>
-          <p class="text-sm font-semibold lg:text-base">AstrNest 控制台</p>
+        <div class="logo-text">
+          <span class="logo-eyebrow">member space</span>
+          <span class="logo-title">AstrNest 控制台</span>
         </div>
       </RouterLink>
 
-      <!-- 桌面端操作区 -->
-      <div class="user-navbar__actions hidden md:flex">
+      <!-- 桌面端导航 -->
+      <nav class="desktop-nav">
         <ThemeSwitcher v-if="showThemeToggle" />
+        
         <RouterLink
           v-if="showHomeButton"
           :to="homeTo"
-          class="chenxi-home-btn flex items-center gap-2 rounded-full border border-body px-5 py-2 font-semibold text-body-secondary transition hover:border-brand-primary hover:text-body-primary"
+          class="nav-btn nav-btn-ghost"
         >
-          <span>{{ homeLabel }}</span>
+          {{ homeLabel }}
         </RouterLink>
+        
         <button
           v-if="showAdminButton && auth.isAdmin"
           type="button"
-          class="chenxi-admin-btn rounded-full border border-body px-5 py-2 font-semibold text-body-secondary transition hover:border-brand-primary hover:text-body-primary inline-flex"
+          class="nav-btn nav-btn-ghost"
           @click="goAdmin"
         >
           进入后台
         </button>
         
-        <!-- 未登录显示登录按钮 -->
+        <!-- 未登录 -->
         <button
           v-if="!auth.isAuthenticated"
           type="button"
-          class="btn-login-nav"
+          class="nav-btn nav-btn-primary"
           @click="openLoginModal"
         >
           登录
         </button>
         
-        <!-- 已登录显示用户头像 -->
-        <el-dropdown v-else class="chenxi-user-dropdown" trigger="hover">
-          <div
-            class="chenxi-user-avatar flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-primary to-brand-accent text-white font-semibold transition-transform hover:scale-110"
-          >
-            <span v-if="auth.profile?.username || auth.profile?.nickname || auth.displayName" class="text-sm">
+        <!-- 已登录 -->
+        <el-dropdown v-else trigger="hover">
+          <div class="user-avatar">
+            <span v-if="auth.profile?.username || auth.profile?.nickname || auth.displayName">
               {{ userInitial }}
             </span>
-            <User v-else class="h-5 w-5" />
+            <User v-else class="user-icon" />
           </div>
           <template #dropdown>
-            <el-dropdown-menu class="chenxi-dropdown-menu panel">
+            <el-dropdown-menu class="user-dropdown-menu">
               <RouterLink
                 v-for="tab in resolvedTabs"
                 :key="tab.name"
                 :to="{ name: tab.name }"
-                class="block w-full"
                 @click="handleBeforeNavigate"
               >
-                <el-dropdown-item class="dropdown-link">
-                  {{ tab.label }}
-                </el-dropdown-item>
+                <el-dropdown-item>{{ tab.label }}</el-dropdown-item>
               </RouterLink>
-              <el-divider class="dropdown-divider" />
-              <el-dropdown-item class="dropdown-link dropdown-link--danger" @click="logout">
+              <el-divider />
+              <el-dropdown-item class="logout-item" @click="logout">
                 退出登录
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-      </div>
+      </nav>
 
       <!-- 移动端操作区 -->
-      <div class="flex items-center gap-2 md:hidden">
-        <ThemeSwitcher v-if="showThemeToggle" />
+      <div class="mobile-actions">
+        <!-- 未登录：显示登录按钮 + 菜单按钮 -->
+        <template v-if="!auth.isAuthenticated">
+          <button type="button" class="mobile-login-btn" @click="openLoginModal">
+            登录
+          </button>
+          <button type="button" class="mobile-menu-btn" @click="toggleMobileMenu">
+            <Menu v-if="!isMobileMenuOpen" class="menu-icon" />
+            <X v-else class="menu-icon" />
+          </button>
+        </template>
         
-        <!-- 未登录显示登录按钮 -->
-        <button
-          v-if="!auth.isAuthenticated"
-          type="button"
-          class="btn-login-nav-mobile"
-          @click="openLoginModal"
-        >
-          登录
-        </button>
-        
-        <!-- 已登录显示用户头像 -->
-        <el-dropdown v-else class="chenxi-user-dropdown" trigger="click">
-          <div
-            class="chenxi-user-avatar-mobile flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-primary to-brand-accent text-white font-semibold"
-          >
-            <span v-if="auth.profile?.username || auth.profile?.nickname || auth.displayName" class="text-sm">
-              {{ userInitial }}
-            </span>
-            <User v-else class="h-4 w-4" />
-          </div>
-          <template #dropdown>
-            <el-dropdown-menu class="chenxi-dropdown-menu panel">
-              <RouterLink
-                v-for="tab in resolvedTabs"
-                :key="tab.name"
-                :to="{ name: tab.name }"
-                class="block w-full"
-                @click="handleBeforeNavigate"
-              >
-                <el-dropdown-item class="dropdown-link">
-                  {{ tab.label }}
+        <!-- 已登录：显示用户头像 + 菜单按钮 -->
+        <template v-else>
+          <el-dropdown trigger="click">
+            <div class="user-avatar mobile-avatar">
+              <span v-if="auth.profile?.username || auth.profile?.nickname || auth.displayName">
+                {{ userInitial }}
+              </span>
+              <User v-else class="user-icon" />
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu class="user-dropdown-menu">
+                <RouterLink
+                  v-for="tab in resolvedTabs"
+                  :key="tab.name"
+                  :to="{ name: tab.name }"
+                  @click="handleBeforeNavigate"
+                >
+                  <el-dropdown-item>{{ tab.label }}</el-dropdown-item>
+                </RouterLink>
+                <el-divider />
+                <el-dropdown-item class="logout-item" @click="logout">
+                  退出登录
                 </el-dropdown-item>
-              </RouterLink>
-              <el-divider class="dropdown-divider" />
-              <el-dropdown-item class="dropdown-link dropdown-link--danger" @click="logout">
-                退出登录
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <button type="button" class="mobile-menu-btn" @click="toggleMobileMenu">
+            <Menu v-if="!isMobileMenuOpen" class="menu-icon" />
+            <X v-else class="menu-icon" />
+          </button>
+        </template>
       </div>
     </div>
+
+    <!-- 移动端折叠菜单 -->
+    <transition name="slide-down">
+      <div v-if="isMobileMenuOpen" class="mobile-menu">
+        <div class="mobile-menu-inner">
+          <RouterLink 
+            v-if="showHomeButton" 
+            :to="homeTo" 
+            class="mobile-menu-item"
+            @click="isMobileMenuOpen = false"
+          >
+            <span class="menu-icon-emoji">🏠</span>
+            <span>{{ homeLabel }}</span>
+          </RouterLink>
+          
+          <button 
+            v-if="showAdminButton && auth.isAdmin" 
+            type="button"
+            class="mobile-menu-item"
+            @click="goAdmin(); isMobileMenuOpen = false"
+          >
+            <span class="menu-icon-emoji">⚙️</span>
+            <span>进入后台</span>
+          </button>
+          
+          <div class="mobile-menu-divider"></div>
+          
+          <template v-if="!auth.isAuthenticated">
+            <button 
+              type="button" 
+              class="mobile-menu-btn-primary"
+              @click="openLoginModal(); isMobileMenuOpen = false"
+            >
+              登录
+            </button>
+          </template>
+          
+          <template v-else>
+            <RouterLink 
+              :to="{ name: 'user-home' }" 
+              class="mobile-menu-btn-primary"
+              @click="isMobileMenuOpen = false"
+            >
+              会员中心
+            </RouterLink>
+            <button 
+              type="button" 
+              class="mobile-menu-btn-ghost"
+              @click="logout(); isMobileMenuOpen = false"
+            >
+              退出登录
+            </button>
+          </template>
+        </div>
+      </div>
+    </transition>
   </header>
   
   <!-- 登录弹窗 -->
@@ -209,137 +268,361 @@ const logout = () => {
 </template>
 
 <style scoped>
+/* 基础样式 */
 .user-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
   border-bottom: 1px solid var(--border-soft);
-  background: color-mix(in srgb, var(--color-bg-primary) 82%, transparent);
-  backdrop-filter: blur(24px);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  background: color-mix(in srgb, var(--color-bg-primary) 85%, transparent);
+  backdrop-filter: blur(20px);
 }
 
-.user-navbar__inner {
-  color: var(--color-text-primary);
-}
-
-.user-navbar__logo-badge {
+.navbar-container {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
   display: flex;
-  height: 3rem;
-  width: 3rem;
   align-items: center;
-  justify-content: center;
-  border-radius: 1.25rem;
-  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
-  padding: 0.5rem;
+  justify-content: space-between;
 }
 
-.user-navbar__eyebrow {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.4em;
-  color: var(--text-soft);
+@media (min-width: 1024px) {
+  .navbar-container {
+    padding: 1rem 1.5rem;
+  }
 }
 
-.user-navbar__actions {
+/* Logo 样式 */
+.logo-link {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-size: 0.875rem;
+  text-decoration: none;
 }
 
-/* 导航栏登录按钮 */
-.btn-login-nav {
+@media (min-width: 1024px) {
+  .logo-link {
+    gap: 1rem;
+  }
+}
+
+.logo-badge {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  padding: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .logo-badge {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    padding: 0.5rem;
+  }
+}
+
+.logo-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 0.5rem;
+}
+
+.logo-text {
+  display: none;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+@media (min-width: 640px) {
+  .logo-text {
+    display: flex;
+  }
+}
+
+.logo-eyebrow {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--text-soft);
+}
+
+@media (min-width: 1024px) {
+  .logo-eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
+  }
+}
+
+.logo-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+@media (min-width: 1024px) {
+  .logo-title {
+    font-size: 1rem;
+  }
+}
+
+/* 桌面端导航 - 默认隐藏，md 以上显示 */
+.desktop-nav {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .desktop-nav {
+    display: flex;
+  }
+}
+
+.nav-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0.5rem 1.25rem;
   border-radius: 9999px;
-  background: #F9A8C8;
-  color: white;
   font-size: 0.875rem;
   font-weight: 600;
-  border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(249, 168, 200, 0.35);
+  transition: all 0.2s ease;
+  border: none;
 }
 
-.btn-login-nav:hover {
-  background: #EC8DAD;
+.nav-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  color: var(--color-text-secondary);
+}
+
+.nav-btn-ghost:hover {
+  border-color: var(--color-brand-primary);
+  color: var(--color-brand-primary);
+}
+
+.nav-btn-primary {
+  background: linear-gradient(135deg, #ff6b9d, #feca57);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 107, 157, 0.35);
+}
+
+.nav-btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(249, 168, 200, 0.45);
+  box-shadow: 0 6px 20px rgba(255, 107, 157, 0.45);
 }
 
-.dark .btn-login-nav {
-  background: #E87A9F;
-  box-shadow: 0 4px 15px rgba(232, 122, 159, 0.35);
+.dark .nav-btn-primary {
+  background: linear-gradient(135deg, #e55a8a, #e5b54d);
+  box-shadow: 0 4px 15px rgba(229, 90, 138, 0.35);
 }
 
-.dark .btn-login-nav:hover {
-  background: #EC8DAD;
-  box-shadow: 0 6px 20px rgba(232, 122, 159, 0.45);
-}
-
-/* 移动端登录按钮 */
-.btn-login-nav-mobile {
-  display: inline-flex;
+/* 用户头像 */
+.user-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-accent));
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  box-shadow: 0 2px 8px rgba(249, 168, 200, 0.4);
+}
+
+.user-avatar:hover {
+  transform: scale(1.1);
+}
+
+.user-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.mobile-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 0.8125rem;
+}
+
+/* 移动端操作区 - 默认显示，md 以上隐藏 */
+.mobile-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .mobile-actions {
+    display: none;
+  }
+}
+
+.mobile-login-btn {
   padding: 0.375rem 1rem;
   border-radius: 9999px;
-  background: #F9A8C8;
+  background: linear-gradient(135deg, #ff6b9d, #feca57);
   color: white;
   font-size: 0.8125rem;
   font-weight: 600;
   border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 3px 12px rgba(249, 168, 200, 0.35);
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 12px rgba(255, 107, 157, 0.35);
 }
 
-.btn-login-nav-mobile:hover {
-  background: #EC8DAD;
-  box-shadow: 0 4px 16px rgba(249, 168, 200, 0.45);
+.mobile-login-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(255, 107, 157, 0.45);
 }
 
-.dark .btn-login-nav-mobile {
-  background: #E87A9F;
-  box-shadow: 0 3px 12px rgba(232, 122, 159, 0.35);
-}
-
-.dark .btn-login-nav-mobile:hover {
-  background: #EC8DAD;
-  box-shadow: 0 4px 16px rgba(232, 122, 159, 0.45);
-}
-
-/* 移动端用户头像 */
-.chenxi-user-avatar-mobile {
+.mobile-menu-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-soft);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(249, 168, 200, 0.4);
+  transition: all 0.2s ease;
+  color: var(--color-text-secondary);
 }
 
-.dark .chenxi-user-avatar-mobile {
-  box-shadow: 0 2px 8px rgba(232, 122, 159, 0.4);
+.mobile-menu-btn:hover {
+  border-color: var(--color-brand-primary);
+  color: var(--color-brand-primary);
 }
 
-:deep(.dropdown-link) {
-  color: var(--text-muted);
-  transition: color 0.2s ease, background-color 0.2s ease;
+.menu-icon {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
-:deep(.dropdown-link:hover) {
-  color: var(--color-text-primary);
-  background: var(--panel-overlay);
+/* 移动端菜单 */
+.mobile-menu {
+  background: color-mix(in srgb, var(--color-bg-primary) 98%, transparent);
+  border-top: 1px solid var(--border-soft);
+  backdrop-filter: blur(20px);
 }
 
-:deep(.dropdown-link--danger) {
+.mobile-menu-inner {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.mobile-menu-item:hover {
+  background: rgba(255, 107, 157, 0.08);
+  color: var(--color-brand-primary);
+}
+
+.menu-icon-emoji {
+  font-size: 1.25rem;
+  width: 1.5rem;
+  text-align: center;
+}
+
+.mobile-menu-divider {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 0.25rem 0;
+}
+
+.mobile-menu-btn-primary {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #ff6b9d, #feca57);
+  color: white;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 12px rgba(255, 107, 157, 0.35);
+}
+
+.mobile-menu-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(255, 107, 157, 0.45);
+}
+
+.mobile-menu-btn-ghost {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  color: #f87171;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.mobile-menu-btn-ghost:hover {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: #f87171;
+}
+
+/* 动画 */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* 下拉菜单样式 */
+:deep(.user-dropdown-menu) {
+  min-width: 160px;
+}
+
+:deep(.logout-item) {
   color: #f87171;
 }
 
-:deep(.dropdown-link--danger:hover) {
+:deep(.logout-item:hover) {
   color: #dc2626;
-  background: color-mix(in srgb, #f87171 12%, transparent);
-}
-
-:deep(.dropdown-divider) {
-  border-color: var(--border-soft);
+  background: rgba(248, 113, 113, 0.1);
 }
 </style>
