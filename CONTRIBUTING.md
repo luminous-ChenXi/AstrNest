@@ -16,13 +16,13 @@
    ```bash
    # Fork 项目到您的 GitHub 账户
    # 然后克隆到本地
-   git clone https://github.com/luminous-ChenXi/astrnest.git
-   cd astrnest
+   git clone https://github.com/luminous-ChenXi/AstrNest.git
+   cd AstrNest
    ```
 
 2. **设置上游仓库**
    ```bash
-   git remote add upstream https://github.com/original-owner/astrnest.git
+   git remote add upstream https://github.com/luminous-ChenXi/AstrNest.git
    ```
 
 3. **数据库设置**
