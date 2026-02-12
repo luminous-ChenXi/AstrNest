@@ -29,7 +29,7 @@
   <a href="#tech-stack">技术栈</a> · 
   <a href="#acknowledgments">致谢</a> ·   
   <a href="https://discord.gg/hBsqcfwC9Q">Discord</a> · 
-  <a href="https://github.com/luminous-ChenXi/astrnest">GitHub</a>
+  <a href="https://github.com/luminous-ChenXi/astrnest_backend">后端部分</a>
 </p>
 
 </div>
@@ -73,7 +73,7 @@ _Modern full-stack image hosting platform built with Spring Boot 3.4.1 and Vue 3
     </td>
     <td align="center" width="50%">
       <img src="./templates/managerIndex.png" width="100%" alt="adminIndex" />
-      <br>管理前端首页</b></sub>
+      <sub><b>管理前端首页</b></sub>
     </td>
   </tr>
 </table>

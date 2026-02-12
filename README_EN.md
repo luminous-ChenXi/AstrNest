@@ -21,7 +21,7 @@ A modern full-stack media management platform built with Spring Boot 3.4.1 and V
   </a>
 </p>
 <p align="center">
-  <a href="./README.md">English</a> · <a href="./README_EN.md">简体中文</a>
+  <a href="./README.md">简体中文</a> · <a href="./README_EN.md">English</a>
 </p>
 <p align="center">
   <a href="#quick-start">Quick Start</a> · 
@@ -67,14 +67,14 @@ Youth and dreams are the only things not to be let down!
 <table align="center">
   <tr>
     <td align="center" width="50%">
-      <img src="./templates/dark.png" width="100%" alt="Dark Theme" />
+      <img src="./templates/index.png" width="100%" alt="User Frontend" />
       <br>
-      <sub><b>🌙 Dark Mode</b></sub>
+      <sub><b>User Frontend</b></sub>
     </td>
     <td align="center" width="50%">
-      <img src="./templates/light.png" width="100%" alt="Light Theme" />
+      <img src="./templates/managerIndex.png" width="100%" alt="Admin Frontend" />
       <br>
-      <sub><b>☀️ Light Mode</b></sub>
+      <sub><b>Admin Frontend</b></sub>
     </td>
   </tr>
 </table>
