@@ -5,19 +5,22 @@ A modern full-stack media management platform built with Spring Boot 3.4.1 and V
 
 <p align="center">
   <a href="https://github.com/vuejs/core">
-    <img src="https://img.shields.io/badge/vue-3.5.24-brightgreen.svg" alt="vue">
+    <img src="https://img.shields.io/badge/vue-3.5.24-brightgreen.svg?style=flat-square&logo=vue.js" alt="vue">
   </a>
   <a href="https://github.com/element-plus/element-plus">
-    <img src="https://img.shields.io/badge/element--plus-2.8.6-brightgreen.svg" alt="element-plus">
+    <img src="https://img.shields.io/badge/element--plus-2.8.6-brightgreen.svg?style=flat-square&logo=element" alt="element-plus">
   </a>
   <a href="https://spring.io/projects/spring-boot">
-    <img src="https://img.shields.io/badge/spring--boot-3.4.1-brightgreen.svg" alt="spring-boot">
+    <img src="https://img.shields.io/badge/spring--boot-3.4.1-brightgreen.svg?style=flat-square&logo=spring" alt="spring-boot">
   </a>
   <a href="https://github.com/luminous-ChenXi/astrnest/blob/master/LICENSE">
-    <img src="https://img.shields.io/badge/license-GPL%20v3-blue.svg" alt="license">
+    <img src="https://img.shields.io/badge/license-GPL%20v3-blue.svg?style=flat-square" alt="license">
   </a>
   <a href="https://github.com/luminous-ChenXi/astrnest/releases">
-    <img src="https://img.shields.io/github/release/luminous-ChenXi/astrnest.svg" alt="GitHub release">
+    <img src="https://img.shields.io/github/release/luminous-ChenXi/astrnest.svg?style=flat-square" alt="GitHub release">
+  </a>
+  <a href="https://coderabbit.ai">
+    <img src="https://img.shields.io/coderabbit/prs/github/luminous-ChenXi/AstrNest?labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews" alt="CodeRabbit Reviews">
   </a>
 </p>
 <p align="center">
