@@ -430,6 +430,27 @@ V0.8 版本完成了从前端样式"硬编码"到"动态主题系统"的架构�
 - 修复已知问题
 - **发布 v1.0 正式版**
 
+### v1.0 预览
+
+<p align="center">
+  <b>不同角色前端渲染效果预览</b>
+</p>
+
+<table align="center">
+  <tr>
+    <td align="center" width="50%">
+      <img src="./templates/index.png" width="100%" alt="v1.0 Light Theme" />
+      <br>
+      <sub><b>用户前端页面</b></sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="./templates/managerIndex.png" width="100%" alt="v1.0 Dark Theme" />
+      <br>
+      <sub><b>管理前端页面</b></sub>
+    </td>
+  </tr>
+</table>
+
 ---
 
 ## 总结
