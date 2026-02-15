@@ -380,8 +380,30 @@
 - 更新前端架构文档、组件使用指南
 - 补充部署配置说明
 
+### v0.8 预览
+
+<p align="center">
+  <b>主题切换效果预览</b>
+</p>
+
+<table align="center">
+  <tr>
+    <td align="center" width="50%">
+      <img src="./templates/v0.8_light.png" width="100%" alt="v0.8 Light Theme" />
+      <br>
+      <sub><b>☀️ 浅色主题</b></sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="./templates/v0.8_dark.png" width="100%" alt="v0.8 Dark Theme" />
+      <br>
+      <sub><b>🌙 深色主题</b></sub>
+    </td>
+  </tr>
+</table>
+
 ### 版本总结
 V0.8 版本完成了从前端样式"硬编码"到"动态主题系统"的架构升级，大幅提升了代码可维护性与用户体验的专业度，为后续功能扩展奠定了坚实的前端基础。
+
 
 ---
 
@@ -393,6 +415,9 @@ V0.8 版本完成了从前端样式"硬编码"到"动态主题系统"的架构�
 - 重构项目
 - 对前端进行美化
 - 修复后端接口请求问题
+- 清理PublicLandingView.vue中未使用的样式代码
+- 重新设计公告管理页面
+- 美化公告编辑页面的下拉框样式
 
 ### 2月11日
 - 修复已知问题
