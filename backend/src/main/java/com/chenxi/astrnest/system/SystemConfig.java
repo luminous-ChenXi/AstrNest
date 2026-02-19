@@ -35,6 +35,9 @@ public class SystemConfig {
   @Column(nullable = false)
   private int dailyUploadCountLimit = 5000;
 
+  @Column(name = "max_files_per_upload", nullable = false)
+  private int maxFilesPerUpload = 30;
+
   @Column(nullable = false)
   private long userStorageQuotaBytes = 5L * 1024 * 1024 * 1024;
 

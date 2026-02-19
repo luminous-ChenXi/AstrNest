@@ -38,7 +38,7 @@
         <div class="space-y-2">
           <p class="text-lg font-semibold text-body-primary">拖入文件或点击选择</p>
           <p class="text-sm text-body-soft">
-            支持 JPG / PNG / GIF / WEBP 以及 MP4 / WEBM，单次最多 30 个文件，粘贴前请先聚焦此区域，聚焦后直接curl+V。
+            支持 JPG / PNG / GIF / WEBP 以及 MP4 / WEBM，单次最多 {{ systemStore.config?.maxFilesPerUpload || 30 }} 个文件，粘贴前请先聚焦此区域，聚焦后直接 Ctrl+V。
           </p>
         </div>
         <div class="flex flex-wrap justify-center gap-3">
@@ -226,14 +226,17 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { AlertCircle, CheckCircle2, ClipboardPaste, FileImage, Film, Loader2, Tag, Trash2, UploadCloud } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
+import { useSystemStore } from '../../stores/system'
 import { uploadFiles } from '../../services/upload'
+import { getSystemConfig } from '../../services/system'
 import ChenxiTagDialog from '../common/ChenxiTagDialog.vue'
 
 const auth = useAuthStore()
+const systemStore = useSystemStore()
 const assetBase = (import.meta.env.VITE_PUBLIC_ASSET_BASE || '').replace(/\/$/, '')
 const dropZoneRef = ref(null)
 const pickerRef = ref(null)
@@ -317,6 +320,8 @@ const isAllowedType = (file) => {
   return ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.mov', '.webm', '.ogv'].some((ext) => name.endsWith(ext))
 }
 
+const maxFilesPerUpload = computed(() => systemStore.config?.maxFilesPerUpload || 30)
+
 function addFiles(files) {
   if (!files.length) {
     return
@@ -327,8 +332,14 @@ function addFiles(files) {
     return
   }
   const combined = [...selectedFiles.value, ...safeFiles]
-  selectedFiles.value = combined.slice(0, 30)
-  errorMessage.value = ''
+  const limit = maxFilesPerUpload.value
+  if (combined.length > limit) {
+    errorMessage.value = `单次最多上传 ${limit} 个文件，已自动截取前 ${limit} 个`
+    selectedFiles.value = combined.slice(0, limit)
+  } else {
+    selectedFiles.value = combined
+    errorMessage.value = ''
+  }
 }
 
 function removeFile(index) {
@@ -468,4 +479,15 @@ function legacyCopyLink(text) {
     throw new Error('复制失败')
   }
 }
+
+onMounted(async () => {
+  if (!systemStore.config) {
+    try {
+      const { data } = await getSystemConfig()
+      systemStore.setConfig(data)
+    } catch (error) {
+      console.error('加载系统配置失败', error)
+    }
+  }
+})
 </script>

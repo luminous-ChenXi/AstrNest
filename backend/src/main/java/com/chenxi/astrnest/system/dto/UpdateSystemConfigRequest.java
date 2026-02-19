@@ -22,6 +22,11 @@ public record UpdateSystemConfigRequest(
     @Max(value = 100000, message = "每日上传次数不可超过 100000 次")
     Integer dailyUploadCountLimit,
 
+    @NotNull(message = "请设置单次上传文件数限制")
+    @Min(value = 1, message = "单次上传文件数至少 1 个")
+    @Max(value = 100, message = "单次上传文件数不可超过 100 个")
+    Integer maxFilesPerUpload,
+
     @NotNull(message = "请设置用户空间配额")
     @Min(value = 1, message = "用户空间至少 1 GB")
     @Max(value = 2048, message = "用户空间配额不可超过 2 TB")

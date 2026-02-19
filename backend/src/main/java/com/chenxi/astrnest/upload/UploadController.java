@@ -52,6 +52,14 @@ public class UploadController {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "未登录用户不允许上传，请先登录");
     }
 
+    // 检查文件数量限制
+    int maxFilesPerUpload = systemConfigService.currentMaxFilesPerUpload();
+    int totalFiles = (files != null ? files.length : 0) + (videoCovers != null ? videoCovers.length : 0);
+    if (totalFiles > maxFilesPerUpload) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+          "单次上传文件数超过限制，最多允许 " + maxFilesPerUpload + " 个文件");
+    }
+
     return uploadService.uploadFiles(files, authentication, resolveClientIp(request), tags,
         videoCovers, videoCoverMapping);
   }
