@@ -232,7 +232,6 @@ import { AlertCircle, CheckCircle2, ClipboardPaste, FileImage, Film, Loader2, Ta
 import { useAuthStore } from '../../stores/auth'
 import { useSystemStore } from '../../stores/system'
 import { uploadFiles } from '../../services/upload'
-import { getSystemConfig } from '../../services/system'
 import ChenxiTagDialog from '../common/ChenxiTagDialog.vue'
 
 const auth = useAuthStore()
@@ -482,12 +481,7 @@ function legacyCopyLink(text) {
 
 onMounted(async () => {
   if (!systemStore.config) {
-    try {
-      const { data } = await getSystemConfig()
-      systemStore.setConfig(data)
-    } catch (error) {
-      console.error('加载系统配置失败', error)
-    }
+    await systemStore.fetchSystemConfig()
   }
 })
 </script>
