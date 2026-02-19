@@ -31,6 +31,13 @@ public record UpdateSystemConfigRequest(
 
     Boolean guestLikeEnabled,
 
+    Boolean guestUploadEnabled,
+
+    @NotNull(message = "请设置单次上传文件数限制")
+    @Min(value = 1, message = "单次上传文件数至少 1 个")
+    @Max(value = 100, message = "单次上传文件数不可超过 100 个")
+    Integer maxFilesPerUpload,
+
     @NotNull(message = "请设置自动清理天数，可填写 0 表示关闭")
     @Min(value = 0, message = "自动清理天数不能小于 0")
     @Max(value = 365, message = "自动清理天数不可超过 365")
