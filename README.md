@@ -167,6 +167,14 @@ cd AstrNest
 ```bash
 mysql -u root -p < backend/db/init.sql
 ```
+
+> **⚠️ 重要提醒**：启动后端前，请确保数据库配置正确。默认配置如下（位于 `backend/src/main/resources/application.yml`）：
+> - 数据库URL：`jdbc:mysql://localhost:3306/astrnest`
+> - 用户名：`astrnest`（可通过环境变量 `ASTRNEST_DB_USERNAME` 覆盖）
+> - 密码：`chenxi123`（可通过环境变量 `ASTRNEST_DB_PASSWORD` 覆盖）
+>
+> 如果数据库用户名/密码与上述不同，请修改 `application.yml` 或通过环境变量覆盖，否则后端将启动失败。
+
 3) 启动后端
 ```bash
 cd backend
@@ -178,6 +186,17 @@ cd frontend
 npm install
 npm run dev
 ```
+> **⚠️ 重要提醒**：
+> - 如果 `npm install` 出现权限错误（如 `EACCES` 或 `permission denied`），通常是因为 npm 全局目录权限问题。解决方法：
+>   1. 修改 npm 全局目录权限：`sudo chown -R $(whoami) ~/.npm`
+>   2. 或使用 npx 运行：`npx npm install`
+>   3. 或清除 npm 缓存后重试：`npm cache clean --force && npm install`
+>   4. 如果以上方法都无效，考虑使用 `sudo npm install` 安装依赖（但不推荐）。
+> - 如果使用镜像源出现 404 错误，建议切换回官方源：`npm config set registry https://registry.npmjs.org/`
+> - 如果 `npm run dev` 启动时出现 `EACCES: permission denied, mkdir '.../node_modules/.vite/...'` 错误，说明 `node_modules` 目录权限不足。解决方法：
+>   1. 修复 `node_modules` 目录权限：`sudo chown -R $(whoami) node_modules`
+>   2. 或直接删除后重新安装：`rm -rf node_modules && npm install`
+
 5) 访问
 - 前端：http://localhost:5173
 - 后端：http://localhost:8080
@@ -206,6 +225,7 @@ docker compose --env-file .env up -d
 | 静态资源访问不到 | 若切换对象存储，记得同步配置 `astrnest.storage.local.public-base-url` 或在后台设置资产域名，并确保 CDN/桶权限正确。 |
 | 邮件发送失败 | 检查邮件配置是否正确，包括SMTP服务器、端口、用户名和密码 |
 | 验证码验证失败 | 确保验证码在有效期内，且输入正确 |
+| 数据库连接超时 | 检查 `spring.datasource.hikari.connection-timeout` 配置（默认 30000ms），确保网络稳定或适当调高超时时间 |
 
 ### 常用脚本
 - 后端开发：`cd backend && ./mvnw spring-boot:run`
