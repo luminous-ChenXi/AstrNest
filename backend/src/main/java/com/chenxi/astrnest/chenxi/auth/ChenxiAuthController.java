@@ -12,9 +12,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -78,6 +80,12 @@ public class ChenxiAuthController {
     authService.resetPassword(request.email(), request.code(), request.newPassword());
     authProtectionService.recordLoginSuccess(request.email(), ip);
     return Map.of("message", "密码已重置，可使用新密码登录");
+  }
+
+  @GetMapping("/check-email")
+  public Map<String, Boolean> checkEmailAvailability(@RequestParam String email) {
+    boolean available = authService.isEmailAvailable(email);
+    return Map.of("available", available);
   }
 
   private String resolveClientIp(HttpServletRequest request) {

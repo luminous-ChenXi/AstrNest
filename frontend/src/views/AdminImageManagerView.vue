@@ -327,8 +327,18 @@ onMounted(() => {
           <div class="flex flex-col gap-4 md:flex-row">
             <div class="md:w-40">
               <div class="aspect-video overflow-hidden rounded-2xl bg-black/30">
+                <!-- 视频类型使用 video 标签 -->
+                <video
+                  v-if="(record.mediaCategory === 'VIDEO' || record.contentType?.startsWith('video/')) && record.publicUrl"
+                  :src="record.publicUrl"
+                  class="h-full w-full object-cover"
+                  preload="metadata"
+                  muted
+                  playsinline
+                />
+                <!-- 图片类型使用 img 标签 -->
                 <img
-                  v-if="record.publicUrl"
+                  v-else-if="record.publicUrl"
                   :src="record.publicUrl"
                   alt="preview"
                   class="h-full w-full object-cover"
@@ -365,6 +375,7 @@ onMounted(() => {
                 <p>点赞：{{ record.likeCount }}</p>
                 <p>上传：{{ formatDate(record.uploadedAt) }}</p>
                 <p>存储：{{ record.storageProvider }} · {{ record.storageMode }}</p>
+                <p>媒体：{{ record.mediaCategory || 'unknown' }}</p>
               </div>
               <div class="flex flex-wrap gap-3 pt-2">
                 <button

@@ -31,4 +31,7 @@ public interface AlbumMediaRepository extends JpaRepository<AlbumMedia, Long> {
   Page<AlbumMedia> findByAlbumIdOrderByIdAsc(Long albumId, Pageable pageable);
 
   void deleteByAlbumIdAndMediaUuid(Long albumId, String mediaUuid);
+
+  // 获取图集的前N张图片（用于预览轮播）
+  List<AlbumMedia> findTop3ByAlbumIdOrderBySortOrderAsc(Long albumId);
 }

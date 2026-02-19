@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 @Component
+@Slf4j
 public class ChenxiMediaInspector {
 
   private static final byte[] JPEG = new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
@@ -106,7 +108,17 @@ public class ChenxiMediaInspector {
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "仅支持常见图片或短视频格式"));
     validateExtensionAgainstCategory(extension, category);
     validateFileSignature(file, category);
-    return new MediaInspection(category, contentType, extension);
+    
+    // 获取图片尺寸（仅对图片类型）
+    Integer width = null;
+    Integer height = null;
+    if (category == MediaCategory.IMAGE) {
+      ImageDimensions dimensions = extractImageDimensions(file);
+      width = dimensions.width();
+      height = dimensions.height();
+    }
+    
+    return new MediaInspection(category, contentType, extension, width, height);
   }
 
   public void enforceSizeLimit(MultipartFile file, MediaCategory category, long maxImageBytes, long maxVideoBytes) {
@@ -273,5 +285,172 @@ public class ChenxiMediaInspector {
     return contentType.trim().toLowerCase(Locale.ROOT);
   }
 
-  public record MediaInspection(MediaCategory category, String contentType, String extension) {}
+  public record MediaInspection(MediaCategory category, String contentType, String extension, Integer width, Integer height) {}
+  
+  public record ImageDimensions(Integer width, Integer height) {}
+  
+  /**
+   * 从图片文件中提取宽高信息
+   */
+  private ImageDimensions extractImageDimensions(MultipartFile file) {
+    try (InputStream is = file.getInputStream()) {
+      byte[] header = new byte[24];
+      int read = is.read(header);
+      if (read < 16) {
+        return new ImageDimensions(null, null);
+      }
+      
+      // PNG: 宽度在字节 16-19，高度在字节 20-23（大端序）
+      if (matches(header, PNG)) {
+        int width = ((header[16] & 0xFF) << 24) | ((header[17] & 0xFF) << 16) | 
+                    ((header[18] & 0xFF) << 8) | (header[19] & 0xFF);
+        int height = ((header[20] & 0xFF) << 24) | ((header[21] & 0xFF) << 16) | 
+                     ((header[22] & 0xFF) << 8) | (header[23] & 0xFF);
+        return new ImageDimensions(width, height);
+      }
+      
+      // JPEG: 需要解析 SOF 段
+      if (matches(header, JPEG)) {
+        return extractJpegDimensions(file);
+      }
+      
+      // GIF: 宽度在字节 6-7（小端序），高度在字节 8-9（小端序）
+      if (matches(header, GIF)) {
+        int width = (header[6] & 0xFF) | ((header[7] & 0xFF) << 8);
+        int height = (header[8] & 0xFF) | ((header[9] & 0xFF) << 8);
+        return new ImageDimensions(width, height);
+      }
+      
+      // BMP: 宽度在字节 18-21（小端序），高度在字节 22-25（小端序）
+      if (matches(header, BMP)) {
+        int width = (header[18] & 0xFF) | ((header[19] & 0xFF) << 8) | 
+                    ((header[20] & 0xFF) << 16) | ((header[21] & 0xFF) << 24);
+        int height = (header[22] & 0xFF) | ((header[23] & 0xFF) << 8) | 
+                     ((header[24] & 0xFF) << 16) | ((header[25] & 0xFF) << 24);
+        return new ImageDimensions(width, Math.abs(height)); // BMP 高度可能为负数
+      }
+      
+      // WebP: 需要解析 VP8/VP8L 段
+      if (matches(header, RIFF) && header.length >= 12 && matchesAt(header, WEBP, 8)) {
+        return extractWebpDimensions(file);
+      }
+      
+    } catch (IOException e) {
+      log.warn("无法提取图片尺寸: {}", e.getMessage());
+    }
+    return new ImageDimensions(null, null);
+  }
+  
+  /**
+   * 提取 JPEG 图片尺寸
+   */
+  private ImageDimensions extractJpegDimensions(MultipartFile file) {
+    try (InputStream is = file.getInputStream()) {
+      // 跳过 SOI 标记
+      is.skip(2);
+      
+      while (true) {
+        int marker = is.read();
+        if (marker == -1) break;
+        
+        // 跳过填充字节
+        while (marker == 0xFF) {
+          marker = is.read();
+        }
+        
+        if (marker == -1) break;
+        
+        // SOF0, SOF1, SOF2 (基线, 扩展顺序, 渐进)
+        if ((marker >= 0xC0 && marker <= 0xC3) || (marker >= 0xC5 && marker <= 0xC7) || 
+            (marker >= 0xC9 && marker <= 0xCB) || (marker >= 0xCD && marker <= 0xCF)) {
+          byte[] segment = new byte[7];
+          if (is.read(segment) == 7) {
+            int height = ((segment[1] & 0xFF) << 8) | (segment[2] & 0xFF);
+            int width = ((segment[3] & 0xFF) << 8) | (segment[4] & 0xFF);
+            return new ImageDimensions(width, height);
+          }
+        } else if (marker == 0xD9) { // EOI
+          break;
+        } else {
+          // 跳过其他段
+          byte[] lengthBytes = new byte[2];
+          if (is.read(lengthBytes) != 2) break;
+          int length = ((lengthBytes[0] & 0xFF) << 8) | (lengthBytes[1] & 0xFF);
+          if (length > 2) {
+            is.skip(length - 2);
+          }
+        }
+      }
+    } catch (IOException e) {
+      log.warn("无法提取 JPEG 尺寸: {}", e.getMessage());
+    }
+    return new ImageDimensions(null, null);
+  }
+  
+  /**
+   * 提取 WebP 图片尺寸
+   */
+  private ImageDimensions extractWebpDimensions(MultipartFile file) {
+    try (InputStream is = file.getInputStream()) {
+      // 跳过 RIFF 头和 WEBP 标识
+      is.skip(12);
+      
+      byte[] chunkHeader = new byte[8];
+      while (is.read(chunkHeader) == 8) {
+        String chunkType = new String(chunkHeader, 0, 4, StandardCharsets.US_ASCII);
+        int chunkSize = (chunkHeader[4] & 0xFF) | ((chunkHeader[5] & 0xFF) << 8) |
+                        ((chunkHeader[6] & 0xFF) << 16) | ((chunkHeader[7] & 0xFF) << 24);
+        
+        if ("VP8 ".equals(chunkType)) {
+          // 有损 WebP
+          byte[] vp8Data = new byte[10];
+          if (is.read(vp8Data) == 10) {
+            int width = ((vp8Data[6] & 0xFF) | ((vp8Data[7] & 0xFF) << 8)) & 0x3FFF;
+            int height = ((vp8Data[8] & 0xFF) | ((vp8Data[9] & 0xFF) << 8)) & 0x3FFF;
+            return new ImageDimensions(width, height);
+          }
+        } else if ("VP8L".equals(chunkType)) {
+          // 无损 WebP
+          byte[] vp8lData = new byte[5];
+          if (is.read(vp8lData) == 5) {
+            int bits = (vp8lData[1] & 0xFF) | ((vp8lData[2] & 0xFF) << 8) | 
+                       ((vp8lData[3] & 0xFF) << 16) | ((vp8lData[4] & 0xFF) << 24);
+            int width = (bits & 0x3FFF) + 1;
+            int height = ((bits >> 14) & 0x3FFF) + 1;
+            return new ImageDimensions(width, height);
+          }
+        } else if ("VP8X".equals(chunkType)) {
+          // 扩展 WebP
+          byte[] vp8xData = new byte[10];
+          if (is.read(vp8xData) == 10) {
+            int width = ((vp8xData[4] & 0xFF) | ((vp8xData[5] & 0xFF) << 8) | 
+                        ((vp8xData[6] & 0xFF) << 16)) + 1;
+            int height = ((vp8xData[7] & 0xFF) | ((vp8xData[8] & 0xFF) << 8) | 
+                         ((vp8xData[9] & 0xFF) << 16)) + 1;
+            return new ImageDimensions(width, height);
+          }
+        } else {
+          // 跳过其他 chunk
+          if (chunkSize > 0) {
+            is.skip(chunkSize + (chunkSize % 2)); // 包括填充字节
+          }
+        }
+      }
+    } catch (IOException e) {
+      log.warn("无法提取 WebP 尺寸: {}", e.getMessage());
+    }
+    return new ImageDimensions(null, null);
+  }
+  
+  private boolean matchesAt(byte[] data, byte[] pattern, int offset) {
+    if (data.length < offset + pattern.length) return false;
+    for (int i = 0; i < pattern.length; i++) {
+      if (data[offset + i] != pattern[i]) return false;
+    }
+    return true;
+  }
+  
+  private boolean matches(byte[] data, byte[] pattern) {
+    return matchesAt(data, pattern, 0);
+  }
 }

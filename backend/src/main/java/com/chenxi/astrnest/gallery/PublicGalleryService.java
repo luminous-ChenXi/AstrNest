@@ -258,7 +258,9 @@ public class PublicGalleryService {
         likedByMe,
         tags,
         latestLike,
-        albumInfo
+        albumInfo,
+        record.getWidth(),
+        record.getHeight()
     );
   }
 

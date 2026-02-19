@@ -146,7 +146,8 @@ public class AdminUploadService {
         record.getStorageProvider(),
         record.getStorageMode(),
         record.getUploadedAt(),
-        tags
+        tags,
+        record.getMediaCategory()
     );
   }
 

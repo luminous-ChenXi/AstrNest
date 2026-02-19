@@ -46,14 +46,19 @@ export const albumApi = {
     return http.delete(`/api/albums/${albumUuid}/medias/${mediaUuid}`)
   },
 
-  // 获取公开图集随机图片URL（新路径：/picture/random/{pathSlug}）
+  // 获取公开图集随机图片URL（新路径：/api/albums/random/{pathSlug}）
   getPublicAlbumUrl(pathSlug) {
-    return `${import.meta.env.VITE_API_BASE_URL || ''}/picture/random/${pathSlug}`
+    return `${import.meta.env.VITE_API_BASE_URL || ''}/api/albums/random/${pathSlug}`
   },
 
   // 获取首页Featured图集（最受欢迎的公开图集）
   getFeaturedAlbums() {
     return http.get('/api/albums/featured')
+  },
+
+  // 获取可添加到图集的图片列表
+  getAvailableMedias(albumUuid, params = {}) {
+    return http.get(`/api/albums/${albumUuid}/available-medias`, { params })
   }
 }
 

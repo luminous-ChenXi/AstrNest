@@ -10,8 +10,10 @@ import {
 } from '../../services/user'
 import { useUploadStore } from '../../stores/upload'
 import UploadResultModal from '../../components/user/UploadResultModal.vue'
+import { useConfirm } from '../../composables/useConfirm'
 
 const upload = useUploadStore()
+const { confirm } = useConfirm()
 
 const items = ref([])
 const page = ref(0)
@@ -101,7 +103,14 @@ const closeCopyModal = () => {
 }
 
 const removeItem = async (item) => {
-  if (!confirm(`确认删除 ${item.fileName} 吗？`)) return
+  const confirmed = await confirm({
+    title: '删除确认',
+    message: `确定要删除 "${item.fileName}" 吗？此操作不可恢复。`,
+    type: 'danger',
+    confirmText: '删除',
+    cancelText: '取消'
+  })
+  if (!confirmed) return
   deleting.value = item.id
   message.value = ''
   try {
@@ -118,7 +127,14 @@ const removeItem = async (item) => {
 
 const handleBatchDelete = async () => {
   if (!selectedCount.value) return
-  if (!confirm(`确认删除选中的 ${selectedCount.value} 张图片？`)) return
+  const confirmed = await confirm({
+    title: '批量删除确认',
+    message: `确定要删除选中的 ${selectedCount.value} 张图片吗？此操作不可恢复。`,
+    type: 'danger',
+    confirmText: '删除',
+    cancelText: '取消'
+  })
+  if (!confirmed) return
   batchDeleting.value = true
   message.value = ''
   try {
@@ -283,34 +299,46 @@ onMounted(loadData)
 
   <UploadResultModal :open="modalOpen" :items="modalItems" title="图片详情" @close="closeCopyModal">
     <template #extra="{ item }">
-      <div v-if="detailMode" class="space-y-4 rounded-2xl border border-white/10 bg-white/90 p-4 text-sm text-slate-700">
-        <div class="flex items-center justify-between">
-          <span>喜欢人数</span>
-          <span class="font-semibold text-brand-emerald">{{ item.likeCount || 0 }}</span>
+      <div v-if="detailMode" class="action-panel">
+        <!-- Stats Row -->
+        <div class="stats-row">
+          <div class="stat-item">
+            <Heart class="stat-icon" />
+            <span class="stat-label">喜欢人数</span>
+            <span class="stat-value">{{ item.likeCount || 0 }}</span>
+          </div>
+          <div class="stat-item">
+            <component :is="item.publicAccessible ? 'Unlock' : 'Lock'" class="stat-icon" />
+            <span class="stat-label">公开状态</span>
+            <span :class="['stat-value', item.publicAccessible ? 'status-public' : 'status-private']">
+              {{ item.publicAccessible ? '公开访问' : '仅自己可见' }}
+            </span>
+          </div>
         </div>
-        <button
-          class="w-full rounded-full border border-emerald-500/60 px-3 py-2 font-semibold text-emerald-600 transition hover:bg-emerald-500 hover:text-white disabled:opacity-50"
-          type="button"
-          :disabled="actionLoading"
-          @click="handleToggleLike(item)"
-        >
-          {{ item.likedByMe ? '取消喜欢' : '喜欢这张图' }}
-        </button>
-        <div class="flex items-center justify-between">
-          <span>公开状态</span>
-          <span :class="item.publicAccessible ? 'text-emerald-500' : 'text-amber-500'">
-            {{ item.publicAccessible ? '公开访问' : '仅自己可见' }}
-          </span>
+        <!-- Buttons Row -->
+        <div class="buttons-row">
+          <button
+            class="action-btn like-btn"
+            :class="{ 'liked': item.likedByMe }"
+            type="button"
+            :disabled="actionLoading"
+            @click="handleToggleLike(item)"
+          >
+            <Heart class="btn-icon" />
+            <span>{{ item.likedByMe ? '取消喜欢' : '喜欢这张图' }}</span>
+          </button>
+          <button
+            class="action-btn visibility-btn"
+            :class="{ 'private': !item.publicAccessible }"
+            type="button"
+            :disabled="actionLoading"
+            @click="handleVisibilityChange(item, !item.publicAccessible)"
+          >
+            <component :is="item.publicAccessible ? 'Lock' : 'Unlock'" class="btn-icon" />
+            <span>{{ item.publicAccessible ? '改为私密' : '设为公开' }}</span>
+          </button>
         </div>
-        <button
-          class="w-full rounded-full border border-slate-300 px-3 py-2 font-semibold text-slate-700 transition hover:bg-slate-800 hover:text-white disabled:opacity-50"
-          type="button"
-          :disabled="actionLoading"
-          @click="handleVisibilityChange(item, !item.publicAccessible)"
-        >
-          {{ item.publicAccessible ? '改为私密' : '设为公开' }}
-        </button>
-        <p v-if="detailMessage" class="text-xs text-brand-accent">{{ detailMessage }}</p>
+        <p v-if="detailMessage" class="detail-message">{{ detailMessage }}</p>
       </div>
     </template>
   </UploadResultModal>
@@ -360,5 +388,182 @@ onMounted(loadData)
 
 .user-images :deep(.placeholder\:text-white\/40::placeholder) {
   color: var(--text-body-faint);
+}
+
+/* Action Panel Styles */
+.action-panel {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.stat-icon {
+  width: 16px;
+  height: 16px;
+  color: #64748b;
+}
+
+.stat-label {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.stat-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-left: auto;
+}
+
+.status-public {
+  color: #10b981;
+}
+
+.status-private {
+  color: #f59e0b;
+}
+
+.buttons-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.like-btn {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.like-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.like-btn.liked {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+}
+
+.visibility-btn {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.visibility-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.3);
+}
+
+.visibility-btn.private {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  color: #d97706;
+  border-color: #fde68a;
+}
+
+.visibility-btn.private:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.detail-message {
+  font-size: 0.75rem;
+  color: #ef4444;
+  text-align: center;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .stats-row,
+  .buttons-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .action-panel {
+    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .stat-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.04);
+  }
+
+  .stat-label {
+    color: #94a3b8;
+  }
+
+  .stat-value {
+    color: #f1f5f9;
+  }
+
+  .like-btn {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+
+  .visibility-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+  }
+
+  .visibility-btn.private {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
 }
 </style>

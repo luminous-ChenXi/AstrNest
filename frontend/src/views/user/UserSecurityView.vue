@@ -65,6 +65,7 @@ onMounted(loadSettings)
           <input
             v-model="passwordForm.currentPassword"
             type="password"
+            autocomplete="current-password"
             required
             placeholder="请输入当前密码"
             class="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
@@ -75,6 +76,7 @@ onMounted(loadSettings)
           <input
             v-model="passwordForm.newPassword"
             type="password"
+            autocomplete="new-password"
             required
             placeholder="请输入新密码"
             class="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
@@ -85,6 +87,7 @@ onMounted(loadSettings)
           <input
             v-model="passwordForm.confirmPassword"
             type="password"
+            autocomplete="new-password"
             required
             placeholder="再次输入新密码"
             class="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/40"

@@ -18,15 +18,15 @@ public class WebConfig implements WebMvcConfigurer {
   @Override
   public void addCorsMappings(@NonNull CorsRegistry registry) {
     registry.addMapping("/api/**")
-        .allowedOrigins(toArray(corsProperties.getAllowedOrigins()))
-        .allowedMethods(toArray(corsProperties.getAllowedMethods()))
-        .allowedHeaders(toArray(corsProperties.getAllowedHeaders()))
-        .exposedHeaders(toArray(corsProperties.getExposedHeaders()))
+        .allowedOrigins(toArrayNonNull(corsProperties.getAllowedOrigins()))
+        .allowedMethods(toArrayNonNull(corsProperties.getAllowedMethods()))
+        .allowedHeaders(toArrayNonNull(corsProperties.getAllowedHeaders()))
+        .exposedHeaders(toArrayNonNull(corsProperties.getExposedHeaders()))
         .allowCredentials(corsProperties.isAllowCredentials())
         .maxAge(corsProperties.getMaxAge());
   }
 
-  private @NonNull String[] toArray(java.util.List<String> values) {
+  private @NonNull String[] toArrayNonNull(java.util.List<String> values) {
     if (values == null || values.isEmpty()) {
       return new String[0];
     }

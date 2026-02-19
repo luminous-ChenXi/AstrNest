@@ -22,7 +22,9 @@ public record PublicGalleryItemResponse(
     boolean likedByMe,
     List<ChenxiTagResponse> tags,
     PublicRecentLikeResponse latestLike,
-    PublicGalleryAlbumInfo album
+    PublicGalleryAlbumInfo album,
+    Integer width,
+    Integer height
 ) {
   public record PublicGalleryAlbumInfo(
       Long id,

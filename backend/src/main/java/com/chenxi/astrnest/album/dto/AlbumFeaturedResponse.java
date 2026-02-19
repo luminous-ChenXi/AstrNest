@@ -16,6 +16,7 @@ public class AlbumFeaturedResponse {
   private String name;
   private String description;
   private String coverImageUuid;
+  private String coverImageUrl; // 封面图片完整URL
   private Long mediaCount;
   private Long totalLikes;
   private String username;

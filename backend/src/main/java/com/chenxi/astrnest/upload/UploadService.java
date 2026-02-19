@@ -64,6 +64,11 @@ public class UploadService {
 
   public List<UploadResponse> uploadFiles(MultipartFile[] files, Authentication authentication, String clientIp,
       List<String> tagNames) {
+    return uploadFiles(files, authentication, clientIp, tagNames, null, null);
+  }
+
+  public List<UploadResponse> uploadFiles(MultipartFile[] files, Authentication authentication, String clientIp,
+      List<String> tagNames, MultipartFile[] videoCovers, List<String> videoCoverMapping) {
     if (files == null || files.length == 0) {
       throw new IllegalArgumentException("至少需要上传 1 个文件");
     }
@@ -73,14 +78,33 @@ public class UploadService {
     enforceUserQuotas(uploader, files);
     ApiKey apiKey = resolveApiKey(authentication);
     Set<ChenxiTag> baseTags = new LinkedHashSet<>(chenxiTagService.resolveTags(tagNames));
+
+    // 构建视频文件名到封面的映射
+    java.util.Map<String, MultipartFile> coverMap = buildCoverMap(videoCovers, videoCoverMapping);
+
     return Arrays.stream(files)
         .filter(Objects::nonNull)
-        .map(file -> handleSingleUpload(file, uploader, apiKey, clientIp, baseTags, maxImageBytes, maxVideoBytes))
+        .map(file -> handleSingleUpload(file, uploader, apiKey, clientIp, baseTags, maxImageBytes, maxVideoBytes, coverMap))
         .collect(Collectors.toList());
   }
 
+  private java.util.Map<String, MultipartFile> buildCoverMap(MultipartFile[] videoCovers, List<String> videoCoverMapping) {
+    java.util.Map<String, MultipartFile> map = new java.util.HashMap<>();
+    if (videoCovers == null || videoCovers.length == 0 || videoCoverMapping == null) {
+      return map;
+    }
+    for (int i = 0; i < videoCovers.length && i < videoCoverMapping.size(); i++) {
+      String videoName = videoCoverMapping.get(i);
+      MultipartFile cover = videoCovers[i];
+      if (StringUtils.hasText(videoName) && cover != null && !cover.isEmpty()) {
+        map.put(videoName, cover);
+      }
+    }
+    return map;
+  }
+
   private UploadResponse handleSingleUpload(MultipartFile file, UserAccount uploader, ApiKey apiKey, String clientIp,
-      Set<ChenxiTag> baseTags, long maxImageBytes, long maxVideoBytes) {
+      Set<ChenxiTag> baseTags, long maxImageBytes, long maxVideoBytes, java.util.Map<String, MultipartFile> coverMap) {
     if (file.isEmpty()) {
       throw new IllegalArgumentException("文件 " + safeName(file.getOriginalFilename()) + " 为空");
     }
@@ -91,9 +115,22 @@ public class UploadService {
     StoredObject stored = storageService.store(file, context);
     String reviewStatus = contentReviewService.evaluate(file, inspection.category());
     String publicUrl = publicAssetUrlResolver.resolveStoredObject(stored);
-    VideoThumbnailService.ThumbnailResult thumbnailResult = inspection.category() == MediaCategory.VIDEO
-        ? videoThumbnailService.generateThumbnail(stored)
-        : null;
+
+    // 处理视频封面：优先使用前端传来的封面，否则使用 FFmpeg 生成
+    VideoThumbnailResult thumbnailResult = null;
+    if (inspection.category() == MediaCategory.VIDEO) {
+      MultipartFile frontendCover = coverMap.get(file.getOriginalFilename());
+      if (frontendCover != null && !frontendCover.isEmpty()) {
+        thumbnailResult = storeFrontendCover(frontendCover, context);
+      }
+      if (thumbnailResult == null) {
+        VideoThumbnailService.ThumbnailResult ffmpegResult = videoThumbnailService.generateThumbnail(stored);
+        if (ffmpegResult != null) {
+          thumbnailResult = new VideoThumbnailResult(ffmpegResult.publicUrl(), ffmpegResult.storageRelativeKey());
+        }
+      }
+    }
+
     String thumbnailUrl = inspection.category() == MediaCategory.VIDEO
         ? (thumbnailResult != null ? thumbnailResult.publicUrl() : null)
         : publicUrl;
@@ -166,7 +203,9 @@ public class UploadService {
         mediaUuid,
         aiDecision,
         aiLabelSnapshot,
-        aiError
+        aiError,
+        inspection.width(),
+        inspection.height()
     );
     String responseThumbnail = StringUtils.hasText(savedRecord.getThumbnailUrl())
         ? savedRecord.getThumbnailUrl()
@@ -300,4 +339,23 @@ public class UploadService {
     double mb = bytes / (1024d * 1024d);
     return String.format("%.1f MB", mb);
   }
+
+  /**
+   * 存储前端传来的视频封面
+   */
+  private VideoThumbnailResult storeFrontendCover(MultipartFile coverFile, StorageContext context) {
+    try {
+      StoredObject coverStored = storageService.store(coverFile, context);
+      String coverUrl = publicAssetUrlResolver.resolveStoredObject(coverStored);
+      return new VideoThumbnailResult(coverUrl, coverStored.objectKey());
+    } catch (Exception e) {
+      log.warn("存储前端封面失败: {}", e.getMessage());
+      return null;
+    }
+  }
+
+  /**
+   * 视频封面结果记录
+   */
+  private record VideoThumbnailResult(String publicUrl, String storageRelativeKey) {}
 }

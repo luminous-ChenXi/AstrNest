@@ -27,8 +27,8 @@ export default defineConfig({
   // 示例：'https://cdn.example.com/' 或 'https://your-bucket.oss-cn-beijing.aliyuncs.com/'
   // 注意：末尾必须带斜杠 /
   // ============================================
-  base: './',  // 默认相对路径，部署到 CDN 时改为你的 CDN 地址，如 'https://cdn.example.com/'
-  // base: 'https://assets.luminouschenxi.net/',
+  // base: '/',  // 使用绝对路径，确保所有资源从根目录加载
+  base: 'https://assets.luminouschenxi.net/',
   plugins: [
     vue(),
     disableDevCachePlugin(),
@@ -74,7 +74,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['vue', 'vue-router', 'pinia', 'element-plus', '@element-plus/icons-vue']
+          'vendor-core': ['vue', 'vue-router', 'pinia'],
+          'vendor-ui': ['element-plus', '@element-plus/icons-vue']
         },
         // ============================================
         // [CDN 配置 2] 资源文件名配置（已配置好，无需修改）
