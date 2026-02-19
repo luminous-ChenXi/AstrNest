@@ -12,6 +12,8 @@ public record SystemConfigResponse(
     double userStorageQuotaGigabytes,
     boolean registrationEnabled,
     boolean guestLikeEnabled,
+    boolean guestUploadEnabled,
+    int maxFilesPerUpload,
     int autoCleanupDays,
     boolean videoChunkUploadEnabled,
     int videoChunkSizeMb,

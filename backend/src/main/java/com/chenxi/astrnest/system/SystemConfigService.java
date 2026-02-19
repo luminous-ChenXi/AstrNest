@@ -53,6 +53,8 @@ public class SystemConfigService {
     config.setUserStorageQuotaBytes(request.userStorageQuotaGb() * BYTES_PER_GB);
     config.setRegistrationEnabled(Boolean.TRUE.equals(request.registrationEnabled()));
     config.setGuestLikeEnabled(request.guestLikeEnabled() == null ? config.isGuestLikeEnabled() : request.guestLikeEnabled());
+    config.setGuestUploadEnabled(request.guestUploadEnabled() == null ? config.isGuestUploadEnabled() : request.guestUploadEnabled());
+    config.setMaxFilesPerUpload(request.maxFilesPerUpload());
     config.setAutoCleanupDays(request.autoCleanupDays());
     config.setAssetDomain(normalizeDomain(request.assetDomain()));
     config.setCustomFooterHtml(normalizeFooterHtml(request.customFooterHtml()));
@@ -121,6 +123,14 @@ public class SystemConfigService {
     return loadConfig().isGuestLikeEnabled();
   }
 
+  public boolean isGuestUploadEnabled() {
+    return loadConfig().isGuestUploadEnabled();
+  }
+
+  public int currentMaxFilesPerUpload() {
+    return loadConfig().getMaxFilesPerUpload();
+  }
+
   public int currentAutoCleanupDays() {
     return loadConfig().getAutoCleanupDays();
   }
@@ -178,6 +188,8 @@ public class SystemConfigService {
         bytesToGigabytes(config.getUserStorageQuotaBytes()),
         config.isRegistrationEnabled(),
         config.isGuestLikeEnabled(),
+        config.isGuestUploadEnabled(),
+        config.getMaxFilesPerUpload(),
         config.getAutoCleanupDays(),
         config.isVideoChunkUploadEnabled(),
         config.getVideoChunkSizeMb(),

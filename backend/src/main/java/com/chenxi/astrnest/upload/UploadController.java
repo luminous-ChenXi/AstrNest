@@ -40,10 +40,18 @@ public class UploadController {
   private final SystemConfigService systemConfigService;
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @PreAuthorize("hasAnyRole('ADMIN','API_CLIENT','USER')")
   public UploadBatchResponse upload(@RequestParam("files") MultipartFile[] files,
       @RequestParam(value = "tags", required = false) List<String> tags,
       Authentication authentication, HttpServletRequest request) {
+    // 检查是否允许访客上传
+    boolean isAuthenticated = authentication != null && authentication.isAuthenticated()
+        && !"anonymousUser".equals(authentication.getPrincipal());
+    if (!isAuthenticated && !systemConfigService.isGuestUploadEnabled()) {
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN,
+          "未登录用户不允许上传，请先登录"
+      );
+    }
     // 检查文件数量限制
     int maxFiles = systemConfigService.currentMaxFilesPerUpload();
     if (files != null && files.length > maxFiles) {

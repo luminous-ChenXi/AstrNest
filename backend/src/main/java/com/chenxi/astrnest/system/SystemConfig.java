@@ -44,6 +44,12 @@ public class SystemConfig {
   @Column(name = "guest_like_enabled", nullable = false)
   private boolean guestLikeEnabled = true;
 
+  @Column(name = "guest_upload_enabled", nullable = false)
+  private boolean guestUploadEnabled = false;
+
+  @Column(name = "max_files_per_upload", nullable = false)
+  private int maxFilesPerUpload = 30;
+
   @Column(name = "auto_cleanup_days", nullable = false)
   private int autoCleanupDays = 30;
 

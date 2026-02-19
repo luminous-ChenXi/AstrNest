@@ -202,6 +202,13 @@ npm run dev
 - 后端：http://localhost:8080
 - API 文档：http://localhost:8080/swagger-ui/index.html
 
+> **⚠️ 重要提醒**：
+> - 如果显示“网络连接错误”，请检查后端服务是否已启动，端口是否正确；检查`application.yml`中的端口配置是否与实际一致；检查防火墙是否放行该端口；检查是否有其他服务占用该端口；检查是否开启了代理（如 Nginx）；检查代理配置是否正确；
+> - 如果显示“404 Not Found”，请检查前端项目是否已正确构建，且 `dist/` 目录下的文件是否存在。
+> - 如果显示“CORS 错误”，请检查后端 `SecurityConfig` 中的 CORS 配置是否允许当前前端域名。
+> - 如果显示“403 Forbidden”，请检查当前用户角色是否有访问该接口的权限。
+> - 如果显示“500 Internal Server Error”，请检查后端日志，查找具体错误信息。
+> -
 **默认管理员**：`admin` / `chenxi123`（请务必修改）。
 
 > 如果你想直接看配置细节（环境变量、文件路径、初始化脚本、FFmpeg、存储切换等），请跳转 `CONFIG_GUIDE.md`。
