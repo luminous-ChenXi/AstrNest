@@ -1,8 +1,10 @@
 package com.chenxi.astrnest.upload;
 
 import com.chenxi.astrnest.storage.StorageService;
+import com.chenxi.astrnest.upload.dto.UploadBatchResponse;
 import com.chenxi.astrnest.upload.dto.UploadResponse;
 import com.chenxi.astrnest.upload.record.UploadRecordService;
+import com.chenxi.astrnest.system.SystemConfigService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,6 +14,7 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/uploads")
@@ -33,13 +37,22 @@ public class UploadController {
   private final UploadService uploadService;
   private final StorageService storageService;
   private final UploadRecordService uploadRecordService;
+  private final SystemConfigService systemConfigService;
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @PreAuthorize("hasAnyRole('ADMIN','API_CLIENT','USER')")
-  public List<UploadResponse> upload(@RequestParam("files") MultipartFile[] files,
+  public UploadBatchResponse upload(@RequestParam("files") MultipartFile[] files,
       @RequestParam(value = "tags", required = false) List<String> tags,
       Authentication authentication, HttpServletRequest request) {
-    return uploadService.uploadFiles(files, authentication, resolveClientIp(request), tags);
+    // 检查文件数量限制
+    int maxFiles = systemConfigService.currentMaxFilesPerUpload();
+    if (files != null && files.length > maxFiles) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "上传图片数量超限，单次最多允许上传 " + maxFiles + " 个文件，请分批上传"
+      );
+    }
+    return uploadService.uploadFilesWithSkip(files, authentication, resolveClientIp(request), tags);
   }
 
   @GetMapping("/{*objectKey}")
