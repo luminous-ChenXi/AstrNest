@@ -8,6 +8,7 @@ public record SystemConfigResponse(
     long maxVideoUploadBytes,
     double maxVideoUploadMegabytes,
     int dailyUploadCountLimit,
+    int maxFilesPerUpload,
     long userStorageQuotaBytes,
     double userStorageQuotaGigabytes,
     boolean registrationEnabled,

@@ -10,6 +10,7 @@ const form = reactive({
   maxUploadMb: 5,
   maxVideoUploadMb: 100,
   dailyUploadCountLimit: 5000,
+  maxFilesPerUpload: 30,
   userStorageQuotaGb: 5,
   registrationEnabled: false,
   guestLikeEnabled: true,
@@ -39,6 +40,7 @@ const serializeFormState = () =>
     maxUploadMb: form.maxUploadMb,
     maxVideoUploadMb: form.maxVideoUploadMb,
     dailyUploadCountLimit: form.dailyUploadCountLimit,
+    maxFilesPerUpload: form.maxFilesPerUpload,
     userStorageQuotaGb: form.userStorageQuotaGb,
     registrationEnabled: form.registrationEnabled,
     guestLikeEnabled: form.guestLikeEnabled,
@@ -153,6 +155,7 @@ const applyConfig = (config) => {
   form.maxUploadMb = Math.round(config?.maxUploadMegabytes ?? config?.maxUploadBytes / (1024 * 1024)) || 5
   form.maxVideoUploadMb = Math.round(config?.maxVideoUploadMegabytes ?? config?.maxVideoUploadBytes / (1024 * 1024)) || 100
   form.dailyUploadCountLimit = config?.dailyUploadCountLimit ?? 5000
+  form.maxFilesPerUpload = config?.maxFilesPerUpload ?? 30
   form.userStorageQuotaGb = Math.round(config?.userStorageQuotaGigabytes ?? config?.userStorageQuotaBytes / (1024 * 1024 * 1024)) || 5
   form.registrationEnabled = Boolean(config?.registrationEnabled)
   form.guestLikeEnabled = config?.guestLikeEnabled ?? true
@@ -201,6 +204,7 @@ const handleSave = async () => {
       maxUploadMb: form.maxUploadMb,
       maxVideoUploadMb: form.maxVideoUploadMb,
       dailyUploadCountLimit: form.dailyUploadCountLimit,
+      maxFilesPerUpload: form.maxFilesPerUpload,
       userStorageQuotaGb: form.userStorageQuotaGb,
       registrationEnabled: form.registrationEnabled,
       guestLikeEnabled: form.guestLikeEnabled,
@@ -446,7 +450,7 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- 用户限制卡片 -->
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-4 md:grid-cols-3">
           <div class="config-card">
             <label class="config-label">每日上传次数 / 用户</label>
             <input
@@ -457,6 +461,17 @@ onBeforeUnmount(() => {
               class="config-input"
             />
             <p class="config-hint">超出后可在用户中心提示或转人工审核。</p>
+          </div>
+          <div class="config-card">
+            <label class="config-label">单次上传文件数</label>
+            <input
+              v-model.number="form.maxFilesPerUpload"
+              type="number"
+              min="1"
+              max="100"
+              class="config-input"
+            />
+            <p class="config-hint">单次请求最多允许上传的文件数量，默认 30 个。</p>
           </div>
           <div class="config-card">
             <label class="config-label">单用户空间配额</label>
