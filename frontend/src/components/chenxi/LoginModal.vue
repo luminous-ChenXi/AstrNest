@@ -1,9 +1,29 @@
 <script setup>
 import { ElMessage } from 'element-plus'
-import { Lock, User, Close, Star } from '@element-plus/icons-vue'
-import { reactive, ref, watch } from 'vue'
+import { Lock, User, Close } from '@element-plus/icons-vue'
+import { reactive, ref, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { login } from '../../services/auth'
 import { useAuthStore } from '../../stores/auth'
+
+// 加载 login 文件夹中的图片
+const loginImageModules = import.meta.glob('../../assets/img/login/*', {
+  eager: true,
+  import: 'default',
+})
+const loginImagePool = Object.values(loginImageModules).filter(Boolean)
+
+const currentImage = ref('')
+
+const pickRandomImage = () => {
+  if (!loginImagePool.length) return ''
+  const randomIndex = Math.floor(Math.random() * loginImagePool.length)
+  return loginImagePool[randomIndex]
+}
+
+onMounted(() => {
+  currentImage.value = pickRandomImage()
+})
 
 const props = defineProps({
   visible: {
@@ -14,6 +34,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'login-success', 'closed'])
 
+const router = useRouter()
 const auth = useAuthStore()
 
 const formRef = ref()
@@ -40,6 +61,11 @@ const toast = (type, message) =>
 
 const handleClose = () => {
   emit('update:visible', false)
+}
+
+const goToRegister = () => {
+  // 直接跳转，不关闭弹窗（页面切换后弹窗会自动消失）
+  router.push('/register')
 }
 
 const handleSubmit = () => {
@@ -98,17 +124,16 @@ watch(() => props.visible, (newVal, oldVal) => {
           <div class="modal-content">
             <!-- 左侧：品牌展示 -->
             <div class="modal-brand">
-              <div class="brand-logo-large">
-                <span class="logo-text">CX</span>
-              </div>
-              <h2 class="brand-title">辰汐图床</h2>
-              <p class="brand-slogan">灵感存储，随时分享</p>
-              
-              <!-- 占位图片区域 -->
-              <div class="brand-visual">
-                <div class="visual-placeholder">
-                  <Star class="placeholder-icon" />
-                  <span>创作无界限</span>
+              <!-- 背景图片 -->
+              <div class="brand-image-container">
+                <img
+                  v-if="currentImage"
+                  :src="currentImage"
+                  alt="Login background"
+                  class="brand-background-image"
+                />
+                <div v-else class="brand-image-placeholder">
+                  <span class="placeholder-text">辰汐图床</span>
                 </div>
               </div>
             </div>
@@ -169,9 +194,9 @@ watch(() => props.visible, (newVal, oldVal) => {
 
                 <div class="form-footer">
                   <span class="footer-text">还没有账号？</span>
-                  <RouterLink to="/register" class="register-link" @click="handleClose">
+                  <a href="/register" class="register-link" @click.prevent="goToRegister">
                     立即注册
-                  </RouterLink>
+                  </a>
                 </div>
               </ElForm>
             </div>
@@ -248,77 +273,43 @@ watch(() => props.visible, (newVal, oldVal) => {
 
 /* 左侧品牌区 */
 .modal-brand {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 2rem;
+  overflow: hidden;
   background: linear-gradient(135deg, #FADCE9 0%, #F9A8C8 50%, #E87A9F 100%);
-  color: white;
-  text-align: center;
 }
 
-.brand-logo-large {
+/* 背景图片容器 */
+.brand-image-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.brand-background-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.brand-image-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 80px;
-  height: 80px;
-  border-radius: 24px;
-  background: white;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  margin-bottom: 1.5rem;
-}
-
-.logo-text {
-  font-size: 2rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #F9A8C8 0%, #E87A9F 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.brand-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
-  color: white;
-}
-
-.brand-slogan {
-  font-size: 1rem;
-  opacity: 0.9;
-  margin: 0 0 2rem;
-}
-
-/* 占位图片区域 */
-.brand-visual {
   width: 100%;
-  max-width: 200px;
+  height: 100%;
+  background: linear-gradient(135deg, #FADCE9 0%, #F9A8C8 50%, #E87A9F 100%);
 }
 
-.visual-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px dashed rgba(255, 255, 255, 0.4);
-  border-radius: 16px;
-  backdrop-filter: blur(4px);
-}
-
-.placeholder-icon {
-  width: 40px;
-  height: 40px;
+.placeholder-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
   opacity: 0.8;
-}
-
-.visual-placeholder span {
-  font-size: 0.9rem;
-  opacity: 0.9;
 }
 
 /* 右侧表单区 */
@@ -430,6 +421,7 @@ watch(() => props.visible, (newVal, oldVal) => {
   font-weight: 600;
   color: #F9A8C8;
   text-decoration: none;
+  cursor: pointer;
   transition: color 0.2s ease;
 }
 

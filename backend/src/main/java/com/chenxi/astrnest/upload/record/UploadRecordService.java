@@ -41,7 +41,8 @@ public class UploadRecordService {
       String publicUrl, String contentType, String reviewStatus, StorageContext storageContext,
       String uploaderIp, Collection<ChenxiTag> tags, MediaCategory mediaCategory,
       String thumbnailUrl, String thumbnailStoragePath, Integer durationSeconds, String embedUrl, String mediaUuid,
-      AiDecision aiDecision, String aiLabelSnapshot, TencentAiError aiError) {
+      AiDecision aiDecision, String aiLabelSnapshot, TencentAiError aiError,
+      Integer width, Integer height) {
     UploadRecord record = new UploadRecord();
     record.setMediaUuid(StringUtils.hasText(mediaUuid) ? mediaUuid : UUID.randomUUID().toString());
     record.setUser(user);
@@ -57,7 +58,8 @@ public class UploadRecordService {
     record.setStorageMode(storageContext != null ? storageContext.visibility() : "PUBLIC");
     boolean violation = isViolation(reviewStatus);
     record.setViolation(violation);
-    record.setPublicAccessible(!violation);
+    // 默认私密，违规内容也保持私密
+    record.setPublicAccessible(false);
     record.setLikeCount(0L);
     record.setInvokeCount(0L);
     record.setUploaderIp(uploaderIp);
@@ -66,6 +68,8 @@ public class UploadRecordService {
     record.setThumbnailStoragePath(thumbnailStoragePath);
     record.setDurationSeconds(durationSeconds);
     record.setEmbedUrl(embedUrl);
+    record.setWidth(width);
+    record.setHeight(height);
     record.setAiDecision(aiDecision);
     record.setAiLabelSnapshot(aiLabelSnapshot);
     if (aiError != null) {

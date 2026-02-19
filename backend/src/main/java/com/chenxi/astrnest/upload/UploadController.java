@@ -38,8 +38,11 @@ public class UploadController {
   @PreAuthorize("hasAnyRole('ADMIN','API_CLIENT','USER')")
   public List<UploadResponse> upload(@RequestParam("files") MultipartFile[] files,
       @RequestParam(value = "tags", required = false) List<String> tags,
+      @RequestParam(value = "videoCovers", required = false) MultipartFile[] videoCovers,
+      @RequestParam(value = "videoCoverMapping", required = false) List<String> videoCoverMapping,
       Authentication authentication, HttpServletRequest request) {
-    return uploadService.uploadFiles(files, authentication, resolveClientIp(request), tags);
+    return uploadService.uploadFiles(files, authentication, resolveClientIp(request), tags,
+        videoCovers, videoCoverMapping);
   }
 
   @GetMapping("/{*objectKey}")

@@ -109,4 +109,16 @@ public class AlbumController {
     albumService.removeMediaFromAlbum(user, albumUuid, mediaUuid);
     return ResponseEntity.noContent().build();
   }
+
+  /**
+   * 获取用户可添加到图集的图片列表（排除已在图集中的图片）
+   */
+  @GetMapping("/{albumUuid}/available-medias")
+  @Operation(summary = "获取可添加的图片列表", description = "获取用户已上传但不在当前图集中的图片", security = @SecurityRequirement(name = "bearerAuth"))
+  public ResponseEntity<Page<com.chenxi.astrnest.album.dto.AvailableMediaResponse>> getAvailableMedias(
+      @PathVariable String albumUuid,
+      @PageableDefault(size = 20) Pageable pageable) {
+    UserAccount user = getCurrentUser();
+    return ResponseEntity.ok(albumService.getAvailableMediasForAlbum(user, albumUuid, pageable));
+  }
 }

@@ -1770,7 +1770,7 @@ INSERT INTO roles (id, name, description) VALUES
     (3, 'GUEST', '访客')
 ON DUPLICATE KEY UPDATE description = VALUES(description);
 
-INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, 'chenxi', '$2b$12$r8QrgDJetf5B4bpWs10cx.zrOU5u8pIjVWe0fQw8LAPTm4Z0bcAYu', 'Admin', 'luminouschenxi@outlook.com', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;
+INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, 'chenxi', '$2b$12$AhO/lerqryDjI8KIlv5WgusVTmYErREAwE9rdJg9cRv9v26YjDTe2', 'Admin', 'luminouschenxi@outlook.com', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;
 
 INSERT IGNORE INTO user_roles (user_id, role_id)
 SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ADMIN' WHERE u.username = 'admin';

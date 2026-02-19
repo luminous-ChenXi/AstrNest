@@ -72,11 +72,11 @@ public class AlbumPublicController {
 
   /**
    * 通过短链获取随机图片（302重定向）
-   * 路径: /picture/random/{pathSlug}
-   * 注意：此路径添加 /random 前缀以避免与 /album/{pathSlug} 冲突
+   * 路径: /api/albums/random/{pathSlug}
+   * 使用 /api/ 前缀避免与前端路由冲突
    */
-  @GetMapping("/picture/random/{pathSlug}")
-  @Operation(summary = "通过短链获取随机图片", description = "访问如 /picture/random/pc 将随机返回图集中的图片（302重定向）")
+  @GetMapping("/api/albums/random/{pathSlug}")
+  @Operation(summary = "通过短链获取随机图片", description = "访问如 /api/albums/random/pc 将随机返回图集中的图片（302重定向）")
   public ResponseEntity<Void> serveRandomImage(
       @Parameter(description = "图集路径标识，如 pc") @PathVariable String pathSlug,
       HttpServletRequest request) {
@@ -84,12 +84,24 @@ public class AlbumPublicController {
   }
 
   /**
+   * 兼容旧路径：/picture/random/{pathSlug}
+   * 重定向到新路径：/api/albums/random/{pathSlug}
+   */
+  @GetMapping("/picture/random/{pathSlug}")
+  @Operation(summary = "兼容旧路径", description = "重定向到 /api/albums/random/{pathSlug}", deprecated = true)
+  public ResponseEntity<Void> serveRandomImageLegacy(
+      @Parameter(description = "图集路径标识，如 pc") @PathVariable String pathSlug,
+      HttpServletRequest request) {
+    return albumService.serveRandomImage(pathSlug, request);
+  }
+
+  /**
    * 兼容旧路径：/picture/{pathSlug}
-   * 重定向到新路径：/picture/random/{pathSlug}
+   * 重定向到新路径：/api/albums/random/{pathSlug}
    */
   @GetMapping("/picture/{pathSlug}")
-  @Operation(summary = "兼容旧路径", description = "重定向到 /picture/random/{pathSlug}", deprecated = true)
-  public ResponseEntity<Void> serveRandomImageLegacy(
+  @Operation(summary = "兼容旧路径", description = "重定向到 /api/albums/random/{pathSlug}", deprecated = true)
+  public ResponseEntity<Void> serveRandomImageLegacy2(
       @Parameter(description = "图集路径标识，如 pc") @PathVariable String pathSlug,
       HttpServletRequest request) {
     return albumService.serveRandomImage(pathSlug, request);

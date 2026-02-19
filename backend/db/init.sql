@@ -1763,7 +1763,7 @@ INSERT INTO roles (id, name, description) VALUES
     (3, 'GUEST', '访客')
 ON DUPLICATE KEY UPDATE description = VALUES(description);
 
-INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, 'admin', '$2b$12$fUzOoZgld0UJdmGvJ3DZj.B.wL.KbWtRqUY.oVdoPliToO31GCIKS', 'Admin', 'admin@example.com', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;
+INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, 'chenxi', '$2b$12$AhO/lerqryDjI8KIlv5WgusVTmYErREAwE9rdJg9cRv9v26YjDTe2', 'Admin', 'luminouschenxi@outlook.com', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;
 
 INSERT IGNORE INTO user_roles (user_id, role_id)
 SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ADMIN' WHERE u.username = 'admin';
@@ -1976,3 +1976,42 @@ CREATE TABLE IF NOT EXISTS security_logs (
   KEY idx_security_logs_type (event_type),
   KEY idx_security_logs_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- upload_records.width
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'width'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN width INT NULL COMMENT \'图片宽度（像素）\';'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records.height
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND COLUMN_NAME = 'height'),
+  'SELECT 1;',
+  'ALTER TABLE upload_records ADD COLUMN height INT NULL COMMENT \'图片高度（像素）\';'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- upload_records width/height indexes
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'idx_upload_records_width'),
+  'SELECT 1;',
+  'CREATE INDEX idx_upload_records_width ON upload_records(width);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = 'upload_records' AND INDEX_NAME = 'idx_upload_records_height'),
+  'SELECT 1;',
+  'CREATE INDEX idx_upload_records_height ON upload_records(height);'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

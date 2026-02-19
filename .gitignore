@@ -13,7 +13,7 @@
 **/vendor/
 
 # 构建输出
-**/dist/
+# **/dist/
 **/dist-ssr/
 **/target/
 **/build/
@@ -78,3 +78,5 @@ coverage/
 # 其他
 *.local
 HELP.md
+/.trae/
+/tools

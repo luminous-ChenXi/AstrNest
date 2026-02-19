@@ -164,8 +164,8 @@
                     <ShieldCheck class="icon" />
                   </div>
                   <div class="pain-content">
-                    <p class="pain-title">违规图片自动拦截</p>
-                    <p class="pain-desc">AI 预审 + 人工复核，省心</p>
+                    <p class="pain-title">违规图片</p>
+                    <p class="pain-desc">AI 预审 + 人工复核，请不要上传违法图片</p>
                   </div>
                 </div>
               </div>
@@ -209,7 +209,7 @@
           <div class="section-header-centered">
             <p class="section-eyebrow">gallery</p>
             <h2 class="section-title">公开图库</h2>
-            <p class="section-desc">灵感枯竭？来这里逛逛，说不定就有新想法</p>
+            <p class="section-desc">来自于网友的公开图片，个人私有的图片将不在这里展示</p>
             <div class="stats-row">
               <div class="stat-pill" v-lazy-animate="{ fromY: 20, delay: 0.1 }">
                 <span class="stat-num">{{ formattedPublicImages }}</span>
@@ -286,10 +286,7 @@
         <div class="section-container">
           <div class="contact-asymmetric">
             <div class="contact-left">
-              <span class="contact-label">有问题？</span>
               <h3 class="contact-title">联系我们</h3>
-            </div>
-            <div class="contact-right">
               <p class="contact-desc">
                 不管是技术问题还是合作意向，<br>直接发邮件，24 小时内回复
               </p>
@@ -302,6 +299,12 @@
                   <ExternalLink class="btn-icon" />
                   博客网站
                 </a>
+              </div>
+            </div>
+            <div class="contact-right">
+              <!-- 社交联系卡片组件 -->
+              <div class="social-card-container-wrapper">
+                <SocialCard />
               </div>
             </div>
           </div>
@@ -331,6 +334,7 @@ import PublicAnnouncementSpotlight from '../components/public/PublicAnnouncement
 import ChenxiGlobalFooter from '../components/common/ChenxiGlobalFooter.vue'
 import ThemeSwitcher from '../components/common/ThemeSwitcher.vue'
 import LogoSvg from '../components/common/LogoSvg.vue'
+import SocialCard from '../components/chenxi/SocialCard.vue'
 import '../assets/styles/chenxi-transitions.css'
 import '../assets/styles/chenxi-interactions.css'
 
@@ -366,8 +370,8 @@ const handleLoginSuccess = () => {
 }
 
 const handleLoginModalClosed = () => {
-  // 清除 login 查询参数
-  if (route.query.login !== undefined) {
+  // 只在当前路由是首页时才清理 query 参数，避免影响其他页面的导航
+  if (route.path === '/' && route.query.login !== undefined) {
     const { login, ...restQuery } = route.query
     router.replace({ path: '/', query: restQuery })
   }
@@ -381,8 +385,10 @@ const logout = () => {
 const userMenuItems = [
   { label: '仪表盘', route: { name: 'user-home' } },
   { label: '媒体管理', route: { name: 'user-images' } },
+  { label: '我的图集', route: { name: 'user-albums' } },
   { label: '资料信息', route: { name: 'user-profile' } },
   { label: '安全设置', route: { name: 'user-security' } },
+  { label: 'API 接口管理', route: { name: 'user-api' } },
 ]
 
 const metrics = ref({
@@ -1317,7 +1323,7 @@ watch(
 /* 联系区域 - 不对称布局 */
 .contact-asymmetric {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  grid-template-columns: 1.2fr 0.8fr;
   gap: 3rem;
   align-items: center;
   background: rgba(255, 255, 255, 0.7);
@@ -1327,8 +1333,9 @@ watch(
 }
 
 .contact-left {
-  padding-right: 2rem;
-  border-right: 1px solid rgba(249, 168, 200, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .contact-label {
@@ -1352,8 +1359,8 @@ watch(
 
 .contact-right {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .contact-desc {
@@ -1366,6 +1373,12 @@ watch(
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+/* 社交联系卡片容器 */
+.social-card-container-wrapper {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* 响应式设计 */
@@ -1393,10 +1406,15 @@ watch(
   }
   
   .contact-left {
-    padding-right: 0;
-    border-right: none;
-    border-bottom: 1px solid rgba(249, 168, 200, 0.2);
     padding-bottom: 2rem;
+  }
+  
+  .contact-right {
+    justify-content: center;
+  }
+  
+  .social-card-container-wrapper {
+    justify-content: center;
   }
 }
 

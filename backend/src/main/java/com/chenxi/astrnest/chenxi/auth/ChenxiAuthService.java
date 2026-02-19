@@ -168,4 +168,9 @@ public class ChenxiAuthService {
     }
     return email.trim().toLowerCase(Locale.ROOT);
   }
+
+  public boolean isEmailAvailable(String email) {
+    String normalizedEmail = normalizeEmail(email);
+    return !userAccountRepository.existsByEmail(normalizedEmail);
+  }
 }

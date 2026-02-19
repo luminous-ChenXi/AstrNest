@@ -140,6 +140,21 @@
         </div>
       </div>
 
+      <div v-if="uploading && uploadProgress.stage" class="rounded-2xl border border-body bg-surface-overlay p-4">
+        <div class="flex items-center justify-between text-sm text-body-secondary mb-2">
+          <span class="flex items-center gap-2">
+            <Loader2 class="h-4 w-4 animate-spin" />
+            {{ uploadProgressText }}
+          </span>
+        </div>
+        <div class="h-2 rounded-full bg-surface-body overflow-hidden">
+          <div
+            class="h-full bg-gradient-to-r from-brand-primary to-brand-accent transition-all duration-300 ease-in-out"
+            :style="{ width: uploadProgress.stage === 'extracting' ? `${(uploadProgress.current / uploadProgress.total) * 100}%` : `${uploadProgress.current}%` }"
+          />
+        </div>
+      </div>
+
       <div v-if="errorMessage" class="flex items-start gap-3 rounded-2xl border border-brand-accent/30 bg-brand-accent/10 p-4 text-sm text-brand-accent">
         <AlertCircle class="mt-0.5 h-4 w-4" />
         <p>{{ errorMessage }}</p>
@@ -378,6 +393,17 @@ const buildEmbedSnippet = (item) => {
   return `<iframe src="${embedUrl}" scrolling="no" frameborder="0" allowfullscreen style="width:100%;height:420px;border-radius:16px;"></iframe>`
 }
 
+const uploadProgress = ref({ stage: '', current: 0, total: 0 })
+const uploadProgressText = computed(() => {
+  if (uploadProgress.value.stage === 'extracting') {
+    return `正在提取封面 ${uploadProgress.value.current}/${uploadProgress.value.total}`
+  }
+  if (uploadProgress.value.stage === 'uploading') {
+    return `正在上传 ${uploadProgress.value.current}%`
+  }
+  return '正在处理'
+})
+
 async function startUpload() {
   if (!auth.isAuthenticated) {
     errorMessage.value = '请先登录后再上传'
@@ -388,16 +414,25 @@ async function startUpload() {
     return
   }
   uploading.value = true
+  uploadProgress.value = { stage: '', current: 0, total: 0 }
   errorMessage.value = ''
   uploadResult.value = []
   try {
-    const result = await uploadFiles(selectedFiles.value, selectedTags.value)
+    const result = await uploadFiles(
+      selectedFiles.value,
+      selectedTags.value,
+      (progress) => {
+        uploadProgress.value = progress
+      }
+    )
     uploadResult.value = result
     selectedFiles.value = []
+    ElMessage.success('上传成功')
   } catch (error) {
     errorMessage.value = error?.response?.data?.message || error.message || '上传失败'
   } finally {
     uploading.value = false
+    uploadProgress.value = { stage: '', current: 0, total: 0 }
   }
 }
 

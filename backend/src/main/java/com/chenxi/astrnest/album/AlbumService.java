@@ -251,10 +251,10 @@ public class AlbumService {
 
     logAccess(album, randomMedia.getMediaUuid(), request);
 
-    URI redirectUri = URI.create(uploadRecord.getPublicUrl());
+    java.net.URI redirectUri = java.net.URI.create(uploadRecord.getPublicUrl());
     return ResponseEntity.status(HttpStatus.FOUND)
         .location(redirectUri)
-        .header("Cache-Control", "public, max-age=300")
+        .header("Cache-Control", "public, max-age=300") //$NON-NLS-1$
         .build();
   }
 
@@ -326,6 +326,18 @@ public class AlbumService {
         }
       }
 
+      // 获取预览图片列表（最多3张，用于卡片轮播）
+      try {
+        List<AlbumMedia> previewMedias = albumMediaRepository.findTop3ByAlbumIdOrderBySortOrderAsc(album.getId());
+        List<String> previewUuids = previewMedias.stream()
+            .map(AlbumMedia::getMediaUuid)
+            .collect(Collectors.toList());
+        response.setPreviewImageUuids(previewUuids);
+      } catch (Exception e) {
+        log.warn("Failed to get preview images for album {}: {}", album.getId(), e.getMessage());
+        response.setPreviewImageUuids(new ArrayList<>());
+      }
+
       return response;
     } catch (Exception e) {
       log.error("Error converting album to response: {}", e.getMessage(), e);
@@ -342,14 +354,52 @@ public class AlbumService {
 
     response.setFileName(record.getFileName());
     response.setPublicUrl(record.getPublicUrl());
+    response.setThumbnailUrl(record.getThumbnailUrl());
     response.setContentType(record.getContentType());
     response.setSize(record.getSize());
+    response.setWidth(record.getWidth());
+    response.setHeight(record.getHeight());
 
     return response;
   }
 
   private boolean isPublicVisible(UploadRecord record) {
     return record != null && record.isPublicAccessible() && !record.isViolation();
+  }
+
+  /**
+   * 获取用户可添加到图集的图片列表（排除已在图集中的图片）
+   */
+  @Transactional(readOnly = true)
+  public Page<com.chenxi.astrnest.album.dto.AvailableMediaResponse> getAvailableMediasForAlbum(UserAccount user, String albumUuid, Pageable pageable) {
+    UserAccount currentUser = requireUser(user);
+    Album album = albumRepository.findByAlbumUuid(albumUuid)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "图集不存在"));
+
+    // 只有图集创建者才能添加图片
+    if (!album.getUser().getId().equals(currentUser.getId())) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只有图集创建者才能添加图片");
+    }
+
+    Page<UploadRecord> records = uploadRecordRepository.findByUserIdAndNotInAlbum(currentUser.getId(), album.getId(), pageable);
+    return records.map(this::convertToAvailableMediaResponse);
+  }
+
+  private com.chenxi.astrnest.album.dto.AvailableMediaResponse convertToAvailableMediaResponse(UploadRecord record) {
+    return com.chenxi.astrnest.album.dto.AvailableMediaResponse.builder()
+        .id(record.getId())
+        .mediaUuid(record.getMediaUuid())
+        .fileName(record.getFileName())
+        .publicUrl(record.getPublicUrl())
+        .thumbnailUrl(record.getThumbnailUrl())
+        .contentType(record.getContentType())
+        .size(record.getSize())
+        .width(record.getWidth())
+        .height(record.getHeight())
+        .uploadedAt(record.getUploadedAt())
+        .publicAccessible(record.isPublicAccessible())
+        .violation(record.isViolation())
+        .build();
   }
 
   /**
@@ -360,12 +410,22 @@ public class AlbumService {
     Album album = albumRepository.findByPathSlug(pathSlug)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "图集不存在"));
 
-    boolean isOwnerOrAdmin = viewer != null && (isAdmin(viewer) || album.getUser().getId().equals(viewer.getId()));
+    boolean isOwner = viewer != null && album.getUser().getId().equals(viewer.getId());
+    boolean isAdmin = isAdmin(viewer);
+    boolean isOwnerOrAdmin = isOwner || isAdmin;
+
     if (!album.isPublic() && !isOwnerOrAdmin) {
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "图集未公开");
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "此图集为私有图集或没有权限，无法访问");
     }
 
     AlbumResponse response = convertToResponse(album);
+
+    // 设置权限信息
+    response.setIsOwner(isOwner);
+    response.setIsAdmin(isAdmin);
+    response.setCanEdit(isOwnerOrAdmin);
+    response.setCanAddMedia(isOwner);
+
     long publicMediaCount = isOwnerOrAdmin
         ? albumMediaRepository.countByAlbumId(album.getId())
         : uploadRecordRepository.countByAlbumIdAndPublicAccessibleTrueAndViolationFalse(album.getId());
@@ -415,6 +475,7 @@ public class AlbumService {
    * 获取首页Featured图集（最受欢迎的公开图集）
    * 按图集内所有图片的喜欢数总和排序，取前3个
    */
+  @Transactional(readOnly = true)
   public List<AlbumFeaturedResponse> getFeaturedAlbums() {
     List<Album> publicAlbums = albumRepository.findByIsPublicTrue();
 

@@ -1,6 +1,7 @@
 package com.chenxi.astrnest.admin.upload.dto;
 
 import com.chenxi.astrnest.tag.dto.ChenxiTagResponse;
+import com.chenxi.astrnest.upload.media.MediaCategory;
 import java.time.Instant;
 import java.util.List;
 
@@ -23,6 +24,7 @@ public record AdminUploadItemResponse(
     String storageProvider,
     String storageMode,
     Instant uploadedAt,
-    List<ChenxiTagResponse> tags
+    List<ChenxiTagResponse> tags,
+    MediaCategory mediaCategory
 ) {
 }

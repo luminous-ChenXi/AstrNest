@@ -8,6 +8,7 @@ import { useAuthStore } from '../../stores/auth'
 const DEFAULT_ITEMS = Object.freeze([
   { name: 'user-home', label: '仪表盘' },
   { name: 'user-images', label: '媒体管理' },
+  { name: 'user-albums', label: '我的图集' },
   { name: 'user-profile', label: '资料信息' },
   { name: 'user-security', label: '安全设置' },
   { name: 'user-api', label: 'API 接口管理' },
@@ -58,21 +59,18 @@ const handleLogout = () => {
 <template>
   <ChenxiUserAvatar :size="size" :gradient-class="gradientClass" use-dropdown class="cursor-pointer">
     <template #dropdown>
-      <el-dropdown-menu class="chenxi-dropdown-menu panel border-border">
+      <el-dropdown-menu class="user-dropdown-menu">
         <RouterLink
           v-for="item in menuItems"
           :key="item.name || item.label"
           :to="normalizeRoute(item)"
-          class="block w-full"
           @click="handleBeforeNavigate"
         >
-          <el-dropdown-item class="dropdown-link">
-            {{ item.label }}
-          </el-dropdown-item>
+          <el-dropdown-item>{{ item.label }}</el-dropdown-item>
         </RouterLink>
         <template v-if="showLogout">
-          <el-divider class="dropdown-divider" />
-          <el-dropdown-item class="dropdown-link dropdown-link--danger" @click="handleLogout">
+          <el-divider />
+          <el-dropdown-item class="logout-item" @click="handleLogout">
             退出登录
           </el-dropdown-item>
         </template>
@@ -80,3 +78,19 @@ const handleLogout = () => {
     </template>
   </ChenxiUserAvatar>
 </template>
+
+<style scoped>
+/* 下拉菜单样式 - 与用户界面一致 */
+:deep(.user-dropdown-menu) {
+  min-width: 160px;
+}
+
+:deep(.logout-item) {
+  color: #f87171;
+}
+
+:deep(.logout-item:hover) {
+  color: #dc2626;
+  background: rgba(248, 113, 113, 0.1);
+}
+</style>

@@ -66,6 +66,7 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.GET, "/api/system/public-config").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/albums/public/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/albums/featured").permitAll()
+            .requestMatchers(HttpMethod.GET, "/api/albums/random/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/album/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/picture/**").permitAll()
             .requestMatchers(new AntPathRequestMatcher("/api/public/assets/**", "GET"), new AntPathRequestMatcher("/api/public/assets/**", "HEAD")).permitAll()

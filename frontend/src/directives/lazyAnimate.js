@@ -35,7 +35,7 @@ export default {
           duration: options.duration,
           delay: options.delay,
           ease: options.ease,
-          clearProps: 'all',
+          clearProps: 'opacity,transform',
         })
 
         if (options.once !== false) {

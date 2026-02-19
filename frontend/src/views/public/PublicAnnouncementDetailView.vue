@@ -2,7 +2,11 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import { marked } from 'marked'
+
+// 扩展 dayjs 插件
+dayjs.extend(relativeTime)
 import DOMPurify from 'dompurify'
 import { 
   Megaphone, 

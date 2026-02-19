@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Folder, Image, Link, Trash2, Edit3, Eye, EyeOff, Copy, ExternalLink, AlertTriangle, Sparkles, Layers, TrendingUp } from 'lucide-vue-next'
+import { Plus, Folder, Image, Link, Trash2, Edit3, Eye, EyeOff, Copy, ExternalLink, AlertTriangle, Sparkles, Layers, TrendingUp, X } from 'lucide-vue-next'
 import { albumApi } from '../../api/album'
 import { useSystemStore } from '../../stores/system'
 
@@ -155,6 +155,22 @@ const formatDate = (date) => {
   return new Date(date).toLocaleDateString('zh-CN')
 }
 
+// 获取图集随机封面图片 URL
+const getAlbumRandomCoverUrl = (pathSlug) => {
+  if (!pathSlug) return ''
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://luminouschenxi.net'
+  // 添加时间戳参数防止缓存
+  const timestamp = Date.now()
+  return `${baseUrl}/api/albums/random/${pathSlug}?t=${timestamp}`
+}
+
+// 处理封面图片加载错误
+const handleCoverError = (e) => {
+  const target = e.target
+  // 加载失败时显示默认的渐变背景图
+  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect width="400" height="300" fill="url(%23grad)"/%3E%3Cdefs%3E%3ClinearGradient id="grad" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%23667eea;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23764ba2;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E'
+}
+
 onMounted(() => {
   fetchAlbums()
 })
@@ -250,16 +266,17 @@ onMounted(() => {
           :key="album.albumUuid"
           class="album-card"
         >
-          <!-- 封面区域 -->
+          <!-- 封面区域 - 随机封面图片 -->
           <div class="album-card-cover">
-            <img
-              v-if="album.coverImageUuid"
-              :src="`/upload/${album.coverImageUuid.slice(0, 2)}/${album.coverImageUuid.slice(2, 4)}/${album.coverImageUuid}`.replace('//', '/')"
-              :alt="album.name"
-              class="cover-image"
-            />
-            <div v-else class="album-card-placeholder">
-              <Image class="placeholder-icon" />
+            <!-- 使用随机图片API获取封面 -->
+            <div class="preview-image-wrapper">
+              <img
+                :src="getAlbumRandomCoverUrl(album.pathSlug)"
+                :alt="album.name"
+                class="cover-image"
+                loading="lazy"
+                @error="handleCoverError"
+              />
             </div>
             
             <!-- 隐私徽章 -->
@@ -356,10 +373,10 @@ onMounted(() => {
             @blur="createForm.pathSlug = slugify(createForm.pathSlug)"
             class="slug-input"
           >
-            <template #prepend>/picture/</template>
+            <template #prepend>/api/albums/random/</template>
           </el-input>
           <p class="form-hint">图集页面：{{ `${normalizedDomain}/album/${createForm.pathSlug || slugSuggestion || 'slug'}` }}</p>
-          <p class="form-hint">随机图片：{{ `${normalizedDomain}/picture/random/${createForm.pathSlug || slugSuggestion || 'slug'}` }}</p>
+          <p class="form-hint">随机图片：{{ `${normalizedDomain}/api/albums/random/${createForm.pathSlug || slugSuggestion || 'slug'}` }}</p>
           <p class="form-hint text-warning" v-if="slugSuggestion && createForm.pathSlug !== slugSuggestion">
             <AlertTriangle class="inline-icon" /> 建议使用：{{ slugSuggestion }}（避免中文或空格）
           </p>
@@ -401,66 +418,96 @@ onMounted(() => {
     </el-dialog>
 
     <!-- 图集详情对话框 -->
-    <el-dialog
-      v-model="showDetailDialog"
-      :title="currentAlbum?.name"
-      width="800px"
-      destroy-on-close
-      class="album-dialog"
-    >
-      <div v-if="currentAlbum" class="album-detail">
-        <div class="detail-header">
-          <div class="detail-stats">
-            <div class="detail-stat">
-              <span class="stat-num">{{ currentAlbumMedias.length }}</span>
-              <span class="stat-label">张图片</span>
-            </div>
-            <div class="detail-stat">
-              <span class="stat-num">{{ currentAlbum.accessCount || 0 }}</span>
-              <span class="stat-label">次访问</span>
-            </div>
-          </div>
-          <div class="detail-actions">
-            <el-button type="primary" @click="copyAlbumLink(currentAlbum)">
-              <Copy class="btn-icon-small" />
-              复制链接
-            </el-button>
-            <el-button @click="openAlbumLink(currentAlbum)">
-              <ExternalLink class="btn-icon-small" />
-              访问图集
-            </el-button>
-          </div>
-        </div>
+    <teleport to="body">
+      <transition name="modal">
+        <div v-if="showDetailDialog" class="custom-modal-overlay" @click.self="showDetailDialog = false">
+          <div class="custom-modal-container">
+            <!-- Header -->
+            <header class="custom-modal-header">
+              <div class="header-content">
+                <div class="header-badge">
+                  <Folder class="badge-icon" />
+                  <span>图集详情</span>
+                </div>
+                <h3 class="modal-title">{{ currentAlbum?.name }}</h3>
+              </div>
+              <button class="close-btn" @click="showDetailDialog = false">
+                <X class="close-icon" />
+              </button>
+            </header>
 
-        <el-divider />
+            <!-- Body -->
+            <div class="custom-modal-body">
+              <div v-if="currentAlbum" class="album-detail">
+                <!-- Stats & Actions Row -->
+                <div class="detail-header-row">
+                  <div class="detail-stats">
+                    <div class="detail-stat-card">
+                      <Image class="stat-card-icon" />
+                      <div class="stat-card-info">
+                        <span class="stat-card-num">{{ currentAlbumMedias.length }}</span>
+                        <span class="stat-card-label">张图片</span>
+                      </div>
+                    </div>
+                    <div class="detail-stat-card">
+                      <TrendingUp class="stat-card-icon" />
+                      <div class="stat-card-info">
+                        <span class="stat-card-num">{{ currentAlbum.accessCount || 0 }}</span>
+                        <span class="stat-card-label">次访问</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="detail-actions">
+                    <button class="action-btn-primary" @click="copyAlbumLink(currentAlbum)">
+                      <Copy class="btn-icon" />
+                      <span>复制链接</span>
+                    </button>
+                    <button class="action-btn-secondary" @click="openAlbumLink(currentAlbum)">
+                      <ExternalLink class="btn-icon" />
+                      <span>访问图集</span>
+                    </button>
+                  </div>
+                </div>
 
-        <h4 class="section-title">
-          <Image class="section-icon" />
-          图集图片
-        </h4>
-        
-        <div v-if="currentAlbumMedias.length === 0" class="detail-empty">
-          <div class="empty-state">
-            <Image class="empty-icon" />
-            <p>暂无图片</p>
-            <span>请在媒体管理中添加图片到图集</span>
-          </div>
-        </div>
-        
-        <div v-else class="detail-media-grid">
-          <div
-            v-for="media in currentAlbumMedias"
-            :key="media.mediaUuid"
-            class="detail-media-item"
-          >
-            <img :src="media.publicUrl" :alt="media.fileName" loading="lazy" />
-            <div class="media-overlay">
-              <p class="media-name">{{ media.fileName }}</p>
+                <!-- Divider -->
+                <div class="section-divider"></div>
+
+                <!-- Section Title -->
+                <h4 class="section-title">
+                  <Image class="section-icon" />
+                  图集图片
+                </h4>
+
+                <!-- Empty State -->
+                <div v-if="currentAlbumMedias.length === 0" class="detail-empty">
+                  <div class="empty-state">
+                    <div class="empty-illustration">
+                      <Image class="empty-icon" />
+                    </div>
+                    <p class="empty-title">暂无图片</p>
+                    <span class="empty-desc">请在媒体管理中添加图片到图集</span>
+                  </div>
+                </div>
+
+                <!-- Media Grid -->
+                <div v-else class="detail-media-grid">
+                  <div
+                    v-for="media in currentAlbumMedias"
+                    :key="media.mediaUuid"
+                    class="detail-media-item"
+                  >
+                    <img :src="media.publicUrl" :alt="media.fileName" loading="lazy" />
+                    <div class="media-overlay">
+                      <p class="media-name">{{ media.fileName }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </el-dialog>
+      </transition>
+    </teleport>
   </div>
 </template>
 
@@ -776,6 +823,20 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   color: #cbd5e1;
+}
+
+/* 预览图片容器 */
+.preview-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.preview-image-wrapper .cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* 隐私徽章 */
@@ -1284,5 +1345,379 @@ onMounted(() => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* ========== 自定义弹窗样式 ========== */
+.custom-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.custom-modal-container {
+  width: 100%;
+  max-width: 800px;
+  max-height: calc(100vh - 48px);
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35), 0 10px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Modal Header */
+.custom-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.custom-modal-header .header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.custom-modal-header .header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #E87A9F;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.custom-modal-header .badge-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.custom-modal-header .modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.custom-modal-header .close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-modal-header .close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: rotate(90deg);
+}
+
+.custom-modal-header .close-icon {
+  width: 18px;
+  height: 18px;
+  color: #6b7280;
+}
+
+/* Modal Body */
+.custom-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.custom-modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Detail Header Row */
+.detail-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.detail-stats {
+  display: flex;
+  gap: 12px;
+}
+
+.detail-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+}
+
+.stat-card-icon {
+  width: 20px;
+  height: 20px;
+  color: #E87A9F;
+}
+
+.stat-card-info {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.stat-card-num {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #E87A9F;
+}
+
+.stat-card-label {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.action-btn-primary,
+.action-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.action-btn-primary {
+  background: linear-gradient(135deg, #F9A8C8 0%, #E87A9F 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(232, 122, 159, 0.35);
+}
+
+.action-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(232, 122, 159, 0.45);
+}
+
+.action-btn-secondary {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.action-btn-secondary:hover {
+  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.3);
+}
+
+.action-btn-primary .btn-icon,
+.action-btn-secondary .btn-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Section Divider */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
+  margin: 20px 0;
+}
+
+/* Section Title */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 16px 0;
+}
+
+.section-icon {
+  width: 20px;
+  height: 20px;
+  color: #E87A9F;
+}
+
+/* Empty State */
+.detail-empty {
+  padding: 48px 24px;
+}
+
+.detail-empty .empty-state {
+  text-align: center;
+}
+
+.detail-empty .empty-illustration {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.detail-empty .empty-icon {
+  width: 36px;
+  height: 36px;
+  color: #cbd5e1;
+}
+
+.detail-empty .empty-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 4px 0;
+}
+
+.detail-empty .empty-desc {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* Transitions */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .custom-modal-container,
+.modal-leave-to .custom-modal-container {
+  opacity: 0;
+  transform: scale(0.95) translateY(20px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .custom-modal-overlay {
+    padding: 16px;
+    align-items: flex-end;
+  }
+
+  .custom-modal-container {
+    max-height: calc(100vh - 32px);
+    border-radius: 20px 20px 0 0;
+  }
+
+  .detail-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .detail-stats {
+    justify-content: center;
+  }
+
+  .detail-actions {
+    justify-content: center;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .custom-modal-container {
+    background: #1a1a2e;
+  }
+
+  .custom-modal-header {
+    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .custom-modal-header .modal-title {
+    color: #f1f5f9;
+  }
+
+  .custom-modal-header .close-btn {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .custom-modal-header .close-icon {
+    color: #94a3b8;
+  }
+
+  .detail-stat-card {
+    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .stat-card-label {
+    color: #94a3b8;
+  }
+
+  .section-title {
+    color: #f1f5f9;
+  }
+
+  .detail-empty .empty-illustration {
+    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .detail-empty .empty-title {
+    color: #e2e8f0;
+  }
+
+  .action-btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+  }
 }
 </style>

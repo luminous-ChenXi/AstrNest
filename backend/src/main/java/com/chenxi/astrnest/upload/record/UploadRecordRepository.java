@@ -112,4 +112,20 @@ public interface UploadRecordRepository extends JpaRepository<UploadRecord, Long
   List<ApiKeyUsageAggregate> aggregateApiUsageByKeyIds(
       @Param("apiKeyIds") Collection<Long> apiKeyIds,
       @Param("startOfDay") Instant startOfDay);
+
+  /**
+   * 查找用户上传的、不在指定图集中的图片
+   */
+  @Query("""
+      select r from UploadRecord r
+      where r.user.id = :userId
+        and r.mediaUuid not in (
+          select am.mediaUuid from AlbumMedia am where am.album.id = :albumId
+        )
+      order by r.uploadedAt desc
+      """)
+  Page<UploadRecord> findByUserIdAndNotInAlbum(
+      @Param("userId") Long userId,
+      @Param("albumId") Long albumId,
+      Pageable pageable);
 }

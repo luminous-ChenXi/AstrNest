@@ -87,7 +87,7 @@ public class UploadRecord {
   private boolean violation = false;
 
   @Column(name = "is_public", nullable = false)
-  private boolean publicAccessible = true;
+  private boolean publicAccessible = false;
 
   @Column(name = "like_count", nullable = false)
   private long likeCount = 0L;
@@ -138,4 +138,10 @@ public class UploadRecord {
 
   @Column(nullable = false, updatable = false)
   private Instant uploadedAt = Instant.now();
+
+  @Column(name = "width")
+  private Integer width;
+
+  @Column(name = "height")
+  private Integer height;
 }

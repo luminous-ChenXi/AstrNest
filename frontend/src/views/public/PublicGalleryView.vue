@@ -20,8 +20,8 @@
             <span class="tag-text">已收录 {{ formattedTotalImages }} 张图片</span>
           </div>
           <h1 class="hero-title">
-            找图？<br>
-            <span class="title-highlight">3秒搞定</span>
+            搜索<br>
+            <span class="title-highlight">查找图片</span>
           </h1>
           <p class="hero-desc">
             灵感枯竭？来这里逛逛。输入关键词，或者随便点几个标签，
@@ -76,13 +76,23 @@
             :key="tile.id"
             class="hero-tile"
             :class="`tile-${index + 1}`"
-            :style="getTileStyle(tile)"
             v-lazy-animate="{ fromY: 40, delay: index * 0.15, duration: 0.7 }"
             @click="goToAlbum(tile.pathSlug)"
             role="button"
             tabindex="0"
             @keydown.enter="goToAlbum(tile.pathSlug)"
           >
+            <!-- 图集封面图片 -->
+            <div class="tile-cover-image" :style="{ background: tile.gradient }">
+              <img
+                v-if="tile.randomCoverUrl"
+                :src="tile.randomCoverUrl"
+                :alt="tile.title"
+                class="cover-img"
+                loading="lazy"
+                @error="handleCoverError"
+              />
+            </div>
             <div class="tile-overlay"></div>
             <div class="tile-content">
               <span class="tile-tag">{{ tile.tag }}</span>
@@ -619,19 +629,30 @@ const heroStats = computed(() => [
   { label: '点赞互动', value: numberFormatter.format(totalLikes.value) },
 ])
 
+// 获取图集随机封面图片 URL
+const getAlbumRandomCoverUrl = (pathSlug) => {
+  if (!pathSlug) return ''
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://luminouschenxi.net'
+  // 添加时间戳参数防止缓存
+  const timestamp = Date.now()
+  return `${baseUrl}/api/albums/random/${pathSlug}?t=${timestamp}`
+}
+
 const heroTiles = computed(() => {
   // 优先使用 featuredAlbums（真实图集数据）
   if (featuredAlbums.value.length > 0) {
-    return featuredAlbums.value.map((album, index) => ({
-      id: album.albumUuid ?? `album-${index}`,
-      title: album.name || `图集 #${index + 1}`,
-      tag: '图集',
-      meta: `${album.username || '匿名创作者'} · ${numberFormatter.format(album.totalLikes || 0)} 喜欢`,
-      cover: album.coverImageUuid ? `/api/images/${album.coverImageUuid}` : null,
-      gradient: getPlaceholderGradient(album.id),
-      pathSlug: album.pathSlug, // 用于点击跳转
-      isAlbum: true, // 标记这是图集
-    }))
+    return featuredAlbums.value.map((album, index) => {
+      return {
+        id: album.albumUuid ?? `album-${index}`,
+        title: album.name || `图集 #${index + 1}`,
+        tag: '图集',
+        meta: `${album.username || '匿名创作者'} · ${numberFormatter.format(album.totalLikes || 0)} 喜欢`,
+        randomCoverUrl: getAlbumRandomCoverUrl(album.pathSlug),
+        gradient: getPlaceholderGradient(album.albumUuid || album.id || index),
+        pathSlug: album.pathSlug, // 用于点击跳转
+        isAlbum: true, // 标记这是图集
+      }
+    })
   }
   // 如果没有图集数据，返回空数组（不显示卡片）
   return []
@@ -748,19 +769,6 @@ const selectHashtag = (tag) => {
   submitSearch()
 }
 
-const getTileStyle = (tile) => {
-  if (tile.cover) {
-    return {
-      backgroundImage: `linear-gradient(160deg, rgba(16, 18, 27, 0.65), rgba(16, 18, 27, 0.2)), url(${tile.cover})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-    }
-  }
-  return {
-    background: tile.gradient,
-  }
-}
-
 const getFeaturedStyle = (story) => {
   if (story.cover) {
     return {
@@ -798,6 +806,13 @@ const handleImageError = (e) => {
   // 显示错误图标
   target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2"%3E%3Crect x="3" y="3" width="18" height="18" rx="2" ry="2"/%3E%3Ccircle cx="8.5" cy="8.5" r="1.5"/%3E%3Cpath d="M21 15l-5-5L5 21"/%3E%3C/svg%3E'
   target.style.objectFit = 'scale-down'
+}
+
+// 处理封面图片加载错误
+const handleCoverError = (e) => {
+  const target = e.target
+  // 加载失败时显示默认的渐变背景图
+  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect width="400" height="300" fill="url(%23grad)"/%3E%3Cdefs%3E%3ClinearGradient id="grad" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%23667eea;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23764ba2;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E'
 }
 
 const resolveAspectRatio = (item) => {
@@ -1475,10 +1490,32 @@ onMounted(() => {
   grid-row: span 2;
 }
 
+/* 图集封面图片容器 */
+.tile-cover-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.5s ease;
+}
+
+.hero-tile:hover .cover-img {
+  transform: scale(1.05);
+}
+
 .tile-overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.7) 100%);
+  z-index: 1;
 }
 
 .tile-content {
@@ -1488,6 +1525,7 @@ onMounted(() => {
   right: 0;
   padding: 1.5rem;
   color: white;
+  z-index: 2;
 }
 
 .tile-tag {
