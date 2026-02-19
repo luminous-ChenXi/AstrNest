@@ -1,7 +1,7 @@
 # AstrNest Media Management System
 <div>
 
-A modern full-stack media management platform built with Spring Boot 3.4.1 and Vue 3. Features multi-cloud storage, AI content moderation, and a complete API ecosystem.
+Modern full-stack media management platform built with Spring Boot 3.4.1 and Vue 3. Multi-cloud storage, AI content moderation, complete API ecosystem.
 
 <p align="center">
   <a href="https://github.com/vuejs/core">
@@ -24,7 +24,7 @@ A modern full-stack media management platform built with Spring Boot 3.4.1 and V
   </a>
 </p>
 <p align="center">
-  <a href="./README.md">简体中文</a> · <a href="./README_EN.md">English</a>
+  <a href="./README.md">简体中文</a> · English
 </p>
 <p align="center">
   <a href="#quick-start">Quick Start</a> · 
@@ -32,36 +32,37 @@ A modern full-stack media management platform built with Spring Boot 3.4.1 and V
   <a href="#tech-stack">Tech Stack</a> · 
   <a href="#acknowledgments">Acknowledgments</a> ·   
   <a href="https://discord.gg/hBsqcfwC9Q">Discord</a> · 
-  <a href="https://github.com/luminous-ChenXi/astrnest">GitHub</a>
+  <a href="https://github.com/luminous-ChenXi/astrnest_backend">Backend</a>
 </p>
 
 </div>
 
-<img src="https://cdn.luminouschenxi.net/assets/others/templates/1728x2304.png" width = "300" height = "400" alt="AstrNest" align=right />
+<img src="./templates/1728x2304.png" width = "300" height = "400" alt="AstrNest" align=right />
 <div align="center">
 
 # AstrNest
 
 _Modern full-stack image hosting platform built with Spring Boot 3.4.1 and Vue 3._
 
-Youth and dreams are the only things not to be let down!
+Only youth and dreams are worth living for!
 
 </div>
 
 ---
 
 ## Core Features
-- **Modern Architecture**: Full-stack tech stack with Spring Boot 3.4.1 + Vue 3 + Vite 5
-- **Multi-role Permissions**: Supports multi-level permission management system for administrators, regular users, etc.
-- **Multi-cloud Storage**: Built-in drivers for Local, Alibaba Cloud OSS, Tencent Cloud COS, Qiniu Kodo, Huawei OBS, Kingsoft KS3, UpYun USS, OneDrive/SharePoint, and generic S3-compatible storage; one-click switch in configuration. S3-compatible drivers trigger 25MB multipart upload when exceeding 5GB threshold, supporting CDN/CNAME, accelerated domains, PathStyle, and pre-signed direct upload credentials.
-- **Intelligent Content Moderation**: Integrates Tencent Cloud COS CI (Cloud Infinite) image moderation and tagging services, automatically populates AI decisions/tags/RequestId, outputs user-friendly prompts combined with error code documentation, and provides double protection with manual review.
+
+- **Modern Architecture**: Spring Boot 3.4.1 + Vue 3 + Vite 5 full-stack technology stack
+- **Multi-role Permissions**: Supports multi-level permission management system for administrators, regular users, and more
+- **Multi-cloud Storage**: Built-in Local, Alibaba Cloud OSS, Tencent COS, Qiniu Kodo, Huawei OBS, Kingsoft KS3, Upyun USS, OneDrive/SharePoint, and generic S3 drivers. Switch between them with one click in configuration. S3-compatible drivers default to 5GB threshold triggering 25MB chunked uploads, supporting CDN/CNAME, accelerated domains, PathStyle, and presigned direct upload credentials
+- **Intelligent Content Moderation**: Integrated with Tencent Cloud Data Lake (COS CI) image moderation and tagging services, automatically populating AI decisions/tags/RequestId, and providing user-friendly prompts based on error code documentation, combined with manual review for double protection
 - **Complete API Ecosystem**: RESTful API + API key authentication + Web management interface
 - **Flexible Storage Solutions**: Supports local storage and cloud object storage (OSS/COS)
-- **Security Management**: Spring Security 6 + JWT authentication + Content Security Policy (CSP)
-- **Member Governance & Quotas**: Admin "Member List" supports viewing avatars/quotas/total likes, and allows one-click adjustment of daily upload & total storage limits, as well as switching roles (Admin/User/Guest)
-- **Responsive Design**: Modern UI component library supporting multi-device adaptation (PC, mobile, tablet, etc.)
-- **Real-time Monitoring**: System runtime status monitoring and operation log auditing
-- **Email Service**: Integrates email templates and verification code sending functionality, with Aliyun Post Office SMTP preconfigured by default.
+- **Security Management**: Spring Security 6 + JWT authentication + Content Security Policy
+- **Member Governance & Quotas**: Admin "Member List" supports viewing avatars/quotas/total likes, and allows one-click adjustment of daily upload and total storage quotas, switching between admin/user/guest roles
+- **Responsive Design**: Modern UI component library, supporting PC, mobile, tablet, and other multi-device adaptation
+- **Real-time Monitoring**: System operation status monitoring and operation log auditing
+- **Email Service**: Integrated email templates and verification code sending functionality, with Alibaba Cloud Mail SMTP pre-configured by default
 
 <p align="center">
   <b>🎨 Theme Preview</b>
@@ -70,14 +71,13 @@ Youth and dreams are the only things not to be let down!
 <table align="center">
   <tr>
     <td align="center" width="50%">
-      <img src="./templates/index.png" width="100%" alt="User Frontend" />
+      <img src="./templates/index.png" width="100%" alt="userIndex" />
       <br>
-      <sub><b>User Frontend</b></sub>
+      <sub><b>User Frontend Homepage</b></sub>
     </td>
     <td align="center" width="50%">
-      <img src="./templates/managerIndex.png" width="100%" alt="Admin Frontend" />
-      <br>
-      <sub><b>Admin Frontend</b></sub>
+      <img src="./templates/managerIndex.png" width="100%" alt="adminIndex" />
+      <sub><b>Admin Frontend Homepage</b></sub>
     </td>
   </tr>
 </table>
@@ -85,28 +85,28 @@ Youth and dreams are the only things not to be let down!
 ## License Warning | GPL v3 Open Source License Notice
 ### ⚠️ **Important License Reminder** ⚠️
 
-**This project is open-sourced under the GNU General Public License v3 (GPL v3) license**
+**This project is open-sourced under the GNU General Public License v3 (GPL v3)**
 
 ### Legal Statement:
 - **Any use, modification, or distribution of this code must comply with the GPL v3 license**
-- **Derivative works based on this project must also be open-sourced under the GPL v3 license**
-- **Prohibited to use this code in closed-source commercial projects**
-- **Prohibited to remove copyright information and license statements**
+- **Derivative works based on this project must also be open-sourced under GPL v3**
+- **Prohibited from using this code in closed-source commercial projects**
+- **Prohibited from removing copyright information and license notices**
 
-### Warning to Non-Compliant Developers:
-**Note: The following actions constitute infringement and may result in legal liability:**
-- ❌ Modifying the license or removing copyright statements without permission
-- ❌ Using the code in closed-source commercial products without open-sourcing derivatives
-- ❌ Claiming the code as original work
-- ❌ Circumventing GPL v3 requirements to distribute derivative works
+### Warning to Unethical Developers:
+**Please note: The following actions constitute infringement and may face legal liability:**
+- ❌ Privately modifying the license or removing copyright notices
+- ❌ Using the code in closed-source commercial products without open-sourcing
+- ❌ Claiming the code as your own original work
+- ❌ Circumventing GPL license requirements when distributing derivative works
 
 ### Your Obligations:
 - ✅ Retain original copyright and license information  
-- ✅ Make modifications based on this project open-source as well  
-- ✅ Provide source code when distributing  
+- ✅ Modifications based on this project must also be open-sourced  
+- ✅ Source code must be provided when distributing  
 - ✅ Clearly identify modified content and modifiers
 
-**This project took 3 months of development with significant effort by the ChenXi Team. Violating the GPL v3 license will result in legal liability. Please respect the spirit of open source!**
+**This project has a development cycle of 3 months, developed independently by the ChenXi team. The development process was arduous; violating the GPL license will result in legal consequences. Please respect the open-source spirit!**
 
 ## Tech Stack
 
@@ -117,11 +117,11 @@ Youth and dreams are the only things not to be let down!
 - **Security**: Spring Security 6
 - **Documentation**: SpringDoc OpenAPI 3
 - **AI Moderation SDK**: Tencent Cloud COS CI (`com.qcloud:cos_api`)
-- **Build Tool**: Maven Wrapper
+- **Build**: Maven Wrapper
 
 ### Frontend
 - **Framework**: Vue 3.5.24
-- **Build Tool**: Vite 5.4.10
+- **Build**: Vite 5.4.10
 - **Routing**: Vue Router 4
 - **State Management**: Pinia 3
 - **UI Components**: Element Plus 2.8.6
@@ -131,13 +131,13 @@ Youth and dreams are the only things not to be let down!
 ## System Architecture
 
 ### Architecture Diagram
-AstrNest adopts a decoupled front-end and back-end architecture:
+AstrNest adopts a front-end and back-end separation architecture:
 
 - **Frontend**: Vue 3 + Vite + Element Plus + Tailwind CSS
 - **Backend**: Spring Boot 3 + Spring Security + JPA + MySQL
-- **Authentication**: Dual authentication mechanism (JWT Token + API Key)
-- **Storage**: Local storage + extended support for cloud object storage
-- **Security**: Role-Based Access Control (RBAC) + Content Security Policy
+- **Authentication**: JWT Token + API Key dual authentication mechanism
+- **Storage**: Local storage + cloud object storage extension support
+- **Security**: Role-based access control + content security policy
 
 ### Project Structure
 
@@ -145,7 +145,7 @@ AstrNest adopts a decoupled front-end and back-end architecture:
 astrnest/
 ├─ backend/      # Spring Boot service: REST API, authentication, content moderation, API key management
 ├─ frontend/     # Vue 3 + Vite single-page application: dashboard, upload center, security console, API integration
-└─ storage/      # (Runtime-generated) Local storage directory, configurable to OSS/COS
+└─ storage/      # (Generated at runtime) Local storage directory, can be changed to OSS/COS via configuration
 ```
 
 ## API Documentation Overview
@@ -153,66 +153,93 @@ astrnest/
 ### Swagger / OpenAPI
 - Online documentation entry: `/swagger-ui/index.html`
 - OpenAPI JSON: `/v3/api-docs`
-- Authentication method: Place the Token obtained after login in `Authorization: Bearer <token>`. Some interfaces require administrator privileges.
+- Authentication method: Token obtained after login placed in `Authorization: Bearer <token>`, some interfaces require admin privileges.
 
 ## Quick Start (Development)
 
-Taking local development on Ubuntu as an example:
+Here is an example of local development on Ubuntu:
 
-1) Clone & Install Dependencies
+1) Clone and dependencies
 ```bash
 git clone https://github.com/luminous-ChenXi/AstrNest.git
 cd AstrNest
 ```
-2) Initialize Database (Local MySQL)
+2) Initialize database (local MySQL)
 ```bash
 mysql -u root -p < backend/db/init.sql
 ```
-3) Start Backend
+
+> **⚠️ Important Reminder**: Before starting the backend, ensure the database configuration is correct. Default configuration is as follows (located in `backend/src/main/resources/application.yml`):
+> - Database URL: `jdbc:mysql://localhost:3306/astrnest`
+> - Username: `astrnest` (can be overridden via environment variable `ASTRNEST_DB_USERNAME`)
+> - Password: `chenxi123` (can be overridden via environment variable `ASTRNEST_DB_PASSWORD`)
+>
+> If the database username/password differs from the above, please modify `application.yml` or override via environment variables, otherwise the backend will fail to start.
+
+3) Start backend
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
-4) Start Frontend (New Terminal)
+4) Start frontend (new terminal)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+> **⚠️ Important Reminders**:
+> - If `npm install` encounters permission errors (such as `EACCES` or `permission denied`), it's usually due to npm global directory permission issues. Solutions:
+>   1. Modify npm global directory permissions: `sudo chown -R $(whoami) ~/.npm`
+>   2. Or use npx to run: `npx npm install`
+>   3. Or clear npm cache and retry: `npm cache clean --force && npm install`
+>   4. If the above methods don't work, consider using `sudo npm install` to install dependencies (not recommended).
+> - If using a mirror source results in 404 errors, it's recommended to switch back to the official source: `npm config set registry https://registry.npmjs.org/`
+> - If `npm run dev` startup shows `EACCES: permission denied, mkdir '.../node_modules/.vite/...'` error, it means the `node_modules` directory has insufficient permissions. Solutions:
+>   1. Fix `node_modules` directory permissions: `sudo chown -R $(whoami) node_modules`
+>   2. Or delete and reinstall directly: `rm -rf node_modules && npm install`
+
 5) Access
 - Frontend: http://localhost:5173
 - Backend: http://localhost:8080
 - API Documentation: http://localhost:8080/swagger-ui/index.html
 
-**Default Administrator**: `admin` / `chenxi123` (Please change immediately).
+> **⚠️ Important Reminders**:
+> - If "Network Connection Error" is displayed, please check if the backend service has started, if the port is correct; check if the port configuration in `application.yml` matches the actual one; check if the firewall has allowed that port; check if other services are occupying that port; check if a proxy (such as Nginx) is enabled; check if the proxy configuration is correct;
+> - If "404 Not Found" is displayed, please check if the frontend project has been built correctly and if the files in the `dist/` directory exist.
+> - If "CORS Error" is displayed, please check if the CORS configuration in the backend `SecurityConfig` allows the current frontend domain.
+> - If "403 Forbidden" is displayed, please check if the current user role has permission to access that interface.
+> - If "500 Internal Server Error" is displayed, please check the backend logs to find specific error information.
 
-> For detailed configuration (environment variables, file paths, initialization scripts, FFmpeg, storage switching, etc.), refer to `CONFIG_GUIDE.md`.
+**Default Admin**: `admin` / `chenxi123` (Please be sure to change).
+
+> If you want to see configuration details directly (environment variables, file paths, initialization scripts, FFmpeg, storage switching, etc.), please jump to `CONFIG_GUIDE.md`.
 
 ### Deployment Overview
-- **Docker Compose (Recommended)**: Copy `.env.example` → `.env`, fill in database/domain/SMTP/storage information, then execute:
+- **Docker Compose (Recommended)**: Copy `.env.example` → `.env`, fill in database/domain/SMTP/storage, then execute:
 ```bash
 docker compose --env-file .env up -d
 ```
-- **Traditional Deployment**: Package backend with `./mvnw clean package && java -jar target/backend-0.0.1-SNAPSHOT.jar`; build frontend with `npm run build` and deploy the `dist/` directory to Nginx/CDN.
+- **Traditional Deployment**: `backend` package `./mvnw clean package && java -jar target/backend-0.0.1-SNAPSHOT.jar`; `frontend` run `npm run build` then hand over `dist/` to Nginx/CDN.
 
-For more detailed environment variables, Nginx reverse proxy, CDN/object storage switching, see `CONFIG_GUIDE.md`.
+For more detailed environment variables, Nginx reverse proxy, CDN/object storage switching, please see `CONFIG_GUIDE.md`.
 
 ## Problem Solving
 
-| Issue | Recommended Solution |
+| Problem | Suggested Solution |
 | --- | --- |
-| CORS Error | Ensure the CORS whitelist in backend `SecurityConfig` includes the current frontend domain, or add `Access-Control-*` headers at the deployment entry layer (Nginx). |
-| Database Authentication Failure | Check if `spring.datasource.username/password` matches MySQL user authorization. |
-| API Upload 401 | `POST /api/uploads` requires logging in as an administrator or carrying a valid `X-API-Key`. Create a key in the Security Center/API page. |
-| Static Resource Access Failure | If switching to object storage, remember to synchronize the configuration of `astrnest.storage.local.public-base-url` or set the asset domain in the background, and ensure CDN/bucket permissions are correct. |
+| CORS Error | Ensure the CORS whitelist in the backend `SecurityConfig` includes the current frontend domain, or supplement `Access-Control-*` headers at the deployment entry layer (Nginx). |
+| Database Authentication Failure | Check if `spring.datasource.username/password` is consistent with MySQL user authorization. |
+| API Upload 401 | `POST /api/uploads` requires logged-in admin or valid `X-API-Key`. Create keys on the Security Center/API page. |
+| Static Resources Not Accessible | If switching to object storage, remember to sync configure `astrnest.storage.local.public-base-url` or set the asset domain in the backend, and ensure CDN/bucket permissions are correct. |
 | Email Sending Failure | Check if email configuration is correct, including SMTP server, port, username, and password |
 | Verification Code Validation Failure | Ensure the verification code is within the validity period and entered correctly |
+| Database Connection Timeout | Check `spring.datasource.hikari.connection-timeout` configuration (default 30000ms), ensure network stability or appropriately increase timeout |
 
 ### Common Scripts
-- Backend Development: `cd backend && ./mvnw spring-boot:run`
-- Backend Testing: `cd backend && ./mvnw test`
-- Frontend Development: `cd frontend && npm run dev`
-- Frontend Build: `cd frontend && npm run build`
+- Backend development: `cd backend && ./mvnw spring-boot:run`
+- Backend testing: `cd backend && ./mvnw test`
+- Frontend development: `cd frontend && npm run dev`
+- Frontend build: `cd frontend && npm run build`
 
 ### API Quick Examples
 ```bash
@@ -228,23 +255,23 @@ curl -X POST "http://localhost:8080/api/uploads" \
 ```
 
 ## Development Roadmap
-- ~~Add manual image moderation feature to support manual review of image violations~~ ✅
-- ~~Add AI-based image violation query feature to support batch query of image violations~~ ✅
-- ~~Improve image Tag feature to support batch addition, deletion, and search~~ ✅
+- ~~Add manual image review function, support manual review of image violations~~ ✅
+- ~~Add AI image violation query function, support batch query of image violations~~ ✅
+- ~~Improve image Tag label function, support batch add, delete, search~~ ✅
 - ~~Support more cloud storage providers (Alibaba Cloud OSS, Tencent Cloud COS, etc.)~~ ✅
-- [ ] Code beginner-friendly initialization page
-- [ ] Image compression and format conversion features
-- [ ] Image watermarking feature
-- [ ] Image batch processing tools
+- [ ] Beginner-friendly initialization page
+- [ ] Image compression and format conversion function
+- [ ] Image watermark adding function
+- [ ] Image batch processing tool
 - [ ] Mobile application development
 - [ ] Third-party login integration
 
 ## Acknowledgments
 
 ### Open Source Component Compliance Statement
-This project is built based on numerous excellent open-source components. Thanks to the contributions of the open-source community! The following lists major dependent components and their license information by frontend/backend for compliance checking:
+This project is built upon numerous excellent open-source components. Thanks to the open-source community for their contributions! Below are the main dependency components listed by frontend/backend with their license information for compliance review:
 
-#### Frontend (Refer to /frontend/package.json)
+#### Frontend (refer to /frontend/package.json)
 - **Vue 3** [`vue@^3.5.24`](https://github.com/vuejs/core) - [MIT License](https://github.com/vuejs/core/blob/main/LICENSE)
 - **Vue Router** [`vue-router@^4.6.3`](https://github.com/vuejs/router) - [MIT License](https://github.com/vuejs/router/blob/main/LICENSE)
 - **Pinia** [`pinia@^3.0.4`](https://github.com/vuejs/pinia) - [MIT License](https://github.com/vuejs/pinia/blob/main/LICENSE)
@@ -263,7 +290,7 @@ This project is built based on numerous excellent open-source components. Thanks
 - **Lucide Icons** [`lucide-vue-next@^0.555.0`](https://github.com/lucide-icons/lucide) - [ISC License](https://github.com/lucide-icons/lucide/blob/main/LICENSE)
 - **Plyr** [`plyr`](https://github.com/sampotts/plyr) - [MIT License](https://github.com/sampotts/plyr/blob/master/LICENSE.md)
 
-#### Backend (Refer to /backend/pom.xml)
+#### Backend (refer to /backend/pom.xml)
 - **Spring Boot 3.4.1** - [Apache License 2.0](https://github.com/spring-projects/spring-boot/blob/main/LICENSE.txt)
   - spring-boot-starter-web
   - spring-boot-starter-security  
@@ -278,7 +305,7 @@ This project is built based on numerous excellent open-source components. Thanks
 - **AWS SDK S3** [`software.amazon.awssdk:s3@2.25.58`](https://github.com/aws/aws-sdk-java-v2) - [Apache License 2.0](https://github.com/aws/aws-sdk-java-v2/blob/master/LICENSE.txt)
 - **Alibaba Cloud OSS SDK** [`com.aliyun.oss:aliyun-sdk-oss@3.17.4`](https://github.com/aliyun/aliyun-oss-java-sdk) - [Apache License 2.0](https://github.com/aliyun/aliyun-oss-java-sdk/blob/master/LICENSE)
 - **Tencent Cloud COS SDK** [`com.qcloud:cos_api@5.6.255.1`](https://github.com/tencentyun/cos-java-sdk-v5) - [MIT License](https://github.com/tencentyun/cos-java-sdk-v5/blob/master/LICENSE)
-- **UpYun Java SDK** [`com.upyun:java-sdk@4.2.3`](https://github.com/upyun/java-sdk) - [MIT License](https://github.com/upyun/java-sdk/blob/master/LICENSE)
+- **Upyun Java SDK** [`com.upyun:java-sdk@4.2.3`](https://github.com/upyun/java-sdk) - [MIT License](https://github.com/upyun/java-sdk/blob/master/LICENSE)
 - **Lombok** - [MIT License](https://github.com/projectlombok/lombok/blob/master/LICENSE)
 - **Spring Boot Configuration Processor** - [Apache License 2.0](https://github.com/spring-projects/spring-boot/blob/main/LICENSE.txt)
 - **H2 Database** (test) - [MPL 2.0 / EPL 1.0](https://github.com/h2database/h2database/blob/master/LICENSE.txt)
@@ -286,32 +313,32 @@ This project is built based on numerous excellent open-source components. Thanks
 
 #### Disclaimer
 - The above license information is based on the latest information from each component's official repository
-- Specific versions may change as the project is updated
-- Please ensure compliance with all dependent components' license requirements when using this project
-- It is recommended to conduct a detailed license compliance review before commercial use
+- Specific versions may change as the project updates
+- When using this project, please ensure compliance with all dependency component license requirements
+- It is recommended to conduct detailed license compliance review before commercial use
 
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed processes.
+Welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed process.
 
 ## Issue Reporting
 
-If you encounter issues:
-1. Check [Frequently Asked Questions](#problem-solving)
-2. Search [GitHub Issues](https://github.com/luminous-ChenXi/astrnest/issues)
-3. Create a new Issue (your valuable suggestions are also welcome!)
+If you encounter problems, please:
+1. Check [FAQ](#faq)
+2. Search [GitHub Issues](https://github.com/your-repo/astrnest/issues)
+3. Create a new Issue (and welcome your valuable suggestions!)
 4. Check [Contact](#contact)
 
 ## License
 
-This project is open-sourced under the [GNU General Public License v3 (GPL v3)](LICENSE).
+This project is open-sourced under [GNU General Public License v3 (GPL v3)](LICENSE).
 
 ![GPL-v3](https://www.gnu.org/graphics/gplv3-127x51.png)
 
 ## Security
 
-For security-related issues, please refer to [SECURITY.md](SECURITY.md).
+For security-related issues, please see [SECURITY.md](SECURITY.md).
 
 
 ## Contact
@@ -321,5 +348,5 @@ For security-related issues, please refer to [SECURITY.md](SECURITY.md).
 - **Discord**: [LuminousChenxi](https://discord.gg/hBsqcfwC9Q)
 
 ---
-Please star! Follow! Support!
+Please like! Please follow! Please support!
 ⭐ If this project helps you, please give us a Star!
