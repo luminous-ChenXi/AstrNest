@@ -11,7 +11,7 @@ headers = {"Content-Type": "application/json"}
 # 测试不同的密码组合
 test_cases = [
     {"username": "admin", "password": "chenxi123"},
-    {"username": "admin", "password": "chenxi123!"},
+    {"username": "admin", "password": "chenxi123"},
     {"username": "admin@example.com", "password": "chenxi123"},
 ]
 

@@ -6,7 +6,7 @@ hashed = '$2b$12$8WorkA9WmkwFNcJ3WZIGeeG94iXBNLFmi8hss0RXrZGbO9Ni4jc2i'
 
 # 测试密码
 test_passwords = [
-    'chenxi123!',
+    'chenxi123',
     'chenxi123',
     'admin',
     '123456',

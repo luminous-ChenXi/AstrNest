@@ -78,9 +78,9 @@ echo Admin email [default: admin@example.com]:
 set /p ADMIN_EMAIL="> "
 if "!ADMIN_EMAIL!"=="" set ADMIN_EMAIL=admin@example.com
 
-echo Admin password [default: chenxi123!]:
+echo Admin password [default: chenxi123]:
 set /p ADMIN_PASS="> "
-if "!ADMIN_PASS!"=="" set ADMIN_PASS=chenxi123!
+if "!ADMIN_PASS!"=="" set ADMIN_PASS=chenxi123
 
 echo Confirm password:
 set /p ADMIN_PASS2="> "

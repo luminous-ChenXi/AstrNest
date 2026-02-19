@@ -9,7 +9,7 @@ hashed = '$2b$12$1uLnox51dsclaN4VP7wQnen64wtIuBZyp98vltJgmOgEoTjC6/En2'
 # 测试可能的密码
 test_passwords = [
     'chenxi123',    # 用户输入的（没有感叹号）
-    'chenxi123!',   # 默认的（有感叹号）
+    'chenxi123',   # 默认的（有感叹号）
     'admin',
     '123456',
     '',             # 空密码
