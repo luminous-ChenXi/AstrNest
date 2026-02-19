@@ -49,6 +49,17 @@ const formatErrorMessage = (error) => {
   if (!error?.response) return '网络异常，请检查连接'
   const { status, data } = error.response
   const backendMsg = data?.message || data?.error || ''
+
+  // 413 文件过大错误 - 人性化提示
+  if (status === 413) {
+    // 判断是 Nginx 层还是应用层返回的 413
+    const isNginxError = typeof data === 'string' && data.includes('<html>')
+    if (isNginxError) {
+      return '文件总大小超限！请减少同时上传的文件数量，或分批上传（建议每批不超过 10-15 张图片）'
+    }
+    return '单个文件太大啦！请压缩图片或视频后再试，建议单张图片不超过 5MB，视频不超过 100MB'
+  }
+
   if (status >= 500) return backendMsg ? `服务器错误 (${status})：${backendMsg}` : `服务器错误 (${status})`
   if (status === 404) return backendMsg ? `资源不存在：${backendMsg}` : '资源不存在'
   if (status === 401 || status === 403) return backendMsg || '未登录或无权限'

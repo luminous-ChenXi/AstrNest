@@ -19,6 +19,8 @@ import com.chenxi.astrnest.tag.ChenxiTag;
 import com.chenxi.astrnest.tag.ChenxiTagService;
 import com.chenxi.astrnest.tag.dto.ChenxiTagResponse;
 import com.chenxi.astrnest.upload.dto.AiReviewFeedback;
+import com.chenxi.astrnest.upload.dto.UploadBatchResponse;
+import com.chenxi.astrnest.upload.dto.UploadBatchResponse.SkippedFileInfo;
 import com.chenxi.astrnest.upload.dto.UploadResponse;
 import com.chenxi.astrnest.upload.media.ChenxiMediaInspector;
 import com.chenxi.astrnest.upload.media.ChenxiMediaInspector.MediaInspection;
@@ -299,5 +301,95 @@ public class UploadService {
   private String formatMegabytes(long bytes) {
     double mb = bytes / (1024d * 1024d);
     return String.format("%.1f MB", mb);
+  }
+
+  private String formatBytes(long bytes) {
+    if (bytes < 1024) {
+      return bytes + " B";
+    } else if (bytes < 1024 * 1024) {
+      return String.format("%.1f KB", bytes / 1024.0);
+    } else {
+      return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+    }
+  }
+
+  /**
+   * 上传文件，自动跳过超大文件，继续处理其他文件
+   *
+   * @param files          文件数组
+   * @param authentication 认证信息
+   * @param clientIp       客户端IP
+   * @param tagNames       标签列表
+   * @return 批次上传响应
+   */
+  public UploadBatchResponse uploadFilesWithSkip(MultipartFile[] files, Authentication authentication,
+      String clientIp, List<String> tagNames) {
+    if (files == null || files.length == 0) {
+      throw new IllegalArgumentException("至少需要上传 1 个文件");
+    }
+
+    long maxImageBytes = systemConfigService.currentMaxUploadBytes();
+    long maxVideoBytes = systemConfigService.currentMaxVideoUploadBytes();
+    UserAccount uploader = resolveUser(authentication);
+    enforceUserQuotas(uploader, files);
+    ApiKey apiKey = resolveApiKey(authentication);
+    Set<ChenxiTag> baseTags = new LinkedHashSet<>(chenxiTagService.resolveTags(tagNames));
+
+    List<UploadResponse> uploaded = new java.util.ArrayList<>();
+    List<SkippedFileInfo> skipped = new java.util.ArrayList<>();
+
+    for (MultipartFile file : files) {
+      if (file == null) {
+        continue;
+      }
+
+      String fileName = safeName(file.getOriginalFilename());
+
+      // 检查文件大小，超过限制则跳过
+      long fileSize = file.getSize();
+      MediaInspection inspection = null;
+      try {
+        inspection = mediaInspector.inspect(file);
+        long maxBytes = inspection.category() == MediaCategory.VIDEO ? maxVideoBytes : maxImageBytes;
+        if (fileSize > maxBytes) {
+          skipped.add(new SkippedFileInfo(fileName,
+              "文件大小 " + formatBytes(fileSize) + " 超过限制 " + formatBytes(maxBytes)));
+          continue;
+        }
+      } catch (Exception e) {
+        log.warn("检查文件 {} 大小时出错: {}", fileName, e.getMessage());
+        skipped.add(new SkippedFileInfo(fileName, "无法检查文件大小: " + e.getMessage()));
+        continue;
+      }
+
+      // 尝试上传单个文件
+      try {
+        UploadResponse response = handleSingleUpload(file, uploader, apiKey, clientIp, baseTags, maxImageBytes,
+            maxVideoBytes);
+        uploaded.add(response);
+      } catch (ResponseStatusException e) {
+        // 如果是大小限制错误，记录并跳过
+        if (e.getStatusCode() == HttpStatus.PAYLOAD_TOO_LARGE) {
+          skipped.add(new SkippedFileInfo(fileName, e.getReason()));
+        } else {
+          skipped.add(new SkippedFileInfo(fileName, e.getReason() != null ? e.getReason() : "上传失败"));
+        }
+      } catch (Exception e) {
+        log.warn("上传文件 {} 失败: {}", fileName, e.getMessage());
+        skipped.add(new SkippedFileInfo(fileName, "上传失败: " + e.getMessage()));
+      }
+    }
+
+    // 构建人性化提示消息
+    String message;
+    if (skipped.isEmpty()) {
+      message = "全部 " + uploaded.size() + " 个文件上传成功";
+    } else if (uploaded.isEmpty()) {
+      message = "上传失败，" + skipped.size() + " 个文件未能上传，请检查文件大小或格式";
+    } else {
+      message = "部分图片大小超限，仅上传了 " + uploaded.size() + " 个符合要求的图片，" + skipped.size() + " 个文件被跳过";
+    }
+
+    return new UploadBatchResponse(uploaded, skipped, message);
   }
 }

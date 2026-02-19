@@ -215,7 +215,7 @@ import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { AlertCircle, CheckCircle2, ClipboardPaste, FileImage, Film, Loader2, Tag, Trash2, UploadCloud } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
-import { uploadFiles } from '../../services/upload'
+import { uploadFilesBatch } from '../../services/upload'
 import ChenxiTagDialog from '../common/ChenxiTagDialog.vue'
 
 const auth = useAuthStore()
@@ -224,6 +224,7 @@ const dropZoneRef = ref(null)
 const pickerRef = ref(null)
 const selectedFiles = ref([])
 const selectedTags = ref([])
+const currentBatchTags = ref([]) // 当前批次的标签，上传后清空
 const tagDialogOpen = ref(false)
 const uploadResult = ref([])
 const uploading = ref(false)
@@ -322,6 +323,8 @@ function removeFile(index) {
 
 function clearSelection() {
   selectedFiles.value = []
+  selectedTags.value = []
+  currentBatchTags.value = []
 }
 
 function clearSelectedTags() {
@@ -390,12 +393,47 @@ async function startUpload() {
   uploading.value = true
   errorMessage.value = ''
   uploadResult.value = []
+
+  // 保存当前标签到批次标签（标签只应用于当前批次）
+  currentBatchTags.value = [...selectedTags.value]
+
   try {
-    const result = await uploadFiles(selectedFiles.value, selectedTags.value)
-    uploadResult.value = result
+    const result = await uploadFilesBatch(
+      selectedFiles.value,
+      currentBatchTags.value,
+      (progress) => {
+        // 可以在这里处理进度更新
+        if (progress.stage === 'uploading') {
+          console.log(`上传进度: ${progress.current}%`)
+        }
+      }
+    )
+
+    // 处理新的响应格式
+    if (result && Array.isArray(result.uploaded)) {
+      uploadResult.value = result.uploaded
+
+      // 根据结果显示不同的提示
+      if (result.skipped && result.skipped.length > 0) {
+        // 有部分文件被跳过
+        ElMessage.warning(result.message)
+      } else {
+        // 全部成功
+        ElMessage.success(result.message)
+      }
+    } else if (Array.isArray(result)) {
+      // 兼容旧格式
+      uploadResult.value = result
+      ElMessage.success(`成功上传 ${result.length} 个文件`)
+    }
+
+    // 上传成功后清空文件和标签（标签只应用于当前批次）
     selectedFiles.value = []
+    selectedTags.value = []
+    currentBatchTags.value = []
   } catch (error) {
     errorMessage.value = error?.response?.data?.message || error.message || '上传失败'
+    ElMessage.error(errorMessage.value)
   } finally {
     uploading.value = false
   }
