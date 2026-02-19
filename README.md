@@ -208,7 +208,7 @@ npm run dev
 > - 如果显示“CORS 错误”，请检查后端 `SecurityConfig` 中的 CORS 配置是否允许当前前端域名。
 > - 如果显示“403 Forbidden”，请检查当前用户角色是否有访问该接口的权限。
 > - 如果显示“500 Internal Server Error”，请检查后端日志，查找具体错误信息。
-> -
+
 **默认管理员**：`admin` / `chenxi123`（请务必修改）。
 
 > 如果你想直接看配置细节（环境变量、文件路径、初始化脚本、FFmpeg、存储切换等），请跳转 `CONFIG_GUIDE.md`。
