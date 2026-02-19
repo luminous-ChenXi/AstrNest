@@ -31,6 +31,8 @@ public record UpdateSystemConfigRequest(
 
     Boolean guestLikeEnabled,
 
+    Boolean guestUploadEnabled,
+
     @NotNull(message = "请设置自动清理天数，可填写 0 表示关闭")
     @Min(value = 0, message = "自动清理天数不能小于 0")
     @Max(value = 365, message = "自动清理天数不可超过 365")

@@ -13,6 +13,7 @@ const form = reactive({
   userStorageQuotaGb: 5,
   registrationEnabled: false,
   guestLikeEnabled: true,
+  guestUploadEnabled: false,
   autoCleanupDays: 30,
   videoChunkUploadEnabled: true,
   videoChunkSizeMb: 5,
@@ -41,6 +42,7 @@ const serializeFormState = () =>
     userStorageQuotaGb: form.userStorageQuotaGb,
     registrationEnabled: form.registrationEnabled,
     guestLikeEnabled: form.guestLikeEnabled,
+    guestUploadEnabled: form.guestUploadEnabled,
     autoCleanupDays: form.autoCleanupDays,
     videoChunkUploadEnabled: form.videoChunkUploadEnabled,
     videoChunkSizeMb: form.videoChunkSizeMb,
@@ -154,6 +156,7 @@ const applyConfig = (config) => {
   form.userStorageQuotaGb = Math.round(config?.userStorageQuotaGigabytes ?? config?.userStorageQuotaBytes / (1024 * 1024 * 1024)) || 5
   form.registrationEnabled = Boolean(config?.registrationEnabled)
   form.guestLikeEnabled = config?.guestLikeEnabled ?? true
+  form.guestUploadEnabled = config?.guestUploadEnabled ?? false
   form.autoCleanupDays = Number.isFinite(config?.autoCleanupDays) ? config.autoCleanupDays : 30
   form.videoChunkUploadEnabled = config?.videoChunkUploadEnabled ?? true
   form.videoChunkSizeMb = config?.videoChunkSizeMb ?? 5
@@ -201,6 +204,7 @@ const handleSave = async () => {
       userStorageQuotaGb: form.userStorageQuotaGb,
       registrationEnabled: form.registrationEnabled,
       guestLikeEnabled: form.guestLikeEnabled,
+      guestUploadEnabled: form.guestUploadEnabled,
       autoCleanupDays: form.autoCleanupDays,
       videoChunkUploadEnabled: form.videoChunkUploadEnabled,
       videoChunkSizeMb: form.videoChunkSizeMb,
@@ -510,6 +514,25 @@ onBeforeUnmount(() => {
                 @click="form.guestLikeEnabled = !form.guestLikeEnabled"
               >
                 <span class="toggle-dot" :class="form.guestLikeEnabled ? 'translate-x-8' : 'translate-x-0'"></span>
+              </button>
+            </div>
+
+            <!-- 访客上传 -->
+            <div class="flex items-center justify-between p-4 rounded-xl bg-brand-primary/5 border border-brand-primary/20">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">📤</span>
+                <div>
+                  <p class="font-medium text-body-primary">访客上传</p>
+                  <p class="config-hint">允许未登录访客上传图片（无需注册登录）</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="toggle-btn"
+                :class="form.guestUploadEnabled ? 'toggle-on-emerald' : 'toggle-off'"
+                @click="form.guestUploadEnabled = !form.guestUploadEnabled"
+              >
+                <span class="toggle-dot" :class="form.guestUploadEnabled ? 'translate-x-8' : 'translate-x-0'"></span>
               </button>
             </div>
 
