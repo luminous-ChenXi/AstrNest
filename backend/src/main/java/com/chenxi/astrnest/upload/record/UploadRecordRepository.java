@@ -101,4 +101,6 @@ public interface UploadRecordRepository extends JpaRepository<UploadRecord, Long
   List<ApiKeyUsageAggregate> aggregateApiUsageByKeyIds(
       @Param("apiKeyIds") Collection<Long> apiKeyIds,
       @Param("startOfDay") Instant startOfDay);
+
+  List<UploadRecord> findTop3ByPublicAccessibleTrueAndViolationFalseOrderByLikeCountDesc();
 }
