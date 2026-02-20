@@ -187,7 +187,7 @@ onMounted(() => {
       <p class="admin-section-subtitle">members</p>
       <h1 class="admin-section-title">用户管理</h1>
       <p class="admin-section-description">
-        列表视图展示全部成员，支持搜索 / 调整角色 / 配额与删除操作，默认新注册用户享有每日 100 张、空间 200MB 配额。
+        列表视图展示全部成员，支持搜索 / 调整角色 / 配额与删除操作，默认新注册用户享有总数量 100 张、空间 200MB 配额。
       </p>
     </header>
 
@@ -242,13 +242,13 @@ onMounted(() => {
               </template>
             </el-table-column>
 
-            <el-table-column label="配额 (每日 / 空间MB)" width="260">
+            <el-table-column label="配额 (总数量 / 空间MB)" width="260">
               <template #default="{ row }">
                 <div class="quota-editor">
                   <el-input-number
                     v-model="row.editDailyLimit"
                     :min="0"
-                    :max="500"
+                    :max="10000"
                     size="small"
                     placeholder="不限"
                   />
@@ -262,7 +262,7 @@ onMounted(() => {
                 </div>
                 <p class="text-xs text-white/50">0 或留空表示不限</p>
                 <p class="text-xs text-white/60">
-                  已占用 {{ formatBytes(row.storageBytes) }} · 含图片/视频等全部媒体
+                  已上传 {{ row.uploadCount }} 张 · 已占用 {{ formatBytes(row.storageBytes) }}
                 </p>
               </template>
             </el-table-column>
