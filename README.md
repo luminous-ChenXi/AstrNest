@@ -5,19 +5,22 @@
 
 <p align="center">
   <a href="https://github.com/vuejs/core">
-    <img src="https://img.shields.io/badge/vue-3.5.24-brightgreen.svg" alt="vue">
+    <img src="https://img.shields.io/badge/vue-3.5.24-brightgreen.svg?style=flat-square&logo=vue.js" alt="vue">
   </a>
   <a href="https://github.com/element-plus/element-plus">
-    <img src="https://img.shields.io/badge/element--plus-2.8.6-brightgreen.svg" alt="element-plus">
+    <img src="https://img.shields.io/badge/element--plus-2.8.6-brightgreen.svg?style=flat-square&logo=element" alt="element-plus">
   </a>
   <a href="https://spring.io/projects/spring-boot">
-    <img src="https://img.shields.io/badge/spring--boot-3.4.1-brightgreen.svg" alt="spring-boot">
+    <img src="https://img.shields.io/badge/spring--boot-3.4.1-brightgreen.svg?style=flat-square&logo=spring" alt="spring-boot">
   </a>
   <a href="https://github.com/luminous-ChenXi/astrnest/blob/master/LICENSE">
-    <img src="https://img.shields.io/badge/license-GPL%20v3-blue.svg" alt="license">
+    <img src="https://img.shields.io/badge/license-GPL%20v3-blue.svg?style=flat-square" alt="license">
   </a>
   <a href="https://github.com/luminous-ChenXi/astrnest/releases">
-    <img src="https://img.shields.io/github/release/luminous-ChenXi/astrnest.svg" alt="GitHub release">
+    <img src="https://img.shields.io/github/release/luminous-ChenXi/astrnest.svg?style=flat-square" alt="GitHub release">
+  </a>
+  <a href="https://coderabbit.ai">
+    <img src="https://img.shields.io/coderabbit/prs/github/luminous-ChenXi/AstrNest?labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews" alt="CodeRabbit Reviews">
   </a>
 </p>
 <p align="center">
@@ -29,12 +32,12 @@
   <a href="#tech-stack">技术栈</a> · 
   <a href="#acknowledgments">致谢</a> ·   
   <a href="https://discord.gg/hBsqcfwC9Q">Discord</a> · 
-  <a href="https://github.com/luminous-ChenXi/astrnest">GitHub</a>
+  <a href="https://github.com/luminous-ChenXi/astrnest_backend">后端部分</a>
 </p>
 
 </div>
 
-<img src="https://cdn.luminouschenxi.net/assets/others/templates/1728x2304.png" width = "300" height = "400" alt="AstrNest" align=right />
+<img src="./templates/1728x2304.png" width = "300" height = "400" alt="AstrNest" align=right />
 <div align="center">
 
 # AstrNest
@@ -67,14 +70,13 @@ _Modern full-stack image hosting platform built with Spring Boot 3.4.1 and Vue 3
 <table align="center">
   <tr>
     <td align="center" width="50%">
-      <img src="./templates/dark.png" width="100%" alt="Dark Theme" />
+      <img src="./templates/index.png" width="100%" alt="userIndex" />
       <br>
-      <sub><b>🌙 Dark Mode</b></sub>
+      <sub><b>用户前端首页</b></sub>
     </td>
     <td align="center" width="50%">
-      <img src="./templates/light.png" width="100%" alt="Light Theme" />
-      <br>
-      <sub><b>☀️ Light Mode</b></sub>
+      <img src="./templates/managerIndex.png" width="100%" alt="adminIndex" />
+      <sub><b>管理前端首页</b></sub>
     </td>
   </tr>
 </table>
@@ -165,6 +167,14 @@ cd AstrNest
 ```bash
 mysql -u root -p < backend/db/init.sql
 ```
+
+> **⚠️ 重要提醒**：启动后端前，请确保数据库配置正确。默认配置如下（位于 `backend/src/main/resources/application.yml`）：
+> - 数据库URL：`jdbc:mysql://localhost:3306/astrnest`
+> - 用户名：`astrnest`（可通过环境变量 `ASTRNEST_DB_USERNAME` 覆盖）
+> - 密码：`chenxi123`（可通过环境变量 `ASTRNEST_DB_PASSWORD` 覆盖）
+>
+> 如果数据库用户名/密码与上述不同，请修改 `application.yml` 或通过环境变量覆盖，否则后端将启动失败。
+
 3) 启动后端
 ```bash
 cd backend
@@ -176,10 +186,28 @@ cd frontend
 npm install
 npm run dev
 ```
+> **⚠️ 重要提醒**：
+> - 如果 `npm install` 出现权限错误（如 `EACCES` 或 `permission denied`），通常是因为 npm 全局目录权限问题。解决方法：
+>   1. 修改 npm 全局目录权限：`sudo chown -R $(whoami) ~/.npm`
+>   2. 或使用 npx 运行：`npx npm install`
+>   3. 或清除 npm 缓存后重试：`npm cache clean --force && npm install`
+>   4. 如果以上方法都无效，考虑使用 `sudo npm install` 安装依赖（但不推荐）。
+> - 如果使用镜像源出现 404 错误，建议切换回官方源：`npm config set registry https://registry.npmjs.org/`
+> - 如果 `npm run dev` 启动时出现 `EACCES: permission denied, mkdir '.../node_modules/.vite/...'` 错误，说明 `node_modules` 目录权限不足。解决方法：
+>   1. 修复 `node_modules` 目录权限：`sudo chown -R $(whoami) node_modules`
+>   2. 或直接删除后重新安装：`rm -rf node_modules && npm install`
+
 5) 访问
 - 前端：http://localhost:5173
 - 后端：http://localhost:8080
 - API 文档：http://localhost:8080/swagger-ui/index.html
+
+> **⚠️ 重要提醒**：
+> - 如果显示“网络连接错误”，请检查后端服务是否已启动，端口是否正确；检查`application.yml`中的端口配置是否与实际一致；检查防火墙是否放行该端口；检查是否有其他服务占用该端口；检查是否开启了代理（如 Nginx）；检查代理配置是否正确；
+> - 如果显示“404 Not Found”，请检查前端项目是否已正确构建，且 `dist/` 目录下的文件是否存在。
+> - 如果显示“CORS 错误”，请检查后端 `SecurityConfig` 中的 CORS 配置是否允许当前前端域名。
+> - 如果显示“403 Forbidden”，请检查当前用户角色是否有访问该接口的权限。
+> - 如果显示“500 Internal Server Error”，请检查后端日志，查找具体错误信息。
 
 **默认管理员**：`admin` / `chenxi123`（请务必修改）。
 
@@ -204,6 +232,7 @@ docker compose --env-file .env up -d
 | 静态资源访问不到 | 若切换对象存储，记得同步配置 `astrnest.storage.local.public-base-url` 或在后台设置资产域名，并确保 CDN/桶权限正确。 |
 | 邮件发送失败 | 检查邮件配置是否正确，包括SMTP服务器、端口、用户名和密码 |
 | 验证码验证失败 | 确保验证码在有效期内，且输入正确 |
+| 数据库连接超时 | 检查 `spring.datasource.hikari.connection-timeout` 配置（默认 30000ms），确保网络稳定或适当调高超时时间 |
 
 ### 常用脚本
 - 后端开发：`cd backend && ./mvnw spring-boot:run`

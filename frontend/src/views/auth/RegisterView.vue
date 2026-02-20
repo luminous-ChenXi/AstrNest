@@ -8,6 +8,7 @@ import { debounce } from 'lodash-es'
 import ChenxiCaptchaInput from '../../components/chenxi/ChenxiCaptchaInput.vue'
 import { requestRegisterCode, registerChenxiAccount, checkEmailAvailability } from '../../services/chenxi'
 import { useChenxiEmailCode } from '../../composables/useChenxiEmailCode'
+import http from '../../services/http'
 
 const backgroundUrl = ref('')
 const backgroundModules = import.meta.glob('../../assets/img/backgroud/*', {
@@ -135,6 +136,18 @@ const rules = {
 
 const { buttonLabel, canSend, sendCode } = useChenxiEmailCode((payload) => requestRegisterCode(payload))
 
+// 验证邮箱验证码
+const verifyEmailCode = async (email, code) => {
+  try {
+    await http.post('/api/auth/chenxi/register/verify-code', { email, code })
+    return true
+  } catch (error) {
+    const message = error.response?.data?.message || '验证码验证失败'
+    ElMessage.error(message)
+    return false
+  }
+}
+
 const handleSendCode = async () => {
   const emailField = await formRef.value?.validateField('email').catch(() => null)
   if (!emailField) return
@@ -159,7 +172,35 @@ const handleNextStep = async () => {
     ElMessage.warning('请填写完整的邮箱与验证码信息')
     return
   }
-  currentStep.value = 1
+
+  // 验证邮箱验证码是否正确
+  submitting.value = true
+  try {
+    // 先检查邮箱是否已被注册
+    const { data } = await checkEmailAvailability(form.email)
+    if (!data.available) {
+      ElMessage.error('该邮箱已被注册')
+      return
+    }
+
+    // 验证验证码是否正确
+    const codeValid = await verifyEmailCode(form.email, form.code)
+    if (!codeValid) {
+      return
+    }
+
+    // 验证通过，进入第二步
+    currentStep.value = 1
+  } catch (error) {
+    const message = error.response?.data?.message
+    if (message) {
+      ElMessage.error(message)
+    } else {
+      ElMessage.error('验证失败，请检查验证码是否正确')
+    }
+  } finally {
+    submitting.value = false
+  }
 }
 
 const handlePrevStep = () => {

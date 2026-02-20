@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Offscreen Document</title>
+</head>
+<body>
+  <script>
+    // Offscreen document for clipboard operations
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.target === 'offscreen' && message.action === 'copy') {
+        navigator.clipboard.writeText(message.text).then(() => {
+          console.log('Text copied to clipboard');
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

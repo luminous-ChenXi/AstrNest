@@ -1,0 +1,612 @@
+/* 辰汐图床插件样式 - 粉色/薄荷绿/浅蓝主题 */
+
+/* 浮动按钮 */
+.chenxi-floating-btn {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 50%, #4ecdc4 100%);
+  border: none;
+  box-shadow: 0 4px 20px rgba(255, 107, 157, 0.4), 0 0 0 4px rgba(255, 107, 157, 0.1);
+  cursor: pointer;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chenxi-floating-btn:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 6px 30px rgba(255, 107, 157, 0.5), 0 0 0 6px rgba(255, 107, 157, 0.15);
+}
+
+.chenxi-floating-btn img {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* 上传浮窗 */
+#chenxi-upload-widget {
+  position: fixed;
+  right: 20px;
+  bottom: 90px;
+  z-index: 999999;
+  font-family: 'Plus Jakarta Sans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.chenxi-widget-container {
+  width: 340px;
+  background: linear-gradient(135deg, #fff5f7 0%, #f0fdfa 50%, #f0f9ff 100%);
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(255, 107, 157, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 107, 157, 0.1);
+}
+
+.chenxi-widget-container.minimized {
+  width: auto;
+  border-radius: 50%;
+}
+
+/* 头部 */
+.chenxi-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 50%, #4ecdc4 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.chenxi-widget-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.chenxi-widget-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  position: relative;
+  z-index: 1;
+}
+
+.chenxi-widget-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 3px;
+}
+
+.chenxi-widget-actions {
+  display: flex;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.chenxi-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.chenxi-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+/* 主体 */
+.chenxi-widget-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+}
+
+/* 用户信息区 */
+.chenxi-user-section {
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.08) 0%, rgba(78, 205, 196, 0.08) 100%);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 107, 157, 0.1);
+}
+
+.chenxi-user-section:hover {
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.12) 0%, rgba(78, 205, 196, 0.12) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 157, 0.15);
+}
+
+.chenxi-user-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.chenxi-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+  box-shadow: 0 4px 15px rgba(255, 107, 157, 0.3);
+  transition: all 0.3s ease;
+}
+
+.chenxi-user-section:hover .chenxi-avatar {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(255, 107, 157, 0.4);
+}
+
+.chenxi-user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.chenxi-username {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1a1a2e;
+}
+
+.chenxi-user-status {
+  font-size: 12px;
+  color: #ff6b9d;
+  font-weight: 500;
+}
+
+.chenxi-user-status.logged-in {
+  color: #4ecdc4;
+}
+
+/* 上传区域 */
+.chenxi-upload-area {
+  border: 2px dashed rgba(255, 107, 157, 0.3);
+  border-radius: 16px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 250, 252, 0.9) 100%);
+}
+
+.chenxi-upload-area:hover,
+.chenxi-upload-area.dragover {
+  border-color: #ff6b9d;
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.08) 0%, rgba(78, 205, 196, 0.08) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(255, 107, 157, 0.15);
+}
+
+.chenxi-upload-icon {
+  width: 48px;
+  height: 48px;
+  color: #ff6b9d;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.chenxi-upload-area:hover .chenxi-upload-icon {
+  color: #ff8fab;
+  transform: translateY(-3px);
+}
+
+.chenxi-upload-placeholder p {
+  margin: 0;
+  color: #4a4a6a;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.chenxi-upload-hint {
+  font-size: 12px !important;
+  color: #ff6b9d !important;
+  margin-top: 6px !important;
+  font-weight: 400 !important;
+}
+
+/* 文件列表 */
+.chenxi-upload-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chenxi-file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 107, 157, 0.08);
+  transition: all 0.2s ease;
+}
+
+.chenxi-file-item:hover {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 15px rgba(255, 107, 157, 0.1);
+}
+
+.chenxi-file-preview {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #f0fdfa 0%, #fff5f7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 107, 157, 0.1);
+}
+
+.chenxi-file-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chenxi-video-icon {
+  font-size: 20px;
+  color: #ff6b9d;
+}
+
+.chenxi-file-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.chenxi-file-name {
+  font-size: 13px;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.chenxi-file-size {
+  font-size: 11px;
+  color: #ff6b9d;
+}
+
+.chenxi-btn-remove {
+  width: 26px;
+  height: 26px;
+  background: rgba(255, 107, 157, 0.1);
+  color: #ff6b9d;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.chenxi-btn-remove:hover {
+  background: rgba(255, 107, 157, 0.2);
+  color: #ff4d8d;
+}
+
+.chenxi-file-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 107, 157, 0.1);
+  display: none;
+}
+
+.chenxi-file-progress.active {
+  display: block;
+}
+
+.chenxi-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b9d, #4ecdc4);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* 底部按钮 */
+.chenxi-widget-footer {
+  display: flex;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 107, 157, 0.1);
+}
+
+.chenxi-btn-primary,
+.chenxi-btn-secondary {
+  flex: 1;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  width: auto;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.chenxi-btn-primary {
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 107, 157, 0.3);
+}
+
+.chenxi-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 157, 0.4);
+}
+
+.chenxi-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.chenxi-btn-secondary {
+  background: rgba(78, 205, 196, 0.1);
+  color: #4ecdc4;
+  border: 1px solid rgba(78, 205, 196, 0.2);
+}
+
+.chenxi-btn-secondary:hover {
+  background: rgba(78, 205, 196, 0.2);
+  transform: translateY(-2px);
+}
+
+/* 最小化状态 */
+.chenxi-widget-minimized {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 50%, #4ecdc4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 25px rgba(255, 107, 157, 0.4), 0 0 0 4px rgba(255, 107, 157, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chenxi-widget-minimized:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 30px rgba(255, 107, 157, 0.5), 0 0 0 6px rgba(255, 107, 157, 0.15);
+}
+
+.chenxi-widget-minimized img {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+
+/* Toast提示 */
+.chenxi-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px);
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: white;
+  z-index: 1000000;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.chenxi-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.chenxi-toast-success {
+  background: linear-gradient(135deg, #4ecdc4 0%, #2ecc71 100%);
+}
+
+.chenxi-toast-error {
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
+}
+
+.chenxi-toast-info {
+  background: linear-gradient(135deg, #87ceeb 0%, #4ecdc4 100%);
+}
+
+/* 结果弹窗 */
+.chenxi-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(26, 26, 46, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000001;
+  backdrop-filter: blur(8px);
+}
+
+.chenxi-modal-content {
+  background: linear-gradient(135deg, #fff5f7 0%, #f0fdfa 50%, #f0f9ff 100%);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 520px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(255, 107, 157, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.chenxi-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 107, 157, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.chenxi-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #1a1a2e;
+  font-weight: 600;
+}
+
+.chenxi-btn-close-modal {
+  background: rgba(255, 107, 157, 0.1);
+  color: #ff6b9d;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chenxi-btn-close-modal:hover {
+  background: rgba(255, 107, 157, 0.2);
+  color: #ff4d8d;
+}
+
+.chenxi-modal-body {
+  padding: 20px 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.chenxi-result-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 107, 157, 0.08);
+  transition: all 0.2s ease;
+}
+
+.chenxi-result-item:hover {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 20px rgba(255, 107, 157, 0.1);
+}
+
+.chenxi-result-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 107, 157, 0.1);
+}
+
+.chenxi-result-links {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+}
+
+.chenxi-link-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 107, 157, 0.2);
+  border-radius: 10px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1a1a2e;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.chenxi-link-input:focus {
+  border-color: #ff6b9d;
+  box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1);
+}
+
+.chenxi-result-links .chenxi-btn-copy {
+  width: auto;
+  padding: 0 18px;
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 100%);
+  color: white;
+  font-size: 13px;
+  white-space: nowrap;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.chenxi-result-links .chenxi-btn-copy:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 107, 157, 0.3);
+}
+
+/* 滚动条样式 */
+.chenxi-upload-list::-webkit-scrollbar,
+.chenxi-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chenxi-upload-list::-webkit-scrollbar-track,
+.chenxi-modal-body::-webkit-scrollbar-track {
+  background: rgba(255, 107, 157, 0.05);
+  border-radius: 3px;
+}
+
+.chenxi-upload-list::-webkit-scrollbar-thumb,
+.chenxi-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 157, 0.3);
+  border-radius: 3px;
+}
+
+.chenxi-upload-list::-webkit-scrollbar-thumb:hover,
+.chenxi-modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 157, 0.5);
+}

@@ -46,7 +46,8 @@ public class SystemConfigService {
         (int) bytesToMegabytes(config.getMaxUploadBytes()),
         (int) bytesToMegabytes(config.getMaxVideoUploadBytes()),
         config.isVideoChunkUploadEnabled(),
-        config.getVideoChunkSizeMb()
+        config.getVideoChunkSizeMb(),
+        config.isGuestUploadEnabled()
     );
   }
 
@@ -138,6 +139,13 @@ public class SystemConfigService {
 
   public int currentMaxFilesPerUpload() {
     return loadConfig().getMaxFilesPerUpload();
+  }
+
+  public int currentGuestDailyUploadLimit() {
+    // 访客每日上传限制：默认为登录用户限制的 20%，最少 5 个，最多 20 个
+    int userLimit = loadConfig().getMaxFilesPerUpload();
+    int guestLimit = Math.max(5, Math.min(20, userLimit / 5));
+    return guestLimit;
   }
 
   public int currentAutoCleanupDays() {

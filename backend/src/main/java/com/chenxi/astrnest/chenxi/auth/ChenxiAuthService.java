@@ -82,11 +82,11 @@ public class ChenxiAuthService {
       user.setDailyUploadLimit(null);
       user.setStorageQuotaMb(null);
     } else {
-      // 后续注册均为受限访客（由管理员后台再调整角色）
-      roleToAssign = userRoleRepository.findByName("GUEST")
-          .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "缺少 GUEST 角色"));
-      user.setDailyUploadLimit(20);
-      user.setStorageQuotaMb(50L);
+      // 后续注册用户默认为普通用户角色，拥有上传权限
+      roleToAssign = userRoleRepository.findByName("USER")
+          .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "缺少 USER 角色"));
+      user.setDailyUploadLimit(50);
+      user.setStorageQuotaMb(200L);
     }
     user.getRoles().add(roleToAssign);
 
@@ -135,6 +135,30 @@ public class ChenxiAuthService {
     if (!systemConfigService.isRegistrationEnabled()) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "当前已关闭开放注册，请联系管理员");
     }
+  }
+
+  /**
+   * 验证邮箱验证码是否正确（不消耗验证码）
+   */
+  public void verifyEmailCode(String email, String code, ChenxiEmailScene scene) {
+    String normalizedEmail = normalizeEmail(email);
+    ChenxiEmailToken token = emailTokenRepository.findTopByEmailAndSceneAndConsumedFalseOrderByCreatedAtDesc(normalizedEmail, scene)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先获取验证码"));
+    Instant now = Instant.now();
+    if (token.getExpiresAt().isBefore(now)) {
+      token.setConsumed(true);
+      emailTokenRepository.save(token);
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "验证码已失效，请重新获取");
+    }
+    if (!token.getCode().equalsIgnoreCase(code)) {
+      token.setAttempts(token.getAttempts() + 1);
+      if (token.getAttempts() >= 5) {
+        token.setConsumed(true);
+      }
+      emailTokenRepository.save(token);
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "验证码不正确");
+    }
+    // 验证通过，但不消耗验证码
   }
 
   private ChenxiEmailToken consumeVerificationCode(String email, ChenxiEmailScene scene, String code) {

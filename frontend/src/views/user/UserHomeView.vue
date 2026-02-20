@@ -119,9 +119,16 @@ const handleFiles = async (files) => {
   successMessage.value = ''
   try {
     const data = await uploadFiles(Array.from(files))
-    resultItems.value = data || []
+    // 新的批次响应格式：{ uploaded: [], skipped: [], message: '' }
+    resultItems.value = data?.uploaded || []
     resultModalOpen.value = true
-    successMessage.value = `上传完成（共 ${data?.length || files.length} 个文件）`
+    const uploadedCount = data?.uploaded?.length || 0
+    const skippedCount = data?.skipped?.length || 0
+    if (skippedCount > 0) {
+      successMessage.value = `上传完成：成功 ${uploadedCount} 个，跳过 ${skippedCount} 个（${data?.message || ''}）`
+    } else {
+      successMessage.value = `上传完成（共 ${uploadedCount} 个文件）`
+    }
     ElMessage.success(successMessage.value)
     await loadOverview()
   } catch (error) {

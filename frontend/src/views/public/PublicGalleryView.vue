@@ -20,7 +20,7 @@
             <span class="tag-text">已收录 {{ formattedTotalImages }} 张图片</span>
           </div>
           <h1 class="hero-title">
-            搜索<br>
+            Search<br>
             <span class="title-highlight">查找图片</span>
           </h1>
           <p class="hero-desc">
@@ -786,13 +786,17 @@ const getCardStyle = (item) => {
   const width = Number(item?.width || item?.imageWidth)
   const height = Number(item?.height || item?.imageHeight)
   if (width > 0 && height > 0) {
+    // 移动端使用更小的跨度以适应屏幕
+    const isMobile = window.innerWidth <= 768
+    const spanBase = isMobile ? 8 : 10
     return {
-      gridRow: `span ${Math.ceil((height / width) * 10)}`,
+      gridRow: `span ${Math.ceil((height / width) * spanBase)}`,
     }
   }
   // 默认高度：如果没有宽高信息，使用固定高度
+  const isMobile = window.innerWidth <= 768
   return {
-    gridRow: 'span 20',
+    gridRow: isMobile ? 'span 16' : 'span 20',
   }
 }
 
@@ -2403,104 +2407,324 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+  .gallery-page {
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
   .hero-section {
-    padding: 100px 0 40px;
+    padding: 80px 0 32px;
+    min-height: auto;
+  }
+
+  .hero-content {
+    max-width: 100%;
+    padding: 0 0.5rem;
   }
 
   .hero-title {
-    font-size: 2.25rem;
+    font-size: 1.75rem;
+    line-height: 1.3;
+    margin-bottom: 0.75rem;
+  }
+
+  .hero-desc {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-tag {
+    margin-bottom: 1rem;
+    padding: 0.375rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+
+  .search-box {
+    margin-bottom: 1.25rem;
+  }
+
+  .search-input-wrapper {
+    height: 52px;
+  }
+
+  .search-input {
+    padding: 0.75rem 5rem 0.75rem 2.75rem;
+    font-size: 0.9375rem;
+  }
+
+  .search-btn {
+    right: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
   }
 
   .hero-actions {
     flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
   }
 
-  .hero-stats {
-    gap: 1rem;
+  .hero-actions .btn-primary,
+  .hero-actions .btn-ghost {
+    width: 100%;
+    justify-content: center;
+    padding: 0.875rem 1.5rem;
   }
 
-  .stat-value {
-    font-size: 1.25rem;
+  .sync-time {
+    font-size: 0.8125rem;
   }
 
-  .channel-tabs {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding-bottom: 0.5rem;
-    -webkit-overflow-scrolling: touch;
+  /* Tags section mobile optimization */
+  .tags-section {
+    padding: 1.5rem 0;
   }
 
-  .channel-tab {
-    min-width: 120px;
-    flex-shrink: 0;
+  .tags-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
   }
 
-  .featured-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .tags-label {
+    font-size: 0.875rem;
   }
 
-  .featured-card:nth-child(1) {
-    grid-column: span 2;
-    grid-row: span 1;
+  .tags-hint {
+    font-size: 0.75rem;
   }
 
-  .masonry-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .tags-cloud {
+    gap: 0.5rem;
+  }
+
+  .tag-pill {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+
+  /* Feed section mobile optimization */
+  .feed-section {
+    padding: 1rem 0.5rem;
   }
 
   .feed-header {
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.875rem;
     align-items: flex-start;
+    margin-bottom: 1.25rem;
   }
 
+  .feed-header-left {
+    width: 100%;
+  }
+
+  .section-eyebrow {
+    font-size: 0.6875rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .feed-title {
+    font-size: 1.125rem;
+  }
+
+  .filter-chips {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding-bottom: 0.25rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-chip {
+    flex-shrink: 0;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+
+  /* Search status mobile */
   .search-status {
     flex-direction: column;
     gap: 0.75rem;
     align-items: flex-start;
+    padding: 0.875rem;
+  }
+
+  .status-tag {
+    font-size: 0.9375rem;
+  }
+
+  .status-count {
+    font-size: 0.8125rem;
+  }
+
+  /* Masonry grid mobile - ensure visibility */
+  .masonry-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem;
+    grid-auto-rows: 8px;
+  }
+
+  .gallery-card {
+    border-radius: 12px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .card-media {
+    min-height: 120px;
+  }
+
+  .media-image,
+  .media-video {
+    width: 100%;
+    height: auto;
+    min-height: 120px;
+    object-fit: cover;
+  }
+
+  /* Empty state mobile */
+  .empty-state {
+    padding: 2.5rem 1rem;
+  }
+
+  .empty-title {
+    font-size: 1.125rem;
+  }
+
+  .empty-desc {
+    font-size: 0.875rem;
+    padding: 0 0.5rem;
+  }
+
+  /* Alert mobile */
+  .alert-error {
+    padding: 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  /* Skeleton mobile */
+  .masonry-skeleton {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .skeleton-item {
+    border-radius: 12px;
   }
 }
 
 @media (max-width: 480px) {
   .container {
-    padding: 0 1rem;
+    padding: 0 0.75rem;
+  }
+
+  .hero-section {
+    padding: 72px 0 24px;
+  }
+
+  .hero-content {
+    padding: 0;
   }
 
   .hero-title {
-    font-size: 1.875rem;
+    font-size: 1.5rem;
+    line-height: 1.25;
   }
 
   .hero-desc {
-    font-size: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .search-box {
+    margin-bottom: 1rem;
+  }
+
+  .search-input-wrapper {
+    height: 48px;
   }
 
   .search-input {
-    padding: 0.875rem 6rem 0.875rem 2.75rem;
+    padding: 0.625rem 4.5rem 0.625rem 2.5rem;
+    font-size: 0.875rem;
   }
 
   .search-icon {
-    left: 1rem;
+    left: 0.875rem;
+    width: 18px;
+    height: 18px;
   }
 
-  .featured-grid {
-    grid-template-columns: 1fr;
+  .search-btn {
+    right: 0.25rem;
+    padding: 0.4375rem 0.875rem;
+    font-size: 0.8125rem;
   }
 
-  .featured-card:nth-child(1) {
-    grid-column: span 1;
-    grid-row: span 1;
+  .hero-actions .btn-primary,
+  .hero-actions .btn-ghost {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
   }
 
+  /* Single column layout for very small screens */
   .masonry-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 0.625rem;
+    grid-auto-rows: 6px;
+  }
+
+  .gallery-card {
+    border-radius: 10px;
+  }
+
+  .card-content {
+    padding: 0.625rem;
+  }
+
+  .card-title {
+    font-size: 0.8125rem;
+  }
+
+  .card-meta {
+    font-size: 0.6875rem;
   }
 
   .masonry-skeleton {
     grid-template-columns: 1fr;
+    gap: 0.625rem;
   }
 
   .feed-section {
-    padding: 1rem;
+    padding: 0.75rem 0;
+  }
+
+  /* Tags section for small screens */
+  .tags-section {
+    padding: 1.25rem 0;
+  }
+
+  .tags-cloud {
+    gap: 0.375rem;
+  }
+
+  .tag-pill {
+    padding: 0.4375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  /* Filter chips for small screens */
+  .filter-chips {
+    gap: 0.375rem;
+  }
+
+  .filter-chip {
+    padding: 0.4375rem 0.75rem;
+    font-size: 0.75rem;
   }
 }
 
