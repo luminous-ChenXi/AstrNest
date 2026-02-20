@@ -6,7 +6,7 @@ import { computed, reactive, ref, watch, onMounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { debounce } from 'lodash-es'
 import ChenxiCaptchaInput from '../../components/chenxi/ChenxiCaptchaInput.vue'
-import { requestRegisterCode, registerChenxiAccount, checkEmailAvailability } from '../../services/chenxi'
+import { requestRegisterCode, verifyRegisterCode, registerChenxiAccount, checkEmailAvailability } from '../../services/chenxi'
 import { useChenxiEmailCode } from '../../composables/useChenxiEmailCode'
 
 const backgroundUrl = ref('')
@@ -159,7 +159,17 @@ const handleNextStep = async () => {
     ElMessage.warning('请填写完整的邮箱与验证码信息')
     return
   }
-  currentStep.value = 1
+  // 验证验证码是否正确
+  try {
+    await verifyRegisterCode({
+      email: form.email,
+      code: form.code,
+      scene: 'REGISTER'
+    })
+    currentStep.value = 1
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || '验证码验证失败')
+  }
 }
 
 const handlePrevStep = () => {

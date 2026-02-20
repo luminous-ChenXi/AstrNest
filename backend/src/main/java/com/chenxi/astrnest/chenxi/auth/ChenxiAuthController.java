@@ -7,6 +7,7 @@ import com.chenxi.astrnest.chenxi.captcha.dto.ChenxiCaptchaVerifyResponse;
 import com.chenxi.astrnest.chenxi.auth.dto.RegisterAccountRequest;
 import com.chenxi.astrnest.chenxi.auth.dto.RequestEmailCodeRequest;
 import com.chenxi.astrnest.chenxi.auth.dto.ResetPasswordRequest;
+import com.chenxi.astrnest.chenxi.auth.dto.VerifyEmailCodeRequest;
 import com.chenxi.astrnest.security.bruteforce.AuthProtectionService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -52,6 +53,14 @@ public class ChenxiAuthController {
     authProtectionService.ensureRegisterAllowed(request.email(), ip);
     authService.requestRegisterCode(request.email(), request.captchaToken());
     return Map.of("message", "验证码已发送至邮箱");
+  }
+
+  @PostMapping("/register/verify-code")
+  public Map<String, String> verifyRegisterCode(@Valid @RequestBody VerifyEmailCodeRequest request, HttpServletRequest httpRequest) {
+    String ip = resolveClientIp(httpRequest);
+    authProtectionService.ensureRegisterAllowed(request.email(), ip);
+    authService.verifyEmailCode(request.email(), request.code(), request.scene());
+    return Map.of("message", "验证码正确");
   }
 
   @PostMapping("/register")
