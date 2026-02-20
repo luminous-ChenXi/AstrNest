@@ -32,7 +32,9 @@ public class UserLoginEventService {
     String ip = resolveClientIp(request);
     event.setIpAddress(ip);
     event.setLocation(resolveLocation(ip));
-    event.setUserAgent(Optional.ofNullable(request.getHeader("User-Agent")).orElse(UNKNOWN));
+    String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse(UNKNOWN);
+    // 限制 userAgent 长度，防止数据库截断错误
+    event.setUserAgent(userAgent.length() > 250 ? userAgent.substring(0, 250) : userAgent);
     userLoginEventRepository.save(event);
     updateNetworkProfile(user, ip, event.getOccurredAt());
   }

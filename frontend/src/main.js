@@ -12,6 +12,19 @@ import './assets/styles/theme.css'
 
 const app = createApp(App)
 
+// 过滤浏览器扩展引起的控制台错误
+const originalError = console.error
+console.error = function(...args) {
+  const message = args[0]?.toString() || ''
+  // 忽略扩展相关的错误
+  if (message.includes('runtime.lastError') ||
+      message.includes('message port closed') ||
+      message.includes('Extension context invalidated')) {
+    return
+  }
+  originalError.apply(console, args)
+}
+
 app.config.globalProperties.$message = ElMessage
 
 app.use(createPinia())

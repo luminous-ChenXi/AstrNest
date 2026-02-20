@@ -19,6 +19,8 @@ import com.chenxi.astrnest.tag.ChenxiTag;
 import com.chenxi.astrnest.tag.ChenxiTagService;
 import com.chenxi.astrnest.tag.dto.ChenxiTagResponse;
 import com.chenxi.astrnest.upload.dto.AiReviewFeedback;
+import com.chenxi.astrnest.upload.dto.UploadBatchResponse;
+import com.chenxi.astrnest.upload.dto.UploadBatchResponse.SkippedFileInfo;
 import com.chenxi.astrnest.upload.dto.UploadResponse;
 import com.chenxi.astrnest.upload.media.ChenxiMediaInspector;
 import com.chenxi.astrnest.upload.media.ChenxiMediaInspector.MediaInspection;
@@ -86,6 +88,65 @@ public class UploadService {
         .filter(Objects::nonNull)
         .map(file -> handleSingleUpload(file, uploader, apiKey, clientIp, baseTags, maxImageBytes, maxVideoBytes, coverMap))
         .collect(Collectors.toList());
+  }
+
+  public UploadBatchResponse uploadFilesWithSkip(MultipartFile[] files, Authentication authentication, String clientIp,
+      List<String> tagNames, MultipartFile[] videoCovers, List<String> videoCoverMapping) {
+    if (files == null || files.length == 0) {
+      throw new IllegalArgumentException("至少需要上传 1 个文件");
+    }
+
+    long maxImageBytes = systemConfigService.currentMaxUploadBytes();
+    long maxVideoBytes = systemConfigService.currentMaxVideoUploadBytes();
+    UserAccount uploader = resolveUser(authentication);
+    ApiKey apiKey = resolveApiKey(authentication);
+    Set<ChenxiTag> baseTags = new LinkedHashSet<>(chenxiTagService.resolveTags(tagNames));
+
+    // 构建视频文件名到封面的映射
+    java.util.Map<String, MultipartFile> coverMap = buildCoverMap(videoCovers, videoCoverMapping);
+
+    List<UploadResponse> uploaded = new java.util.ArrayList<>();
+    List<SkippedFileInfo> skipped = new java.util.ArrayList<>();
+
+    for (MultipartFile file : files) {
+      if (file == null || file.isEmpty()) {
+        continue;
+      }
+
+      String fileName = safeName(file.getOriginalFilename());
+
+      // 检查文件大小限制
+      MediaInspection inspection = mediaInspector.inspect(file);
+      long maxBytes = inspection.category() == MediaCategory.VIDEO ? maxVideoBytes : maxImageBytes;
+
+      if (file.getSize() > maxBytes) {
+        String sizeLimit = formatBytes(maxBytes);
+        skipped.add(new SkippedFileInfo(fileName, "文件大小超过限制（最大 " + sizeLimit + "）"));
+        continue;
+      }
+
+      try {
+        UploadResponse response = handleSingleUpload(file, uploader, apiKey, clientIp, baseTags,
+            maxImageBytes, maxVideoBytes, coverMap);
+        uploaded.add(response);
+      } catch (Exception e) {
+        log.warn("上传文件失败 {}: {}", fileName, e.getMessage());
+        skipped.add(new SkippedFileInfo(fileName, "上传失败: " + e.getMessage()));
+      }
+    }
+
+    // 构建人性化提示消息
+    String message;
+    if (skipped.isEmpty()) {
+      message = "全部 " + uploaded.size() + " 个文件上传成功";
+    } else if (uploaded.isEmpty()) {
+      message = "上传失败，" + skipped.size() + " 个文件未能上传，请检查文件大小或格式";
+    } else {
+      message = "部分图片大小超限，仅上传了 " + uploaded.size() + " 个符合要求的图片，"
+          + skipped.size() + " 个文件被跳过";
+    }
+
+    return new UploadBatchResponse(uploaded, skipped, message);
   }
 
   private java.util.Map<String, MultipartFile> buildCoverMap(MultipartFile[] videoCovers, List<String> videoCoverMapping) {
@@ -338,6 +399,18 @@ public class UploadService {
   private String formatMegabytes(long bytes) {
     double mb = bytes / (1024d * 1024d);
     return String.format("%.1f MB", mb);
+  }
+
+  private String formatBytes(long bytes) {
+    if (bytes < 1024) {
+      return bytes + " B";
+    } else if (bytes < 1024 * 1024) {
+      return String.format("%.1f KB", bytes / 1024d);
+    } else if (bytes < 1024 * 1024 * 1024) {
+      return String.format("%.1f MB", bytes / (1024d * 1024d));
+    } else {
+      return String.format("%.2f GB", bytes / (1024d * 1024d * 1024d));
+    }
   }
 
   /**

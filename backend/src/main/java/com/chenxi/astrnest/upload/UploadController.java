@@ -2,7 +2,7 @@ package com.chenxi.astrnest.upload;
 
 import com.chenxi.astrnest.storage.StorageService;
 import com.chenxi.astrnest.system.SystemConfigService;
-import com.chenxi.astrnest.upload.dto.UploadResponse;
+import com.chenxi.astrnest.upload.dto.UploadBatchResponse;
 import com.chenxi.astrnest.upload.record.UploadRecordService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -16,7 +16,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,31 +36,40 @@ public class UploadController {
   private final StorageService storageService;
   private final UploadRecordService uploadRecordService;
   private final SystemConfigService systemConfigService;
+  private final GuestUploadService guestUploadService;
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public List<UploadResponse> upload(@RequestParam("files") MultipartFile[] files,
+  public UploadBatchResponse upload(@RequestParam("files") MultipartFile[] files,
       @RequestParam(value = "tags", required = false) List<String> tags,
       @RequestParam(value = "videoCovers", required = false) MultipartFile[] videoCovers,
       @RequestParam(value = "videoCoverMapping", required = false) List<String> videoCoverMapping,
       Authentication authentication, HttpServletRequest request) {
     // 检查是否允许访客上传
     boolean isAuthenticated = authentication != null && authentication.isAuthenticated();
-    boolean isGuestUploadEnabled = systemConfigService.isGuestUploadEnabled();
+    String clientIp = resolveClientIp(request);
 
-    if (!isAuthenticated && !isGuestUploadEnabled) {
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "未登录用户不允许上传，请先登录");
+    if (!isAuthenticated) {
+      // 访客上传权限检查
+      guestUploadService.checkGuestUploadPermission(clientIp);
     }
 
-    // 检查文件数量限制
+    // 检查文件数量限制 - 人性化提示
     int maxFilesPerUpload = systemConfigService.currentMaxFilesPerUpload();
     int totalFiles = (files != null ? files.length : 0) + (videoCovers != null ? videoCovers.length : 0);
     if (totalFiles > maxFilesPerUpload) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          "单次上传文件数超过限制，最多允许 " + maxFilesPerUpload + " 个文件");
+          "上传图片数量超限，单次最多允许上传 " + maxFilesPerUpload + " 个文件，请分批上传");
     }
 
-    return uploadService.uploadFiles(files, authentication, resolveClientIp(request), tags,
+    UploadBatchResponse response = uploadService.uploadFilesWithSkip(files, authentication, clientIp, tags,
         videoCovers, videoCoverMapping);
+
+    // 记录访客上传数量
+    if (!isAuthenticated && response.uploaded() != null) {
+      guestUploadService.recordGuestUpload(clientIp, response.uploaded().size());
+    }
+
+    return response;
   }
 
   @GetMapping("/{*objectKey}")

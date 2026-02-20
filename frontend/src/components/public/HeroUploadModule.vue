@@ -71,7 +71,7 @@
       <div v-if="!auth.isAuthenticated" class="rounded-2xl border border-body bg-surface-overlay p-4 text-sm text-body-soft">
         <div class="flex items-start gap-3">
           <AlertCircle class="mt-0.5 h-4 w-4 text-brand-accent" />
-          <p>上传接口需要登录授权，请先登录后再提交，系统会自动携带令牌并统计日志。</p>
+          <p>您当前以访客身份上传，每日限额 {{ guestDailyLimit }} 个文件。登录后可享受更高配额。</p>
         </div>
       </div>
 
@@ -231,7 +231,7 @@ import { ElMessage } from 'element-plus'
 import { AlertCircle, CheckCircle2, ClipboardPaste, FileImage, Film, Loader2, Tag, Trash2, UploadCloud } from 'lucide-vue-next'
 import { useAuthStore } from '../../stores/auth'
 import { useSystemStore } from '../../stores/system'
-import { uploadFiles } from '../../services/upload'
+import { uploadFilesBatch } from '../../services/upload'
 import ChenxiTagDialog from '../common/ChenxiTagDialog.vue'
 
 const auth = useAuthStore()
@@ -251,9 +251,23 @@ const forbiddenExtensions = ['.sh', '.bat', '.cmd', '.exe', '.msi', '.js', '.mjs
 const origin = typeof window !== 'undefined' ? window.location.origin.replace(/\/$/, '') : ''
 
 const totalSizeLabel = computed(() => formatBytes(selectedFiles.value.reduce((sum, file) => sum + (file?.size || 0), 0)))
-const canSubmit = computed(() => selectedFiles.value.length > 0 && auth.isAuthenticated && !uploading.value)
+
+// 访客每日上传限额（默认为登录用户限制的 20%，最少 5 个）
+const guestDailyLimit = computed(() => {
+  const userLimit = systemStore.config?.maxFilesPerUpload || 30
+  return Math.max(5, Math.min(20, Math.floor(userLimit / 5)))
+})
+
+// 是否可以提交：登录用户或允许访客上传时都可以
+const canSubmit = computed(() => {
+  const guestUploadEnabled = systemStore.config?.guestUploadEnabled
+  const isAuthenticated = auth.isAuthenticated
+  return selectedFiles.value.length > 0 && !uploading.value && (isAuthenticated || guestUploadEnabled)
+})
+
 const uploadButtonLabel = computed(() => {
-  if (!auth.isAuthenticated) return '请先登录'
+  const guestUploadEnabled = systemStore.config?.guestUploadEnabled
+  if (!auth.isAuthenticated && !guestUploadEnabled) return '请先登录'
   if (uploading.value) return '正在上传'
   if (!selectedFiles.value.length) return '选择文件以开始'
   return '开始上传'
@@ -415,7 +429,8 @@ const uploadProgressText = computed(() => {
 })
 
 async function startUpload() {
-  if (!auth.isAuthenticated) {
+  // 访客上传检查 - 如果系统不允许访客上传，才提示登录
+  if (!auth.isAuthenticated && !systemStore.config?.guestUploadEnabled) {
     errorMessage.value = '请先登录后再上传'
     return
   }
@@ -427,19 +442,66 @@ async function startUpload() {
   uploadProgress.value = { stage: '', current: 0, total: 0 }
   errorMessage.value = ''
   uploadResult.value = []
+
+  // 保存当前批次的标签（只应用于本次上传）
+  const currentBatchTags = [...selectedTags.value]
+
   try {
-    const result = await uploadFiles(
+    const result = await uploadFilesBatch(
       selectedFiles.value,
-      selectedTags.value,
+      currentBatchTags,
       (progress) => {
         uploadProgress.value = progress
       }
     )
-    uploadResult.value = result
+
+    // 处理新的响应格式
+    const uploaded = result.uploaded || []
+    const skipped = result.skipped || []
+    const message = result.message || '上传完成'
+
+    uploadResult.value = uploaded
+
+    // 清空已选择的文件和标签（为下一次上传做准备）
     selectedFiles.value = []
-    ElMessage.success('上传成功')
+    selectedTags.value = []
+
+    // 根据结果显示不同的提示
+    if (skipped.length > 0) {
+      if (uploaded.length > 0) {
+        // 部分成功
+        ElMessage.warning(message)
+      } else {
+        // 全部失败
+        ElMessage.error(message)
+      }
+    } else {
+      // 全部成功
+      ElMessage.success(message)
+    }
   } catch (error) {
-    errorMessage.value = error?.response?.data?.message || error.message || '上传失败'
+    // 处理各种上传错误
+    let errorMsg = '上传失败'
+    const status = error?.response?.status
+    const backendMsg = error?.response?.data?.message
+    const responseData = error?.response?.data
+
+    if (status === 413) {
+      // 判断是 Nginx 层还是应用层返回的 413
+      const isNginxError = typeof responseData === 'string' && responseData.includes('<html>')
+      if (isNginxError) {
+        errorMsg = '文件总大小超限！系统已自动分批处理，请重试或减少单次上传数量'
+      } else {
+        errorMsg = '单个文件太大啦！请压缩图片或视频后再试，建议单张图片不超过 5MB，视频不超过 100MB'
+      }
+    } else if (backendMsg) {
+      errorMsg = backendMsg
+    } else if (error.message) {
+      errorMsg = error.message
+    }
+
+    errorMessage.value = errorMsg
+    ElMessage.error(errorMsg)
   } finally {
     uploading.value = false
     uploadProgress.value = { stage: '', current: 0, total: 0 }

@@ -8,6 +8,7 @@ public record PublicSystemConfigResponse(
     Integer maxUploadMegabytes,
     Integer maxVideoUploadMegabytes,
     Boolean videoChunkUploadEnabled,
-    Integer videoChunkSizeMb
+    Integer videoChunkSizeMb,
+    Boolean guestUploadEnabled
 ) {
 }
