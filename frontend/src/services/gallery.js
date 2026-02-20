@@ -29,3 +29,10 @@ export const searchGalleryByTag = async ({ keyword = '', page = 0, size = 21 } =
   })
   return data
 }
+
+export const fetchTopLikedImages = async (limit = 3) => {
+  const { data } = await http.get('/api/gallery/public/top-liked', {
+    params: { limit },
+  })
+  return data
+}

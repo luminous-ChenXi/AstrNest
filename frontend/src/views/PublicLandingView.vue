@@ -24,7 +24,7 @@
       <div class="header-inner mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
         <div class="flex items-center gap-3 md:gap-4">
           <div class="logo-wrapper">
-            <img :src="siteLogo" alt="AstrNest" class="logo-img" />
+            <SiteLogo :width="40" :height="40" />
           </div>
           <div class="logo-text">
             <p class="logo-title">AstrNest</p>
@@ -330,7 +330,7 @@ import PublicGalleryGrid from '../components/public/PublicGalleryGrid.vue'
 import PublicAnnouncementSpotlight from '../components/public/PublicAnnouncementSpotlight.vue'
 import ChenxiGlobalFooter from '../components/common/ChenxiGlobalFooter.vue'
 import ThemeSwitcher from '../components/common/ThemeSwitcher.vue'
-import siteLogo from '../assets/img/favicon.png'
+import SiteLogo from '../components/common/SiteLogo.vue'
 import '../assets/styles/chenxi-transitions.css'
 import '../assets/styles/chenxi-interactions.css'
 

@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import ThemeSwitcher from './ThemeSwitcher.vue'
-import siteLogo from '../../assets/img/favicon.png'
+import SiteLogo from './SiteLogo.vue'
 
 const isNavOpen = ref(false)
 
@@ -19,7 +19,7 @@ const navLinks = [
     <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
       <div class="flex items-center gap-3 md:gap-4">
         <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-black/10 p-2 dark:bg-white/10 md:h-12 md:w-12">
-          <img :src="siteLogo" alt="AstrNest 徽标" class="h-full w-full rounded-xl object-contain drop-shadow-lg" />
+          <SiteLogo :width="32" :height="32" />
         </div>
         <div class="leading-tight">
           <p class="text-base font-semibold text-text-primary md:text-lg">AstrNest</p>
