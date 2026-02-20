@@ -73,7 +73,7 @@ public class UserPortalService {
         .map(record -> toUploadItem(record, latestTagMap.getOrDefault(record.getId(), List.of())))
         .toList();
     Integer dailyLimit = sanitizedLimit(user.getDailyUploadLimit());
-    int dailyRemaining = dailyLimit == null ? -1 : Math.max(dailyLimit - (int) todayUploads, 0);
+    int totalRemaining = dailyLimit == null ? -1 : Math.max(dailyLimit - (int) totalUploads, 0);
     Long storageQuotaMb = sanitizedQuota(user.getStorageQuotaMb());
     long storageRemainingBytes = storageQuotaMb == null
         ? -1
@@ -83,7 +83,7 @@ public class UserPortalService {
         todayUploads,
         storageBytes,
         dailyLimit,
-        dailyRemaining,
+        totalRemaining,
         storageQuotaMb,
         storageRemainingBytes,
         latestUploads
