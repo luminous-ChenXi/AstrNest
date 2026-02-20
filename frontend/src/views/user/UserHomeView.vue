@@ -11,8 +11,8 @@ const overview = ref({
   totalUploads: 0,
   todayUploads: 0,
   storageBytes: 0,
-  dailyUploadLimit: null,
-  dailyRemaining: -1,
+  totalUploadLimit: null,
+  totalRemaining: -1,
   storageQuotaMb: null,
   storageRemainingBytes: -1,
   latestUploads: [],
@@ -53,19 +53,19 @@ const aiBadgeForItem = (item) => {
 const quotaCards = computed(() => {
   const cards = []
   const summary = overview.value
-  const dailyLimit = summary.dailyUploadLimit
-  if (dailyLimit && dailyLimit > 0) {
-    const remaining = typeof summary.dailyRemaining === 'number' ? summary.dailyRemaining : -1
-    const used = remaining >= 0 ? Math.max(dailyLimit - remaining, 0) : summary.todayUploads
-    const progress = Math.min(Math.round((used / dailyLimit) * 100), 100)
+  const totalLimit = summary.totalUploadLimit
+  if (totalLimit && totalLimit > 0) {
+    const remaining = typeof summary.totalRemaining === 'number' ? summary.totalRemaining : -1
+    const used = remaining >= 0 ? Math.max(totalLimit - remaining, 0) : summary.totalUploads
+    const progress = Math.min(Math.round((used / totalLimit) * 100), 100)
     cards.push({
-      key: 'daily',
-      label: '每日上传上限',
-      badge: remaining === 0 ? '今日已达上限' : remaining < 0 ? '不限' : `${remaining} 张剩余`,
-      value: `${used}/${dailyLimit} 张`,
+      key: 'total',
+      label: '总数量上限',
+      badge: remaining === 0 ? '数量已达上限' : remaining < 0 ? '不限' : `${remaining} 张剩余`,
+      value: `${used}/${totalLimit} 张`,
       progress,
       danger: remaining === 0,
-      hint: remaining === 0 ? '今日上传额度已用尽，请明日再试或联系管理员提升配额' : '如需更高额度，可向管理员申请',
+      hint: remaining === 0 ? '上传数量已达上限，请联系管理员提升配额' : '如需更高额度，可向管理员申请',
     })
   }
   const quotaMb = summary.storageQuotaMb
