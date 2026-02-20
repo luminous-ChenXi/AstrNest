@@ -3,6 +3,7 @@ import http from './http'
 export const createChenxiCaptcha = () => http.post('/api/auth/chenxi/captcha', {})
 export const verifyChenxiCaptcha = (payload) => http.post('/api/auth/chenxi/captcha/verify', payload)
 export const requestRegisterCode = (payload) => http.post('/api/auth/chenxi/register/code', payload)
+export const verifyRegisterCode = (payload) => http.post('/api/auth/chenxi/register/verify-code', payload)
 export const registerChenxiAccount = (payload) => http.post('/api/auth/chenxi/register', payload)
 export const requestResetCode = (payload) => http.post('/api/auth/chenxi/password/code', payload)
 export const resetChenxiPassword = (payload) => http.post('/api/auth/chenxi/password/reset', payload)
