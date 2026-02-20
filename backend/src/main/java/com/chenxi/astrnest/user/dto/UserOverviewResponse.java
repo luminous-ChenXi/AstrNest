@@ -6,8 +6,8 @@ public record UserOverviewResponse(
     long totalUploads,
     long todayUploads,
     long storageBytes,
-    Integer dailyUploadLimit,
-    int dailyRemaining,
+    Integer totalUploadLimit,
+    int totalRemaining,
     Long storageQuotaMb,
     long storageRemainingBytes,
     List<UserUploadItemResponse> latestUploads

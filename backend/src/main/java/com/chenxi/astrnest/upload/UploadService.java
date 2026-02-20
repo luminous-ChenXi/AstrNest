@@ -298,20 +298,20 @@ public class UploadService {
       return;
     }
     int fileCount = (int) Arrays.stream(files).filter(Objects::nonNull).count();
-    enforceDailyLimit(uploader, fileCount);
+    enforceTotalLimit(uploader, fileCount);
     enforceStorageQuota(uploader, files);
   }
 
-  private void enforceDailyLimit(UserAccount uploader, int incomingFiles) {
+  private void enforceTotalLimit(UserAccount uploader, int incomingFiles) {
     Integer limit = uploader.getDailyUploadLimit();
     if (limit == null || limit <= 0) {
       return;
     }
-    long uploadedToday = uploadRecordService.countTodayForUser(uploader.getId());
-    if (uploadedToday + incomingFiles > limit) {
+    long totalUploaded = uploadRecordService.countTotalForUser(uploader.getId());
+    if (totalUploaded + incomingFiles > limit) {
       throw new ResponseStatusException(
           HttpStatus.TOO_MANY_REQUESTS,
-          "今日上传次数已达上限（" + limit + "），请联系管理员提升配额"
+          "上传数量已达上限（" + limit + "），请联系管理员提升配额"
       );
     }
   }
