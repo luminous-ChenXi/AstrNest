@@ -589,15 +589,15 @@ watch(
 
 /* 导航栏 */
 .landing-header {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   transition: all 0.3s ease;
 }
 
 .dark .landing-header {
-  background: rgba(5, 6, 12, 0.7);
-  border-bottom-color: rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
+  border-bottom-color: var(--border-soft);
 }
 
 .header-inner {
@@ -745,15 +745,11 @@ watch(
 }
 
 .mobile-nav {
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--color-bg-primary);
   backdrop-filter: blur(20px);
   border-top: 1px solid var(--border-soft);
   max-height: calc(100vh - 70px);
   overflow-y: auto;
-}
-
-.dark .mobile-nav {
-  background: rgba(5, 6, 12, 0.98);
 }
 
 .mobile-nav-inner {
@@ -844,8 +840,8 @@ watch(
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(249, 168, 200, 0.12);
-  border: 1px solid rgba(249, 168, 200, 0.25);
+  background: color-mix(in srgb, var(--color-brand-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 25%, transparent);
   border-radius: 999px;
   width: fit-content;
 }
@@ -853,7 +849,7 @@ watch(
 .tag-pulse {
   width: 8px;
   height: 8px;
-  background: #F9A8C8;
+  background: var(--color-brand-primary);
   border-radius: 50%;
   animation: pulse-glow 2s ease-in-out infinite;
 }
@@ -866,7 +862,7 @@ watch(
 .tag-text {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #E87A9F;
+  color: var(--color-brand-accent);
 }
 
 .hero-title {
@@ -884,7 +880,7 @@ watch(
 }
 
 .title-accent {
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
   font-weight: 800;
 }
 
@@ -916,23 +912,23 @@ watch(
   text-align: center;
   gap: 0.75rem;
   padding: 1.25rem;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(249, 168, 200, 0.2);
+  background: var(--glass-bg);
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 20%, transparent);
   border-radius: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pain-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(249, 168, 200, 0.4);
-  box-shadow: 0 8px 25px rgba(249, 168, 200, 0.15);
+  border-color: color-mix(in srgb, var(--color-brand-primary) 40%, transparent);
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--color-brand-primary) 15%, transparent);
 }
 
 .pain-icon {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: rgba(249, 168, 200, 0.15);
+  background: color-mix(in srgb, var(--color-brand-primary) 15%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -942,20 +938,20 @@ watch(
 .pain-icon .icon {
   width: 20px;
   height: 20px;
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 /* 蓝色图标样式 */
 .pain-icon-blue {
-  background: rgba(91, 155, 213, 0.15);
+  background: color-mix(in srgb, var(--color-info) 15%, transparent);
 }
 
 .pain-icon-blue .icon {
-  color: #5b9bd5;
+  color: var(--color-info);
 }
 
 .tip-icon-blue {
-  color: #5b9bd5 !important;
+  color: var(--color-info) !important;
 }
 
 .pain-content {
@@ -1086,15 +1082,15 @@ watch(
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 1.25rem;
-  background: rgba(249, 168, 200, 0.1);
-  border: 1px solid rgba(249, 168, 200, 0.25);
+  background: color-mix(in srgb, var(--color-brand-primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 25%, transparent);
   border-radius: 999px;
 }
 
 .stat-num {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .stat-text {
@@ -1107,7 +1103,7 @@ watch(
 .stat-value {
   font-size: 2rem;
   font-weight: 800;
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .stat-label {
@@ -1143,8 +1139,8 @@ watch(
 }
 
 .trust-main {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(249, 168, 200, 0.2);
+  background: var(--glass-bg);
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 20%, transparent);
   border-radius: 28px;
   padding: 2.5rem;
   transition: all 0.3s ease;
@@ -1152,7 +1148,7 @@ watch(
 
 .trust-main:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(249, 168, 200, 0.1);
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--color-brand-primary) 10%, transparent);
 }
 
 .trust-badge {
@@ -1160,7 +1156,7 @@ watch(
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(249, 168, 200, 0.12);
+  background: color-mix(in srgb, var(--color-brand-primary) 12%, transparent);
   border-radius: 999px;
   margin-bottom: 1.5rem;
 }
@@ -1168,13 +1164,13 @@ watch(
 .badge-icon {
   width: 16px;
   height: 16px;
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .trust-badge span {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #E87A9F;
+  color: var(--color-brand-accent);
 }
 
 .trust-title {
@@ -1207,7 +1203,7 @@ watch(
   border-radius: 50%;
   margin-top: 0.5rem;
   flex-shrink: 0;
-  background: #F9A8C8;
+  background: var(--color-brand-primary);
 }
 
 /* 侧边卡片 */
@@ -1218,8 +1214,8 @@ watch(
 }
 
 .trust-coming {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(249, 168, 200, 0.2);
+  background: var(--glass-bg);
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 20%, transparent);
   border-radius: 24px;
   padding: 1.75rem;
   flex: 1;
@@ -1228,11 +1224,11 @@ watch(
 .coming-label {
   display: inline-block;
   padding: 0.35rem 0.75rem;
-  background: rgba(249, 168, 200, 0.15);
+  background: color-mix(in srgb, var(--color-brand-primary) 15%, transparent);
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #E87A9F;
+  color: var(--color-brand-accent);
   margin-bottom: 1rem;
 }
 
@@ -1250,8 +1246,8 @@ watch(
 }
 
 .trust-stats {
-  background: rgba(249, 168, 200, 0.08);
-  border: 1px solid rgba(249, 168, 200, 0.15);
+  background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 15%, transparent);
   border-radius: 24px;
   padding: 1.5rem;
 }
@@ -1267,13 +1263,13 @@ watch(
   gap: 0.25rem;
 }
 
-.stat-num {
+.stat-mini .stat-num {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
-.stat-text {
+.stat-mini .stat-text {
   font-size: 0.8rem;
   color: var(--color-text-secondary);
 }
@@ -1312,25 +1308,25 @@ watch(
   grid-template-columns: 1fr 1.2fr;
   gap: 3rem;
   align-items: center;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(249, 168, 200, 0.2);
+  background: var(--glass-bg);
+  border: 1px solid color-mix(in srgb, var(--color-brand-primary) 20%, transparent);
   border-radius: 28px;
   padding: 3rem;
 }
 
 .contact-left {
   padding-right: 2rem;
-  border-right: 1px solid rgba(249, 168, 200, 0.2);
+  border-right: 1px solid color-mix(in srgb, var(--color-brand-primary) 20%, transparent);
 }
 
 .contact-label {
   display: inline-block;
   padding: 0.4rem 0.875rem;
-  background: rgba(249, 168, 200, 0.15);
+  background: color-mix(in srgb, var(--color-brand-primary) 15%, transparent);
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #E87A9F;
+  color: var(--color-brand-accent);
   margin-bottom: 1rem;
 }
 
@@ -1387,7 +1383,7 @@ watch(
   .contact-left {
     padding-right: 0;
     border-right: none;
-    border-bottom: 1px solid rgba(249, 168, 200, 0.2);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-brand-primary) 20%, transparent);
     padding-bottom: 2rem;
   }
 }
@@ -1453,56 +1449,56 @@ watch(
 
 /* ==================== 深色主题配色 ====================
 
-/* 深色主题 - 标题强调色 (深粉色) */
+/* 深色主题 - 标题强调色 */
 .dark .title-accent {
-  color: #E87A9F;
+  color: var(--color-brand-accent);
   font-weight: 800;
 }
 
-/* 深色主题 - 统计数字 (深粉色) */
+/* 深色主题 - 统计数字 */
 .dark .stat-value {
-  color: #E87A9F;
+  color: var(--color-brand-accent);
 }
 
-/* 深色主题 - 主要按钮 (深粉色) */
+/* 深色主题 - 主要按钮 */
 .dark .btn-primary {
-  background: #E87A9F;
-  box-shadow: 0 4px 20px rgba(232, 122, 159, 0.4);
+  background: var(--color-brand-accent);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-brand-accent) 40%, transparent);
 }
 
 .dark .btn-primary:hover {
-  background: #EC8DAD;
-  box-shadow: 0 8px 30px rgba(232, 122, 159, 0.5);
+  background: var(--color-brand-primary);
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--color-brand-accent) 50%, transparent);
 }
 
 /* 深色主题 - 发送验证码按钮 (Element Plus 样式覆盖) */
 .dark .el-button--primary {
-  background: #E87A9F !important;
-  border-color: #E87A9F !important;
-  color: #FFFFFF !important;
+  background: var(--color-brand-accent) !important;
+  border-color: var(--color-brand-accent) !important;
+  color: var(--color-on-accent) !important;
 }
 
 .dark .el-button--primary:hover {
-  background: #EC8DAD !important;
-  border-color: #EC8DAD !important;
+  background: var(--color-brand-primary) !important;
+  border-color: var(--color-brand-primary) !important;
 }
 
 .dark .el-button--primary.is-plain {
   background: transparent !important;
-  border-color: #E87A9F !important;
-  color: #E87A9F !important;
+  border-color: var(--color-brand-accent) !important;
+  color: var(--color-brand-accent) !important;
 }
 
 .dark .el-button--primary.is-plain:hover {
-  background: rgba(232, 122, 159, 0.15) !important;
-  border-color: #EC8DAD !important;
-  color: #EC8DAD !important;
+  background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent) !important;
+  border-color: var(--color-brand-primary) !important;
+  color: var(--color-brand-primary) !important;
 }
 
-/* 深色主题 - 纯黑背景 */
+/* 深色主题 - 使用CSS变量 */
 .dark .landing-page {
-  color: #FFFFFF;
-  background: #000000;
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
 }
 
 /* 深色主题 - 隐藏渐变光球 */
@@ -1511,19 +1507,19 @@ watch(
 }
 
 .dark .hero-description {
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-secondary);
 }
 
 .dark .section-desc {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
 }
 
 .dark .feature-desc {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--color-text-muted);
 }
 
 .dark .contact-desc {
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-secondary);
 }
 
 /* 深色主题 - 次要文字 */
@@ -1531,170 +1527,170 @@ watch(
 .dark .feature-label,
 .dark .section-eyebrow,
 .dark .contact-eyebrow {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
 }
 
 /* 深色主题 - 卡片背景调整 */
 .dark .stat-card,
 .dark .tip-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--panel-overlay);
+  border-color: var(--border-soft);
 }
 
 /* 深色主题 - 新组件样式 */
 .dark .pain-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(232, 122, 159, 0.2);
+  background: var(--panel-overlay);
+  border-color: color-mix(in srgb, var(--color-brand-accent) 20%, transparent);
 }
 
 .dark .pain-card:hover {
-  border-color: rgba(232, 122, 159, 0.4);
-  box-shadow: 0 4px 20px rgba(232, 122, 159, 0.15);
+  border-color: color-mix(in srgb, var(--color-brand-accent) 40%, transparent);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
 }
 
 .dark .pain-icon {
-  background: rgba(232, 122, 159, 0.15);
+  background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
 }
 
 .dark .pain-icon .icon {
-  color: #E87A9F;
+  color: var(--color-brand-accent);
 }
 
 .dark .trust-main,
 .dark .trust-coming {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(232, 122, 159, 0.15);
+  background: var(--panel-overlay);
+  border-color: color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
 }
 
 .dark .trust-main:hover {
-  box-shadow: 0 20px 40px rgba(232, 122, 159, 0.1);
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--color-brand-accent) 10%, transparent);
 }
 
 .dark .trust-badge {
-  background: rgba(232, 122, 159, 0.15);
+  background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
 }
 
 .dark .trust-badge span {
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .dark .trust-dot {
-  background: #E87A9F;
+  background: var(--color-brand-accent);
 }
 
 .dark .trust-stats {
-  background: rgba(232, 122, 159, 0.08);
-  border-color: rgba(232, 122, 159, 0.15);
+  background: color-mix(in srgb, var(--color-brand-accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
 }
 
 .dark .stat-mini .stat-num {
-  color: #E87A9F;
+  color: var(--color-brand-accent);
 }
 
 .dark .coming-label {
-  background: rgba(232, 122, 159, 0.15);
-  color: #F9A8C8;
+  background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
+  color: var(--color-brand-primary);
 }
 
 .dark .contact-asymmetric {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(232, 122, 159, 0.15);
+  background: var(--panel-overlay);
+  border-color: color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
 }
 
 .dark .contact-left {
-  border-color: rgba(232, 122, 159, 0.2);
+  border-color: color-mix(in srgb, var(--color-brand-accent) 20%, transparent);
 }
 
 .dark .contact-label {
-  background: rgba(232, 122, 159, 0.15);
-  color: #F9A8C8;
+  background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
+  color: var(--color-brand-primary);
 }
 
 .dark .hero-tag {
-  background: rgba(232, 122, 159, 0.12);
-  border-color: rgba(232, 122, 159, 0.25);
+  background: color-mix(in srgb, var(--color-brand-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-accent) 25%, transparent);
 }
 
 .dark .tag-text {
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .dark .gallery-preview {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--panel-overlay);
+  border-color: var(--border-soft);
 }
 
 /* 深色主题 - 导航链接 */
 .dark .nav-link {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
 }
 
 .dark .nav-link:hover {
-  color: #E87A9F;
+  color: var(--color-brand-accent);
 }
 
 /* 深色主题 - Ghost 按钮 */
 .dark .btn-ghost {
-  color: rgba(255, 255, 255, 0.8);
-  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-secondary);
+  border-color: var(--border-soft);
 }
 
 .dark .btn-ghost:hover {
-  color: #E87A9F;
-  border-color: #E87A9F;
-  background: rgba(232, 122, 159, 0.1);
+  color: var(--color-brand-accent);
+  border-color: var(--color-brand-accent);
+  background: color-mix(in srgb, var(--color-brand-accent) 10%, transparent);
 }
 
 /* 深色主题 - Logo 文字 */
 .dark .logo-title {
-  background: linear-gradient(135deg, #E87A9F, #F9A8C8);
+  background: linear-gradient(135deg, var(--color-brand-accent), var(--color-brand-primary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .dark .logo-subtitle {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
 }
 
 /* 深色主题 - 特性图标背景 */
 .dark .feature-icon-wrapper.icon-purple {
-  background: rgba(232, 122, 159, 0.15);
-  color: #E87A9F;
+  background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
+  color: var(--color-brand-accent);
 }
 
 .dark .feature-icon-wrapper.icon-pink {
-  background: rgba(248, 180, 200, 0.15);
-  color: #F9A8C8;
+  background: color-mix(in srgb, var(--color-brand-primary) 15%, transparent);
+  color: var(--color-brand-primary);
 }
 
 .dark .feature-icon-wrapper.icon-green {
-  background: rgba(180, 220, 200, 0.15);
-  color: #B4DCC8;
+  background: color-mix(in srgb, var(--color-success) 15%, transparent);
+  color: var(--color-success);
 }
 
 /* 深色主题 - 列表项圆点 */
 .dark .item-dot.dot-purple {
-  background: #E87A9F;
+  background: var(--color-brand-accent);
 }
 
 .dark .item-dot.dot-pink {
-  background: #F9A8C8;
+  background: var(--color-brand-primary);
 }
 
 .dark .item-dot.dot-green {
-  background: #B4DCC8;
+  background: var(--color-success);
 }
 
 /* 深色主题 - Roadmap 标签 */
 .dark .roadmap-tag {
-  background: rgba(232, 122, 159, 0.15);
-  color: #E87A9F;
-  border-color: rgba(232, 122, 159, 0.3);
+  background: color-mix(in srgb, var(--color-brand-accent) 15%, transparent);
+  color: var(--color-brand-accent);
+  border-color: color-mix(in srgb, var(--color-brand-accent) 30%, transparent);
 }
 
 .dark .roadmap-tag:hover {
-  background: rgba(232, 122, 159, 0.25);
-  border-color: #E87A9F;
+  background: color-mix(in srgb, var(--color-brand-accent) 25%, transparent);
+  border-color: var(--color-brand-accent);
 }
 </style>

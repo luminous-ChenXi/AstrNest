@@ -64,18 +64,19 @@ onMounted(async () => {
 
     <UserNavbar :tabs="tabs" />
 
-    <main class="relative z-10 mx-auto max-w-6xl space-y-8 px-4 pb-16 pt-28 lg:px-6">
-      <section class="glass-panel overflow-hidden p-6">
-        <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div class="space-y-3">
-            <p class="text-xs uppercase tracking-[0.5em] text-body-soft">welcome back</p>
-            <h1 class="text-3xl font-semibold text-gradient">{{ auth.displayName }}</h1>
-            <p class="max-w-3xl text-sm text-body-muted">
+    <main class="relative z-10 mx-auto max-w-6xl space-y-6 md:space-y-8 px-3 md:px-4 pb-12 md:pb-16 pt-24 md:pt-28 lg:px-6">
+      <!-- 欢迎区域 -->
+      <section class="glass-panel overflow-hidden p-4 md:p-6">
+        <div class="flex flex-col gap-4 md:gap-6 md:flex-row md:items-center md:justify-between">
+          <div class="space-y-2 md:space-y-3">
+            <p class="text-[10px] md:text-xs uppercase tracking-[0.3em] md:tracking-[0.5em] text-body-soft">welcome back</p>
+            <h1 class="text-2xl md:text-3xl font-semibold text-gradient">{{ auth.displayName }}</h1>
+            <p class="max-w-3xl text-xs md:text-sm text-body-muted">
               AstrNest 用户前端管理系统
             </p>
-            <p v-if="loadingProfile" class="text-xs text-body-faint">正在刷新资料...</p>
+            <p v-if="loadingProfile" class="text-[10px] md:text-xs text-body-faint">正在刷新资料...</p>
           </div>
-          <div class="panel-strong rounded-3xl px-5 py-4 text-sm text-body-muted">
+          <div class="panel-strong rounded-2xl md:rounded-3xl px-4 md:px-5 py-3 md:py-4 text-xs md:text-sm text-body-muted">
             <p class="font-semibold text-body-primary">账号摘要</p>
             <p class="mt-1">角色：{{ auth.isAdmin ? '管理员' : '会员' }}</p>
             <p class="mt-1">登录令牌：{{ auth.isAuthenticated ? '已激活' : '未登录' }}</p>
@@ -83,21 +84,22 @@ onMounted(async () => {
         </div>
       </section>
 
-      <section class="glass-panel space-y-6 p-6">
-        <nav class="flex flex-wrap gap-3">
+      <!-- 标签导航区域 -->
+      <section class="glass-panel space-y-4 md:space-y-6 p-4 md:p-6">
+        <nav class="flex flex-wrap gap-2 md:gap-3">
           <ThemeSwitcher />
           <RouterLink
             v-for="tab in tabs"
             :key="tab.name"
             :to="{ name: tab.name }"
-            class="user-tabs__link inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition"
+            class="user-tabs__link inline-flex items-center gap-1.5 md:gap-2 rounded-full px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-semibold transition"
             :class="isActiveTab(tab.name) ? 'user-tabs__link--active' : ''"
           >
-            <ShieldCheck v-if="tab.name === 'user-security'" class="h-4 w-4" />
+            <ShieldCheck v-if="tab.name === 'user-security'" class="h-3.5 w-3.5 md:h-4 md:w-4" />
             <span>{{ tab.label }}</span>
           </RouterLink>
         </nav>
-        <div class="panel-strong rounded-3xl p-4">
+        <div class="panel-strong rounded-2xl md:rounded-3xl p-3 md:p-4">
           <RouterView />
         </div>
       </section>
@@ -129,12 +131,17 @@ onMounted(async () => {
 .user-tabs__link {
   border: 1px solid var(--border-soft);
   background: var(--panel-overlay);
-  color: var(--text-muted);
+  color: var(--color-text-secondary);
+}
+
+.user-tabs__link:hover {
+  color: var(--color-text-primary);
+  border-color: var(--border-strong);
 }
 
 .user-tabs__link--active {
   background: var(--color-bg-strong);
-  border-color: var(--border-strong);
+  border-color: var(--color-brand-primary);
   color: var(--color-text-primary);
   box-shadow: var(--shadow-card);
 }
