@@ -43,20 +43,20 @@
 }
 
 .chenxi-dropdown-menu {
-  background: rgba(17, 25, 40, 0.95) !important;
+  background: var(--panel-overlay) !important;
   backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid var(--border-soft) !important;
+  box-shadow: var(--shadow-card) !important;
 }
 
 .chenxi-dropdown-menu .el-dropdown-menu__item {
-  color: rgba(255, 255, 255, 0.8) !important;
+  color: var(--text-body-secondary) !important;
   transition: all 0.2s ease !important;
 }
 
 .chenxi-dropdown-menu .el-dropdown-menu__item:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  color: white !important;
+  background-color: var(--color-bg-strong) !important;
+  color: var(--color-text-primary) !important;
 }
 
 .chenxi-home-btn,
