@@ -180,9 +180,9 @@ const formatNumber = (value) => {
 <template>
   <div class="user-api space-y-6">
     <header>
-      <p class="text-sm uppercase tracking-[0.4em] text-white/60">developer api</p>
+      <p class="text-sm uppercase tracking-[0.4em] text-body-soft">developer api</p>
       <h1 class="text-3xl font-semibold text-gradient">API 接口管理</h1>
-      <p class="mt-2 text-white/70">
+      <p class="mt-2 text-body-muted">
         使用专属 API 密钥将图片 / 短视频直接上传到 AstrNest，支持 CDN 域名绑定、密码保护与多种输出格式。请妥善保管明文密钥，避免泄露。
       </p>
     </header>
@@ -195,46 +195,46 @@ const formatNumber = (value) => {
     </div>
 
     <div class="grid gap-4 md:grid-cols-2">
-      <article class="glass-panel border border-white/10 p-6 space-y-4">
+      <article class="glass-panel border border-body p-6 space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-white/60">创建密钥</p>
+            <p class="text-sm text-body-soft">创建密钥</p>
             <h2 class="text-xl font-semibold">新的访问凭证</h2>
           </div>
         </div>
         <div class="space-y-3">
-          <input v-model="newKeyForm.name" class="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-brand-primary focus:outline-none" placeholder="密钥名称 (例如：桌面 Typora)" />
-          <input v-model="newKeyForm.description" class="w-full rounded-2xl border border-white/15 bg-black/30 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-brand-primary focus:outline-none" placeholder="备注信息 (可选)" />
-          <button class="w-full rounded-2xl bg-gradient-to-r from-brand-primary to-brand-accent py-3 text-sm font-semibold shadow-[0_15px_45px_rgba(127,123,255,0.35)] disabled:opacity-60" :disabled="creating" @click="handleCreate">
+          <input v-model="newKeyForm.name" class="w-full rounded-2xl border border-body bg-surface-strong px-4 py-2 text-sm text-body-primary placeholder:text-body-faint focus:border-brand-primary focus:outline-none" placeholder="密钥名称 (例如：桌面 Typora)" />
+          <input v-model="newKeyForm.description" class="w-full rounded-2xl border border-body bg-surface-strong px-4 py-2 text-sm text-body-primary placeholder:text-body-faint focus:border-brand-primary focus:outline-none" placeholder="备注信息 (可选)" />
+          <button class="w-full rounded-2xl bg-gradient-to-r from-brand-primary to-brand-accent py-3 text-sm font-semibold text-white shadow-[0_15px_45px_rgba(127,123,255,0.35)] disabled:opacity-60" :disabled="creating" @click="handleCreate">
             {{ creating ? '创建中…' : '生成密钥' }}
           </button>
         </div>
-        <div class="rounded-2xl border border-white/10 bg-black/30 p-4 text-xs text-white/60">
-          <p>上传端点：<code class="font-mono text-white">POST {{ apiBaseUrl }}/api/uploads</code></p>
-          <p class="mt-2">Header：<code class="font-mono text-white">{{ apiHeaderName }}</code></p>
+        <div class="rounded-2xl border border-body bg-surface-strong p-4 text-xs text-body-soft">
+          <p>上传端点：<code class="font-mono text-body-primary">POST {{ apiBaseUrl }}/api/uploads</code></p>
+          <p class="mt-2">Header：<code class="font-mono text-body-primary">{{ apiHeaderName }}</code></p>
         </div>
       </article>
 
-      <article class="glass-panel border border-white/10 p-6 space-y-4">
+      <article class="glass-panel border border-body p-6 space-y-4">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-white/60">调用指引</p>
+            <p class="text-sm text-body-soft">调用指引</p>
             <h2 class="text-xl font-semibold">支持的请求参数</h2>
           </div>
         </div>
-        <ul class="space-y-2 text-sm text-white/70">
-          <li><span class="font-semibold text-white">image / files</span>：必填，上传的图片或短视频，需使用 <code class="font-mono text-white">multipart/form-data</code>。</li>
-          <li><span class="font-semibold text-white">outputFormat</span>：可选，支持 auto / jpeg / png / webp / gif / webp_animated。</li>
-          <li><span class="font-semibold text-white">password_enabled + image_password</span>：开启访问密码保护。</li>
-          <li><span class="font-semibold text-white">cdn_domain</span>：可选，指定返回的外链 CDN 域名（需提前在后台授权）。</li>
-          <li>所有请求需携带 <code class="font-mono text-white">{{ apiHeaderName }}</code>，值为明文密钥，例如 <code class="font-mono text-white">ik_xxx_xxx</code>。</li>
+        <ul class="space-y-2 text-sm text-body-muted">
+          <li><span class="font-semibold text-body-primary">image / files</span>：必填，上传的图片或短视频，需使用 <code class="font-mono text-body-primary">multipart/form-data</code>。</li>
+          <li><span class="font-semibold text-body-primary">outputFormat</span>：可选，支持 auto / jpeg / png / webp / gif / webp_animated。</li>
+          <li><span class="font-semibold text-body-primary">password_enabled + image_password</span>：开启访问密码保护。</li>
+          <li><span class="font-semibold text-body-primary">cdn_domain</span>：可选，指定返回的外链 CDN 域名（需提前在后台授权）。</li>
+          <li>所有请求需携带 <code class="font-mono text-body-primary">{{ apiHeaderName }}</code>，值为明文密钥，例如 <code class="font-mono text-body-primary">ik_xxx_xxx</code>。</li>
         </ul>
       </article>
     </div>
 
     <div class="grid gap-4 md:grid-cols-4">
-      <article v-for="card in cards" :key="card.label" class="glass-panel border border-white/10 p-4">
-        <p class="text-xs uppercase tracking-[0.4em] text-white/50">{{ card.label }}</p>
+      <article v-for="card in cards" :key="card.label" class="glass-panel border border-body p-4">
+        <p class="text-xs uppercase tracking-[0.4em] text-body-faint">{{ card.label }}</p>
         <p class="mt-2 text-3xl font-semibold">{{ formatNumber(card.value) }}</p>
       </article>
     </div>
@@ -244,121 +244,82 @@ const formatNumber = (value) => {
         <h2 class="text-lg font-semibold">一次性明文密钥</h2>
         <button class="text-sm text-brand-primary" @click="copyValue(singleUseKey)">复制</button>
       </div>
-      <p class="text-sm text-white/70">该明文仅显示一次，如需重置可在列表中重新生成。</p>
-      <div class="rounded-2xl bg-black/40 border border-white/10 px-4 py-3 font-mono text-sm break-all">{{ singleUseKey }}</div>
+      <p class="text-sm text-body-muted">该明文仅显示一次，如需重置可在列表中重新生成。</p>
+      <div class="rounded-2xl bg-surface-strong border border-body px-4 py-3 font-mono text-sm break-all">{{ singleUseKey }}</div>
     </article>
 
-    <article class="glass-panel border border-white/10 p-6 space-y-4">
+    <article class="glass-panel border border-body p-6 space-y-4">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-white/60">我的密钥</p>
+          <p class="text-sm text-body-soft">我的密钥</p>
           <h2 class="text-xl font-semibold">当前可用 {{ apiKeys.length }} 个</h2>
         </div>
         <button class="text-sm text-brand-primary" @click="loadKeys">刷新</button>
       </div>
-      <div v-if="loading" class="py-10 text-center text-white/60">加载中…</div>
-      <div v-else-if="!apiKeys.length" class="py-10 text-center text-white/60">暂未创建任何密钥</div>
+      <div v-if="loading" class="py-10 text-center text-body-soft">加载中…</div>
+      <div v-else-if="!apiKeys.length" class="py-10 text-center text-body-soft">暂未创建任何密钥</div>
       <div v-else class="grid gap-4 lg:grid-cols-2">
-        <div v-for="key in apiKeys" :key="key.id" class="rounded-2xl border border-white/10 bg-black/30 p-4 space-y-3">
+        <div v-for="key in apiKeys" :key="key.id" class="rounded-2xl border border-body bg-surface-strong p-4 space-y-3">
           <div class="flex items-start justify-between">
             <div>
-              <p class="text-lg font-semibold text-white">{{ key.name }}</p>
-              <p class="text-xs text-white/50">{{ key.description || '无备注' }}</p>
+              <p class="text-lg font-semibold text-body-primary">{{ key.name }}</p>
+              <p class="text-xs text-body-faint">{{ key.description || '无备注' }}</p>
             </div>
-            <span class="rounded-full px-3 py-1 text-xs" :class="key.active ? 'bg-emerald-400/20 text-emerald-200' : 'bg-white/10 text-white/50'">
+            <span class="rounded-full px-3 py-1 text-xs" :class="key.active ? 'bg-emerald-400/20 text-emerald-200' : 'bg-surface-overlay text-body-faint'">
               {{ key.active ? 'ACTIVE' : 'DISABLED' }}
             </span>
           </div>
-          <p class="font-mono text-sm text-white/70">{{ key.maskedKey }}</p>
-          <div class="grid grid-cols-2 gap-3 text-xs text-white/60">
+          <p class="font-mono text-sm text-body-muted">{{ key.maskedKey }}</p>
+          <div class="grid grid-cols-2 gap-3 text-xs text-body-soft">
             <div>
-              <p class="text-white/40">今日调用</p>
-              <p class="font-semibold text-white">{{ key.requestsToday }} / {{ key.dailyQuota }}</p>
+              <p class="text-body-faint">今日调用</p>
+              <p class="font-semibold text-body-primary">{{ key.requestsToday }} / {{ key.dailyQuota }}</p>
             </div>
             <div>
-              <p class="text-white/40">分钟限流</p>
-              <p class="font-semibold text-white">{{ key.requestsCurrentMinute }} / {{ key.perMinuteQuota }}</p>
+              <p class="text-body-faint">分钟限流</p>
+              <p class="font-semibold text-body-primary">{{ key.requestsCurrentMinute }} / {{ key.perMinuteQuota }}</p>
             </div>
             <div>
-              <p class="text-white/40">累计调用</p>
-              <p class="font-semibold text-white">{{ formatNumber(key.requestCount) }}</p>
+              <p class="text-body-faint">累计调用</p>
+              <p class="font-semibold text-body-primary">{{ formatNumber(key.requestCount) }}</p>
             </div>
             <div>
-              <p class="text-white/40">API 上传</p>
-              <p class="font-semibold text-white">{{ formatNumber(key.uploadCount) }}</p>
+              <p class="text-body-faint">API 上传</p>
+              <p class="font-semibold text-body-primary">{{ formatNumber(key.uploadCount) }}</p>
             </div>
           </div>
-          <div class="text-xs text-white/50">
+          <div class="text-xs text-body-faint">
             <p>上次使用：{{ key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : '尚未调用' }}</p>
           </div>
           <div class="flex flex-wrap gap-2 text-xs">
-            <button class="rounded-full border border-white/15 px-3 py-1 text-white/70 hover:border-brand-primary" @click="() => toggleKey(key)">
+            <button class="rounded-full border border-body px-3 py-1 text-body-muted hover:border-brand-primary" @click="() => toggleKey(key)">
               {{ key.active ? '禁用' : '启用' }}
             </button>
-            <button class="rounded-full border border-white/15 px-3 py-1 text-white/70 hover:border-brand-primary" @click="() => resetKey(key)">重置密钥</button>
+            <button class="rounded-full border border-body px-3 py-1 text-body-muted hover:border-brand-primary" @click="() => resetKey(key)">重置密钥</button>
             <button class="rounded-full border border-rose-400/40 px-3 py-1 text-rose-200 hover:border-rose-300" @click="() => removeKey(key)">删除</button>
           </div>
         </div>
       </div>
     </article>
 
-    <article class="glass-panel border border-white/10 p-6 space-y-4">
+    <article class="glass-panel border border-body p-6 space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-sm text-white/60">代码示例</p>
+          <p class="text-sm text-body-soft">代码示例</p>
           <h2 class="text-xl font-semibold">快速集成</h2>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button v-for="tab in snippetTabs" :key="tab.key" class="rounded-full px-4 py-1 text-xs font-semibold" :class="activeSnippet === tab.key ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60'" @click="activeSnippet = tab.key">
+          <button v-for="tab in snippetTabs" :key="tab.key" class="rounded-full px-4 py-1 text-xs font-semibold" :class="activeSnippet === tab.key ? 'bg-surface-strong text-body-primary' : 'bg-surface-overlay text-body-soft'" @click="activeSnippet = tab.key">
             {{ tab.label }}
           </button>
         </div>
       </div>
-      <pre class="rounded-2xl border border-white/10 bg-black/40 p-4 text-sm text-white/80 overflow-x-auto">{{ codeSamples[activeSnippet] }}</pre>
+      <pre class="rounded-2xl border border-body bg-surface-strong p-4 text-sm text-body-secondary overflow-x-auto">{{ codeSamples[activeSnippet] }}</pre>
       <button class="text-sm text-brand-primary" @click="copyValue(codeSamples[activeSnippet])">复制代码片段</button>
     </article>
   </div>
 </template>
 
 <style scoped>
-.user-api :deep(.text-white\/80) {
-  color: var(--text-body-secondary);
-}
-
-.user-api :deep(.text-white\/70) {
-  color: var(--text-body-muted);
-}
-
-.user-api :deep(.text-white\/60) {
-  color: var(--text-body-soft);
-}
-
-.user-api :deep(.text-white\/50),
-.user-api :deep(.text-white\/40) {
-  color: var(--text-body-faint);
-}
-
-.user-api :deep(.text-white) {
-  color: var(--color-text-primary);
-}
-
-.user-api :deep(.bg-white\/5) {
-  background-color: var(--panel-overlay) !important;
-}
-
-.user-api :deep(.bg-black\/30),
-.user-api :deep(.bg-black\/40),
-.user-api :deep(.bg-black\/50) {
-  background-color: var(--color-bg-strong) !important;
-}
-
-.user-api :deep(.border-white\/10),
-.user-api :deep(.border-white\/15),
-.user-api :deep(.border-white\/20) {
-  border-color: var(--border-soft) !important;
-}
-
-.user-api :deep(.placeholder\:text-white\/40::placeholder) {
-  color: var(--text-body-faint);
-}
+/* 所有样式已迁移到 Tailwind CSS 类 */
 </style>
