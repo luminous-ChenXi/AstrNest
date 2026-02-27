@@ -169,23 +169,23 @@ onMounted(loadData)
 
 <template>
   <div class="user-images space-y-8">
-    <section class="glass-panel rounded-[32px] border border-white/10 bg-white/5 p-6">
+    <section class="glass-panel rounded-[32px] border border-body bg-surface-overlay p-6">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h3 class="text-xl font-semibold">媒体管理</h3>
-          <p class="text-sm text-white/60">批量查看、复制或删除你的上传记录</p>
-          <div v-if="upload.limits && upload.limits.maxFilesPerDay" class="mt-2 text-xs text-white/50">
+          <p class="text-sm text-body-soft">批量查看、复制或删除你的上传记录</p>
+          <div v-if="upload.limits && upload.limits.maxFilesPerDay" class="mt-2 text-xs text-body-faint">
             单次最多上传 {{ upload.limits.maxFilesPerDay }} 个文件，单个文件不超过 {{ upload.limits.maxFileSizeMb }}MB。
             允许的扩展名：{{ upload.limits.allowedTypes ? upload.limits.allowedTypes.join(', ') : 'jpg, png, gif, webp' }}
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-3 text-xs text-white/70">
-          <span class="rounded-full border border-white/20 px-3 py-1">共 {{ total }} 张</span>
+        <div class="flex flex-wrap items-center gap-3 text-xs text-body-muted">
+          <span class="rounded-full border border-body px-3 py-1">共 {{ total }} 张</span>
           <span v-if="selectedCount" class="rounded-full border border-brand-primary/40 px-3 py-1 text-brand-primary">
             已选择 {{ selectedCount }} 张
           </span>
           <button
-            class="rounded-full border border-rose-400/40 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:border-rose-300 hover:text-white disabled:opacity-50"
+            class="rounded-full border border-rose-400/40 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:border-rose-300 hover:text-rose-100 disabled:opacity-50"
             :disabled="!selectedCount || batchDeleting"
             @click="handleBatchDelete"
           >
@@ -193,17 +193,17 @@ onMounted(loadData)
           </button>
         </div>
       </div>
-      <p v-if="message" class="mt-4 text-sm" :class="message.includes('失败') ? 'text-brand-accent' : 'text-brand-emerald'">{{ message }}</p>
+      <p v-if="message" class="mt-4 text-sm" :class="message.includes('失败') ? 'text-brand-accent' : 'text-emerald-500'">{{ message }}</p>
     </section>
 
     <section>
-      <div v-if="loading" class="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-white/60">加载中…</div>
-      <div v-else-if="!items.length" class="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-white/60">暂无图片，快去上传吧</div>
+      <div v-if="loading" class="rounded-3xl border border-body bg-surface-overlay p-6 text-sm text-body-soft">加载中…</div>
+      <div v-else-if="!items.length" class="rounded-3xl border border-body bg-surface-overlay p-6 text-sm text-body-soft">暂无图片，快去上传吧</div>
       <div v-else class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         <article
           v-for="item in items"
           :key="item.id"
-          class="glass-panel flex flex-col gap-4 rounded-3xl border border-white/10 bg-black/30 p-4 shadow-card"
+          class="glass-panel flex flex-col gap-4 rounded-3xl border border-body bg-surface-strong p-4 shadow-card"
         >
           <div class="relative overflow-hidden rounded-2xl">
             <template v-if="item.mediaCategory === 'VIDEO'">
@@ -216,41 +216,41 @@ onMounted(loadData)
               >
                 <source :src="item.publicUrl" />
               </video>
-              <span class="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs text-white/80">短视频</span>
+              <span class="media-chip absolute right-3 top-3 rounded-full px-3 py-1 text-xs">短视频</span>
             </template>
             <template v-else>
               <img :src="item.publicUrl" :alt="item.fileName" class="h-56 w-full object-cover" />
             </template>
-            <label class="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1 text-xs">
+            <label class="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-surface-overlay/80 px-3 py-1 text-xs">
               <input
                 type="checkbox"
-                class="h-4 w-4 rounded border-white/30 bg-transparent text-brand-primary focus:ring-brand-primary/40"
+                class="h-4 w-4 rounded border-body bg-transparent text-brand-primary focus:ring-brand-primary/40"
                 :checked="isSelected(item.id)"
                 @change.stop="toggleSelect(item.id)"
               />
-              
+
             </label>
             <!-- 选择框 -->
           </div>
           <div class="space-y-2 text-sm">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
-                <p class="font-semibold text-white truncate" :title="item.fileName">{{ item.fileName }}</p>
-                <p class="text-xs text-white/60">{{ (item.size / 1024).toFixed(1) }} KB · {{ item.reviewStatus || '已发布' }}</p>
+                <p class="font-semibold text-body-primary truncate" :title="item.fileName">{{ item.fileName }}</p>
+                <p class="text-xs text-body-soft">{{ (item.size / 1024).toFixed(1) }} KB · {{ item.reviewStatus || '已发布' }}</p>
               </div>
-              <div class="min-w-[7rem] shrink-0 text-right text-xs text-white/60">
+              <div class="min-w-[7rem] shrink-0 text-right text-xs text-body-soft">
                 <p>状态：{{ item.publicAccessible ? '公开' : '仅自己' }}</p>
                 <p>喜欢：{{ item.likeCount || 0 }}</p>
               </div>
             </div>
-            <div class="flex flex-wrap gap-2 text-xs text-white/60">
-              <span class="rounded-full border border-white/20 px-2 py-1">调用 {{ item.invokeCount || 0 }}</span>
+            <div class="flex flex-wrap gap-2 text-xs text-body-soft">
+              <span class="rounded-full border border-body px-2 py-1">调用 {{ item.invokeCount || 0 }}</span>
               <span v-if="item.violation" class="rounded-full border border-brand-accent/40 px-2 py-1 text-brand-accent">需复检</span>
             </div>
           </div>
           <div class="flex gap-3 text-sm font-semibold">
             <button
-              class="flex-1 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-accent px-3 py-2 text-sm shadow-[0_10px_30px_rgba(127,123,255,0.35)] transition hover:translate-y-0.5 disabled:opacity-60"
+              class="flex-1 rounded-2xl bg-gradient-to-r from-brand-primary to-brand-accent px-3 py-2 text-sm text-white shadow-[0_10px_30px_rgba(127,123,255,0.35)] transition hover:translate-y-0.5 disabled:opacity-60"
               type="button"
               :disabled="detailLoading"
               @click="openDetailModal(item)"
@@ -258,7 +258,7 @@ onMounted(loadData)
               {{ detailLoading ? '加载中…' : '详情 / 复制' }}
             </button>
             <button
-              class="flex-1 rounded-2xl border border-rose-400/40 px-3 py-2 text-sm text-rose-200 transition hover:border-rose-300 hover:text-white disabled:opacity-50"
+              class="flex-1 rounded-2xl border border-rose-400/40 px-3 py-2 text-sm text-rose-300 transition hover:border-rose-300 hover:text-rose-100 disabled:opacity-50"
               type="button"
               :disabled="deleting === item.id"
               @click="removeItem(item)"
@@ -271,11 +271,11 @@ onMounted(loadData)
     </section>
 
     <div v-if="totalPages() > 1" class="flex items-center justify-center gap-4 text-sm">
-      <button class="rounded-full border border-white/15 px-4 py-2 text-white/70 disabled:opacity-40" :disabled="page === 0" @click="goPage(page - 1)">
+      <button class="rounded-full border border-body px-4 py-2 text-body-muted disabled:opacity-40" :disabled="page === 0" @click="goPage(page - 1)">
         上一页
       </button>
-      <span class="text-white/60">{{ page + 1 }} / {{ totalPages() }}</span>
-      <button class="rounded-full border border-white/15 px-4 py-2 text-white/70 disabled:opacity-40" :disabled="page >= totalPages() - 1" @click="goPage(page + 1)">
+      <span class="text-body-soft">{{ page + 1 }} / {{ totalPages() }}</span>
+      <button class="rounded-full border border-body px-4 py-2 text-body-muted disabled:opacity-40" :disabled="page >= totalPages() - 1" @click="goPage(page + 1)">
         下一页
       </button>
     </div>
@@ -283,13 +283,13 @@ onMounted(loadData)
 
   <UploadResultModal :open="modalOpen" :items="modalItems" title="图片详情" @close="closeCopyModal">
     <template #extra="{ item }">
-      <div v-if="detailMode" class="space-y-4 rounded-2xl border border-white/10 bg-white/90 p-4 text-sm text-slate-700">
+      <div v-if="detailMode" class="space-y-4 rounded-2xl border border-body bg-surface-overlay p-4 text-sm text-body-primary">
         <div class="flex items-center justify-between">
           <span>喜欢人数</span>
-          <span class="font-semibold text-brand-emerald">{{ item.likeCount || 0 }}</span>
+          <span class="font-semibold text-emerald-500">{{ item.likeCount || 0 }}</span>
         </div>
         <button
-          class="w-full rounded-full border border-emerald-500/60 px-3 py-2 font-semibold text-emerald-600 transition hover:bg-emerald-500 hover:text-white disabled:opacity-50"
+          class="w-full rounded-full border border-emerald-500/60 px-3 py-2 font-semibold text-emerald-500 transition hover:bg-emerald-500 hover:text-white disabled:opacity-50"
           type="button"
           :disabled="actionLoading"
           @click="handleToggleLike(item)"
@@ -303,7 +303,7 @@ onMounted(loadData)
           </span>
         </div>
         <button
-          class="w-full rounded-full border border-slate-300 px-3 py-2 font-semibold text-slate-700 transition hover:bg-slate-800 hover:text-white disabled:opacity-50"
+          class="w-full rounded-full border border-body px-3 py-2 font-semibold text-body-primary transition hover:bg-surface-strong disabled:opacity-50"
           type="button"
           :disabled="actionLoading"
           @click="handleVisibilityChange(item, !item.publicAccessible)"
@@ -317,48 +317,8 @@ onMounted(loadData)
 </template>
 
 <style scoped>
-.user-images :deep(.text-white\/80) {
-  color: var(--text-body-secondary);
-}
-
-.user-images :deep(.text-white\/70) {
-  color: var(--text-body-muted);
-}
-
-.user-images :deep(.text-white\/60) {
-  color: var(--text-body-soft);
-}
-
-.user-images :deep(.text-white\/50),
-.user-images :deep(.text-white\/40) {
-  color: var(--text-body-faint);
-}
-
-.user-images :deep(.text-white) {
-  color: var(--color-text-primary);
-}
-
-.user-images :deep(.bg-white\/5) {
-  background-color: var(--panel-overlay) !important;
-}
-
-.user-images :deep(.bg-black\/30),
-.user-images :deep(.bg-black\/20) {
-  background-color: var(--color-bg-strong) !important;
-}
-
-.user-images :deep(.bg-black\/60) {
-  background-color: rgba(0, 0, 0, 0.55) !important;
-}
-
-.user-images :deep(.border-white\/10),
-.user-images :deep(.border-white\/15),
-.user-images :deep(.border-white\/20),
-.user-images :deep(.border-white\/30) {
-  border-color: var(--border-soft) !important;
-}
-
-.user-images :deep(.placeholder\:text-white\/40::placeholder) {
-  color: var(--text-body-faint);
+.media-chip {
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--color-on-accent);
 }
 </style>
