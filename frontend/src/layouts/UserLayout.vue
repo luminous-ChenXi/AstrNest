@@ -147,13 +147,13 @@ onMounted(async () => {
 }
 
 :deep(.dropdown-link) {
-  color: var(--text-muted);
+  color: var(--text-body-muted);
   transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 :deep(.dropdown-link:hover) {
   color: var(--color-text-primary);
-  background: var(--panel-overlay);
+  background: var(--color-bg-strong);
 }
 
 :deep(.dropdown-link--danger) {
