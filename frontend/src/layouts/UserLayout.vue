@@ -130,12 +130,17 @@ onMounted(async () => {
 .user-tabs__link {
   border: 1px solid var(--border-soft);
   background: var(--panel-overlay);
-  color: var(--text-muted);
+  color: var(--color-text-secondary);
+}
+
+.user-tabs__link:hover {
+  color: var(--color-text-primary);
+  border-color: var(--border-strong);
 }
 
 .user-tabs__link--active {
   background: var(--color-bg-strong);
-  border-color: var(--border-strong);
+  border-color: var(--color-brand-primary);
   color: var(--color-text-primary);
   box-shadow: var(--shadow-card);
 }

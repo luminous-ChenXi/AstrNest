@@ -52,15 +52,9 @@ const { mode } = useTheme()
   gap: 2px;
   padding: 4px;
   border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--color-bg-strong);
+  border: 1px solid var(--border-soft);
   transition: all 0.3s ease;
-}
-
-/* 暗色主题下的容器样式 */
-:global(.dark) .theme-switcher {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .theme-btn {
@@ -72,24 +66,14 @@ const { mode } = useTheme()
   border-radius: 9999px;
   border: none;
   background: transparent;
-  color: rgba(0, 0, 0, 0.5);
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .theme-btn:hover {
-  background: rgba(0, 0, 0, 0.08);
-  color: rgba(0, 0, 0, 0.8);
-}
-
-/* 暗色主题下的按钮样式 */
-:global(.dark) .theme-btn {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-:global(.dark) .theme-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
+  background: var(--panel-overlay);
+  color: var(--color-text-primary);
 }
 
 /* 亮色模式选中状态 */

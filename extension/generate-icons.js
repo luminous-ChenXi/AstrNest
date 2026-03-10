@@ -1,118 +1,159 @@
 const fs = require('fs');
 const path = require('path');
 
-// 创建渐变图标 - 粉色到薄荷绿到浅蓝
-function createGradientIcon(size) {
-  const padding = Math.floor(size * 0.15);
-  const innerSize = size - padding * 2;
-
-  // 使用粉色/薄荷绿/浅蓝渐变主题
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <!-- 粉色到薄荷绿渐变 -->
-    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#ff8fab;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#4ecdc4;stop-opacity:1" />
-    </linearGradient>
-    <!-- 薄荷绿到浅蓝渐变 -->
-    <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4ecdc4;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#87ceeb;stop-opacity:1" />
-    </linearGradient>
-    <!-- 阴影滤镜 -->
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.15)"/>
-    </filter>
-  </defs>
-
-  <!-- 背景圆角矩形 -->
-  <rect x="${padding}" y="${padding}" width="${innerSize}" height="${innerSize}"
-        rx="${Math.floor(innerSize * 0.2)}" ry="${Math.floor(innerSize * 0.2)}"
-        fill="url(#gradient1)" filter="url(#shadow)"/>
-
-  <!-- 图片图标 - 使用白色 -->
-  <g fill="none" stroke="white" stroke-width="${Math.max(1.5, size * 0.04)}" stroke-linecap="round" stroke-linejoin="round">
-    <!-- 图片外框 -->
-    <rect x="${padding + innerSize * 0.2}" y="${padding + innerSize * 0.25}"
-          width="${innerSize * 0.6}" height="${innerSize * 0.5}"
-          rx="${innerSize * 0.05}" ry="${innerSize * 0.05}"/>
-    <!-- 山脉 -->
-    <polyline points="${padding + innerSize * 0.2},${padding + innerSize * 0.65} ${padding + innerSize * 0.35},${padding + innerSize * 0.5} ${padding + innerSize * 0.5},${padding + innerSize * 0.6} ${padding + innerSize * 0.8},${padding + innerSize * 0.4}"/>
-    <!-- 太阳/月亮 -->
-    <circle cx="${padding + innerSize * 0.65}" cy="${padding + innerSize * 0.4}" r="${innerSize * 0.08}"/>
-  </g>
-
-  <!-- 右上角装饰小圆点 -->
-  <circle cx="${size - padding - innerSize * 0.15}" cy="${padding + innerSize * 0.15}"
-          r="${innerSize * 0.08}" fill="white" opacity="0.6"/>
-</svg>`;
-
-  return svg;
+// 创建 Canvas
+function createCanvas(width, height) {
+    // 使用简单的 PNG 编码
+    const canvas = {
+        width,
+        height,
+        data: Buffer.alloc(width * height * 4)
+    };
+    return canvas;
 }
 
-// 创建单色图标（用于工具栏）
-function createMonochromeIcon(size) {
-  const padding = Math.floor(size * 0.1);
-  const innerSize = size - padding * 2;
-
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="toolbarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ff6b9d;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#4ecdc4;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-
-  <!-- 图片图标 -->
-  <g fill="none" stroke="url(#toolbarGradient)" stroke-width="${Math.max(1.5, size * 0.06)}" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="${padding + innerSize * 0.1}" y="${padding + innerSize * 0.15}"
-          width="${innerSize * 0.8}" height="${innerSize * 0.7}"
-          rx="${innerSize * 0.08}" ry="${innerSize * 0.08}"/>
-    <polyline points="${padding + innerSize * 0.1},${padding + innerSize * 0.7} ${padding + innerSize * 0.3},${padding + innerSize * 0.5} ${padding + innerSize * 0.5},${padding + innerSize * 0.6} ${padding + innerSize * 0.9},${padding + innerSize * 0.35}"/>
-    <circle cx="${padding + innerSize * 0.7}" cy="${padding + innerSize * 0.35}" r="${innerSize * 0.1}"/>
-  </g>
-</svg>`;
-
-  return svg;
+// 设置像素颜色
+function setPixel(canvas, x, y, r, g, b, a = 255) {
+    if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return;
+    const idx = (y * canvas.width + x) * 4;
+    canvas.data[idx] = r;
+    canvas.data[idx + 1] = g;
+    canvas.data[idx + 2] = b;
+    canvas.data[idx + 3] = a;
 }
 
-// 确保 icons 目录存在
-const iconsDir = path.join(__dirname, 'icons');
-if (!fs.existsSync(iconsDir)) {
-  fs.mkdirSync(iconsDir, { recursive: true });
+// 绘制圆形
+function drawCircle(canvas, cx, cy, radius, r, g, b) {
+    for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+            const dx = x - cx;
+            const dy = y - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist <= radius) {
+                // 渐变效果
+                const t = dist / radius;
+                const pr = Math.round(255 * (1 - t) + 255 * t);  // pink to pink
+                const pg = Math.round(107 * (1 - t) + 143 * t);  // pink
+                const pb = Math.round(157 * (1 - t) + 171 * t);  // pink to light pink
+                setPixel(canvas, x, y, pr, pg, pb);
+            }
+        }
+    }
 }
 
-// 生成各种尺寸的图标
-const sizes = [16, 32, 48, 128];
-const sizes2x = [32, 64, 96, 256];
+// 简单的 PNG 编码
+function encodePNG(canvas) {
+    // 使用简单的 BMP 格式代替，然后转换
+    // 这里我们直接创建一个简单的 ICO 兼容格式
+    const { createCanvas: createNodeCanvas } = require('canvas');
+    const nodeCanvas = createNodeCanvas(canvas.width, canvas.height);
+    const ctx = nodeCanvas.getContext('2d');
 
-console.log('正在生成渐变主题图标...');
+    // 绘制渐变背景
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#ff6b9d');
+    gradient.addColorStop(0.5, '#ff8fab');
+    gradient.addColorStop(1, '#4ecdc4');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2, 0, Math.PI * 2);
+    ctx.fill();
 
-sizes.forEach((size, index) => {
-  // 主图标
-  const iconSvg = createGradientIcon(size);
-  fs.writeFileSync(path.join(iconsDir, `icon-${size}.svg`), iconSvg);
-  console.log(`✓ 生成 icon-${size}.svg`);
+    // 绘制白色星形
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const outerRadius = canvas.width * 0.3;
+    const innerRadius = canvas.width * 0.12;
+    const numPoints = 8;
 
-  // 2x 版本
-  const size2x = sizes2x[index];
-  const icon2xSvg = createGradientIcon(size2x);
-  fs.writeFileSync(path.join(iconsDir, `icon-${size}@2x.svg`), icon2xSvg);
-  console.log(`✓ 生成 icon-${size}@2x.svg`);
-});
+    for (let i = 0; i < numPoints * 2; i++) {
+        const angle = (Math.PI * i / numPoints) - Math.PI / 2;
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    ctx.closePath();
+    ctx.fill();
 
-// 生成工具栏专用图标
-const toolbarSizes = [16, 32];
-toolbarSizes.forEach(size => {
-  const toolbarSvg = createMonochromeIcon(size);
-  fs.writeFileSync(path.join(iconsDir, `toolbar-${size}.svg`), toolbarSvg);
-  console.log(`✓ 生成 toolbar-${size}.svg`);
-});
+    // 高光
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.beginPath();
+    ctx.ellipse(canvas.width * 0.3, canvas.height * 0.25, canvas.width * 0.12, canvas.height * 0.08, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
 
-console.log('\n图标生成完成！');
-console.log('注意：Chrome 扩展需要 PNG 格式的图标。');
-console.log('请使用在线工具将 SVG 转换为 PNG，或使用浏览器截图功能。');
-console.log('推荐尺寸: 16x16, 32x32, 48x48, 128x128');
+    return nodeCanvas.toBuffer('image/png');
+}
+
+// 生成图标
+async function generateIcons() {
+    try {
+        const canvas = require('canvas');
+    } catch (e) {
+        console.log('Installing canvas package...');
+        const { execSync } = require('child_process');
+        execSync('npm install canvas', { cwd: __dirname, stdio: 'inherit' });
+    }
+
+    const { createCanvas } = require('canvas');
+    const sizes = [16, 32, 48, 128];
+
+    for (const size of sizes) {
+        const canvas = createCanvas(size, size);
+        const ctx = canvas.getContext('2d');
+
+        // 绘制渐变背景
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, '#ff6b9d');
+        gradient.addColorStop(0.5, '#ff8fab');
+        gradient.addColorStop(1, '#4ecdc4');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 绘制白色星形
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        const centerX = size / 2;
+        const centerY = size / 2;
+        const outerRadius = size * 0.3;
+        const innerRadius = size * 0.12;
+        const numPoints = 8;
+
+        for (let i = 0; i < numPoints * 2; i++) {
+            const angle = (Math.PI * i / numPoints) - Math.PI / 2;
+            const radius = i % 2 === 0 ? outerRadius : innerRadius;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // 高光
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(size * 0.3, size * 0.25, size * 0.12, size * 0.08, -Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 保存
+        const buffer = canvas.toBuffer('image/png');
+        fs.writeFileSync(path.join(__dirname, 'icons', `icon-${size}.png`), buffer);
+        console.log(`Created icon-${size}.png`);
+    }
+
+    console.log('\nAll icons generated!');
+}
+
+generateIcons().catch(console.error);
