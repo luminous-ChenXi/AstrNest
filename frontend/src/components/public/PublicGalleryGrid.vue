@@ -5,10 +5,10 @@
     </div>
 
     <div v-if="loading && !galleryItems.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <div v-for="item in 6" :key="item" class="animate-pulse rounded-3xl border border-white/5 bg-white/5 p-4">
-        <div class="h-40 rounded-2xl bg-white/5"></div>
-        <div class="mt-4 h-4 w-2/3 rounded-full bg-white/10"></div>
-        <div class="mt-2 h-4 w-1/3 rounded-full bg-white/10"></div>
+      <div v-for="item in 6" :key="item" class="animate-pulse rounded-3xl border border-body bg-surface-panel p-4">
+        <div class="h-40 rounded-2xl bg-surface-strong"></div>
+        <div class="mt-4 h-4 w-2/3 rounded-full bg-surface-strong"></div>
+        <div class="mt-2 h-4 w-1/3 rounded-full bg-surface-strong"></div>
       </div>
     </div>
 
@@ -16,7 +16,7 @@
       <article
         v-for="item in galleryItems"
         :key="item.id"
-        class="chenxi-image-card group flex cursor-pointer flex-col gap-4 rounded-3xl panel-overlay p-4"
+        class="chenxi-image-card group flex cursor-pointer flex-col gap-4 rounded-3xl border border-body bg-surface-overlay p-4"
         @click="openModal(item)"
       >
         <div class="relative overflow-hidden rounded-2xl">
@@ -524,8 +524,8 @@ function goToUserProfile(userId) {
   margin-top: 1rem;
   padding: 1rem 1.25rem;
   border-radius: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(5, 5, 5, 0.85);
+  border: 1px solid var(--border-soft);
+  background: var(--glass-bg);
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -538,11 +538,11 @@ function goToUserProfile(userId) {
   flex-wrap: wrap;
   gap: 0.75rem;
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted);
 }
 
 .pagination-info strong {
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 .pagination-size {
@@ -566,7 +566,7 @@ function goToUserProfile(userId) {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted);
 }
 
 .jump-input {
@@ -575,20 +575,20 @@ function goToUserProfile(userId) {
 
 .jump-input :deep(.el-input__wrapper),
 .page-size-select :deep(.el-input__wrapper) {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: var(--color-bg-input);
+  border: 1px solid var(--border-soft);
+  color: var(--color-text-primary);
 }
 
 .ghost-btn {
-  border-color: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-soft);
+  color: var(--text-muted);
+  background: var(--panel-overlay);
 }
 
 .ghost-btn:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.4);
-  color: #fff;
+  border-color: var(--border-strong);
+  color: var(--color-text-primary);
 }
 
 .ghost-btn:disabled {

@@ -595,15 +595,10 @@ watch(
 
 /* 导航栏 */
 .landing-header {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  border-bottom: 1px solid var(--border-soft);
   transition: all 0.3s ease;
-}
-
-.dark .landing-header {
-  background: rgba(5, 6, 12, 0.7);
-  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 .header-inner {
@@ -623,11 +618,7 @@ watch(
   transition: all 0.3s ease;
 }
 
-/* 暗色主题下 logo 更亮 */
-.dark .logo-wrapper {
-  background: linear-gradient(135deg, rgba(127, 123, 255, 0.25), rgba(255, 95, 143, 0.2));
-  color: rgba(255, 255, 255, 0.95);
-}
+
 
 @media (min-width: 768px) {
   .logo-wrapper {
@@ -759,15 +750,11 @@ watch(
 }
 
 .mobile-nav {
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
   border-top: 1px solid var(--border-soft);
   max-height: calc(100vh - 70px);
   overflow-y: auto;
-}
-
-.dark .mobile-nav {
-  background: rgba(5, 6, 12, 0.98);
 }
 
 .mobile-nav-inner {
@@ -790,7 +777,7 @@ watch(
 }
 
 .mobile-nav-link:hover {
-  background: rgba(255, 107, 157, 0.08);
+  background: var(--chip-bg);
   color: var(--color-brand-primary);
 }
 
@@ -858,8 +845,8 @@ watch(
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(249, 168, 200, 0.12);
-  border: 1px solid rgba(249, 168, 200, 0.25);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
   border-radius: 999px;
   width: fit-content;
 }
@@ -867,7 +854,7 @@ watch(
 .tag-pulse {
   width: 8px;
   height: 8px;
-  background: #F9A8C8;
+  background: var(--color-brand-primary);
   border-radius: 50%;
   animation: pulse-glow 2s ease-in-out infinite;
 }
@@ -880,7 +867,7 @@ watch(
 .tag-text {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #E87A9F;
+  color: var(--color-brand-primary);
 }
 
 .hero-title {
@@ -898,7 +885,7 @@ watch(
 }
 
 .title-accent {
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
   font-weight: 800;
 }
 
@@ -930,23 +917,23 @@ watch(
   text-align: center;
   gap: 0.75rem;
   padding: 1.25rem;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(249, 168, 200, 0.2);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pain-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(249, 168, 200, 0.4);
-  box-shadow: 0 8px 25px rgba(249, 168, 200, 0.15);
+  border-color: var(--color-brand-primary);
+  box-shadow: var(--shadow-card);
 }
 
 .pain-icon {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: rgba(249, 168, 200, 0.15);
+  background: var(--chip-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -956,7 +943,7 @@ watch(
 .pain-icon .icon {
   width: 20px;
   height: 20px;
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 /* 蓝色图标样式 */
@@ -1100,15 +1087,15 @@ watch(
   align-items: center;
   gap: 0.5rem;
   padding: 0.6rem 1.25rem;
-  background: rgba(249, 168, 200, 0.1);
-  border: 1px solid rgba(249, 168, 200, 0.25);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
   border-radius: 999px;
 }
 
 .stat-num {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .stat-text {
@@ -1116,12 +1103,10 @@ watch(
   color: var(--color-text-secondary);
 }
 
-
-
 .stat-value {
   font-size: 2rem;
   font-weight: 800;
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .stat-label {
@@ -1157,8 +1142,8 @@ watch(
 }
 
 .trust-main {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(249, 168, 200, 0.2);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 28px;
   padding: 2.5rem;
   transition: all 0.3s ease;
@@ -1166,7 +1151,7 @@ watch(
 
 .trust-main:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(249, 168, 200, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .trust-badge {
@@ -1174,7 +1159,7 @@ watch(
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(249, 168, 200, 0.12);
+  background: var(--chip-bg);
   border-radius: 999px;
   margin-bottom: 1.5rem;
 }
@@ -1182,13 +1167,13 @@ watch(
 .badge-icon {
   width: 16px;
   height: 16px;
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .trust-badge span {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #E87A9F;
+  color: var(--color-brand-primary);
 }
 
 .trust-title {
@@ -1221,7 +1206,7 @@ watch(
   border-radius: 50%;
   margin-top: 0.5rem;
   flex-shrink: 0;
-  background: #F9A8C8;
+  background: var(--color-brand-primary);
 }
 
 /* 侧边卡片 */
@@ -1232,8 +1217,8 @@ watch(
 }
 
 .trust-coming {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(249, 168, 200, 0.2);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 24px;
   padding: 1.75rem;
   flex: 1;
@@ -1242,11 +1227,11 @@ watch(
 .coming-label {
   display: inline-block;
   padding: 0.35rem 0.75rem;
-  background: rgba(249, 168, 200, 0.15);
+  background: var(--chip-bg);
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #E87A9F;
+  color: var(--color-brand-primary);
   margin-bottom: 1rem;
 }
 
@@ -1264,15 +1249,10 @@ watch(
 }
 
 .trust-stats {
-  background: rgba(249, 168, 200, 0.08);
-  border: 1px solid rgba(249, 168, 200, 0.15);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
   border-radius: 24px;
   padding: 1.5rem;
-}
-
-.stats-row {
-  display: flex;
-  gap: 2rem;
 }
 
 .stat-mini {
@@ -1281,13 +1261,13 @@ watch(
   gap: 0.25rem;
 }
 
-.stat-num {
+.stat-mini .stat-num {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
-.stat-text {
+.stat-mini .stat-text {
   font-size: 0.8rem;
   color: var(--color-text-secondary);
 }
@@ -1311,8 +1291,8 @@ watch(
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--color-brand-primary);
-  background: rgba(127, 123, 255, 0.1);
-  border: 1px solid rgba(127, 123, 255, 0.2);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
 }
 
 /* Contact Section */
@@ -1326,8 +1306,8 @@ watch(
   grid-template-columns: 1.2fr 0.8fr;
   gap: 3rem;
   align-items: center;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(249, 168, 200, 0.2);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 28px;
   padding: 3rem;
 }
@@ -1341,11 +1321,11 @@ watch(
 .contact-label {
   display: inline-block;
   padding: 0.4rem 0.875rem;
-  background: rgba(249, 168, 200, 0.15);
+  background: var(--chip-bg);
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #E87A9F;
+  color: var(--color-brand-primary);
   margin-bottom: 1rem;
 }
 
@@ -1477,35 +1457,35 @@ watch(
   }
 }
 
-/* ==================== 深色主题配色 ====================
+/* ==================== 深色主题配色 ==================== */
 
-/* 深色主题 - 标题强调色 (深粉色) */
+/* 深色主题 - 标题强调色 */
 .dark .title-accent {
-  color: #E87A9F;
+  color: var(--color-brand-primary);
   font-weight: 800;
 }
 
-/* 深色主题 - 统计数字 (深粉色) */
+/* 深色主题 - 统计数字 */
 .dark .stat-value {
-  color: #E87A9F;
+  color: var(--color-brand-primary);
 }
 
-/* 深色主题 - 主要按钮 (深粉色) */
+/* 深色主题 - 主要按钮 */
 .dark .btn-primary {
-  background: #E87A9F;
-  box-shadow: 0 4px 20px rgba(232, 122, 159, 0.4);
+  background: var(--color-brand-primary);
+  box-shadow: 0 4px 20px rgba(255, 143, 171, 0.4);
 }
 
 .dark .btn-primary:hover {
   background: #EC8DAD;
-  box-shadow: 0 8px 30px rgba(232, 122, 159, 0.5);
+  box-shadow: 0 8px 30px rgba(255, 143, 171, 0.5);
 }
 
 /* 深色主题 - 发送验证码按钮 (Element Plus 样式覆盖) */
 .dark .el-button--primary {
-  background: #E87A9F !important;
-  border-color: #E87A9F !important;
-  color: #FFFFFF !important;
+  background: var(--color-brand-primary) !important;
+  border-color: var(--color-brand-primary) !important;
+  color: var(--color-on-accent) !important;
 }
 
 .dark .el-button--primary:hover {
@@ -1515,20 +1495,20 @@ watch(
 
 .dark .el-button--primary.is-plain {
   background: transparent !important;
-  border-color: #E87A9F !important;
-  color: #E87A9F !important;
+  border-color: var(--color-brand-primary) !important;
+  color: var(--color-brand-primary) !important;
 }
 
 .dark .el-button--primary.is-plain:hover {
-  background: rgba(232, 122, 159, 0.15) !important;
+  background: rgba(255, 143, 171, 0.15) !important;
   border-color: #EC8DAD !important;
   color: #EC8DAD !important;
 }
 
-/* 深色主题 - 纯黑背景 */
+/* 深色主题 - 使用CSS变量背景 */
 .dark .landing-page {
-  color: #FFFFFF;
-  background: #000000;
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
 }
 
 /* 深色主题 - 隐藏渐变光球 */
@@ -1537,19 +1517,19 @@ watch(
 }
 
 .dark .hero-description {
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-secondary);
 }
 
 .dark .section-desc {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted);
 }
 
 .dark .feature-desc {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--text-muted);
 }
 
 .dark .contact-desc {
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-secondary);
 }
 
 /* 深色主题 - 次要文字 */
@@ -1557,170 +1537,170 @@ watch(
 .dark .feature-label,
 .dark .section-eyebrow,
 .dark .contact-eyebrow {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-soft);
 }
 
 /* 深色主题 - 卡片背景调整 */
 .dark .stat-card,
 .dark .tip-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
 }
 
 /* 深色主题 - 新组件样式 */
 .dark .pain-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(232, 122, 159, 0.2);
+  background: var(--glass-bg);
+  border-color: rgba(255, 143, 171, 0.2);
 }
 
 .dark .pain-card:hover {
-  border-color: rgba(232, 122, 159, 0.4);
-  box-shadow: 0 4px 20px rgba(232, 122, 159, 0.15);
+  border-color: rgba(255, 143, 171, 0.4);
+  box-shadow: 0 4px 20px rgba(255, 143, 171, 0.15);
 }
 
 .dark .pain-icon {
-  background: rgba(232, 122, 159, 0.15);
+  background: rgba(255, 143, 171, 0.15);
 }
 
 .dark .pain-icon .icon {
-  color: #E87A9F;
+  color: var(--color-brand-primary);
 }
 
 .dark .trust-main,
 .dark .trust-coming {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(232, 122, 159, 0.15);
+  background: var(--glass-bg);
+  border-color: rgba(255, 143, 171, 0.15);
 }
 
 .dark .trust-main:hover {
-  box-shadow: 0 20px 40px rgba(232, 122, 159, 0.1);
+  box-shadow: 0 20px 40px rgba(255, 143, 171, 0.1);
 }
 
 .dark .trust-badge {
-  background: rgba(232, 122, 159, 0.15);
+  background: rgba(255, 143, 171, 0.15);
 }
 
 .dark .trust-badge span {
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .dark .trust-dot {
-  background: #E87A9F;
+  background: var(--color-brand-primary);
 }
 
 .dark .trust-stats {
-  background: rgba(232, 122, 159, 0.08);
-  border-color: rgba(232, 122, 159, 0.15);
+  background: rgba(255, 143, 171, 0.08);
+  border-color: rgba(255, 143, 171, 0.15);
 }
 
 .dark .stat-mini .stat-num {
-  color: #E87A9F;
+  color: var(--color-brand-primary);
 }
 
 .dark .coming-label {
-  background: rgba(232, 122, 159, 0.15);
-  color: #F9A8C8;
+  background: rgba(255, 143, 171, 0.15);
+  color: var(--color-brand-primary);
 }
 
 .dark .contact-asymmetric {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(232, 122, 159, 0.15);
+  background: var(--glass-bg);
+  border-color: rgba(255, 143, 171, 0.15);
 }
 
 .dark .contact-left {
-  border-color: rgba(232, 122, 159, 0.2);
+  border-color: rgba(255, 143, 171, 0.2);
 }
 
 .dark .contact-label {
-  background: rgba(232, 122, 159, 0.15);
-  color: #F9A8C8;
+  background: rgba(255, 143, 171, 0.15);
+  color: var(--color-brand-primary);
 }
 
 .dark .hero-tag {
-  background: rgba(232, 122, 159, 0.12);
-  border-color: rgba(232, 122, 159, 0.25);
+  background: rgba(255, 143, 171, 0.12);
+  border-color: rgba(255, 143, 171, 0.25);
 }
 
 .dark .tag-text {
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .dark .gallery-preview {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
 }
 
 /* 深色主题 - 导航链接 */
 .dark .nav-link {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
 }
 
 .dark .nav-link:hover {
-  color: #E87A9F;
+  color: var(--color-brand-primary);
 }
 
 /* 深色主题 - Ghost 按钮 */
 .dark .btn-ghost {
-  color: rgba(255, 255, 255, 0.8);
-  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-secondary);
+  border-color: var(--border-soft);
 }
 
 .dark .btn-ghost:hover {
-  color: #E87A9F;
-  border-color: #E87A9F;
-  background: rgba(232, 122, 159, 0.1);
+  color: var(--color-brand-primary);
+  border-color: var(--color-brand-primary);
+  background: rgba(255, 143, 171, 0.1);
 }
 
 /* 深色主题 - Logo 文字 */
 .dark .logo-title {
-  background: linear-gradient(135deg, #E87A9F, #F9A8C8);
+  background: linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-accent));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .dark .logo-subtitle {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-soft);
 }
 
 /* 深色主题 - 特性图标背景 */
 .dark .feature-icon-wrapper.icon-purple {
-  background: rgba(232, 122, 159, 0.15);
-  color: #E87A9F;
+  background: rgba(255, 143, 171, 0.15);
+  color: var(--color-brand-primary);
 }
 
 .dark .feature-icon-wrapper.icon-pink {
   background: rgba(248, 180, 200, 0.15);
-  color: #F9A8C8;
+  color: var(--color-brand-primary);
 }
 
 .dark .feature-icon-wrapper.icon-green {
   background: rgba(180, 220, 200, 0.15);
-  color: #B4DCC8;
+  color: var(--color-brand-accent);
 }
 
 /* 深色主题 - 列表项圆点 */
 .dark .item-dot.dot-purple {
-  background: #E87A9F;
+  background: var(--color-brand-primary);
 }
 
 .dark .item-dot.dot-pink {
-  background: #F9A8C8;
+  background: var(--color-brand-primary);
 }
 
 .dark .item-dot.dot-green {
-  background: #B4DCC8;
+  background: var(--color-brand-accent);
 }
 
 /* 深色主题 - Roadmap 标签 */
 .dark .roadmap-tag {
-  background: rgba(232, 122, 159, 0.15);
-  color: #E87A9F;
-  border-color: rgba(232, 122, 159, 0.3);
+  background: rgba(255, 143, 171, 0.15);
+  color: var(--color-brand-primary);
+  border-color: rgba(255, 143, 171, 0.3);
 }
 
 .dark .roadmap-tag:hover {
-  background: rgba(232, 122, 159, 0.25);
-  border-color: #E87A9F;
+  background: rgba(255, 143, 171, 0.25);
+  border-color: var(--color-brand-primary);
 }
 </style>

@@ -1,0 +1,5 @@
+refactor(frontend): 删除重复的 TypeScript 文件
+
+- 删除 stores/system.js（仅重新导出 TS 文件）
+- 删除 services/system.ts（仅重新导出 JS 文件）
+- 统一使用 JavaScript 版本

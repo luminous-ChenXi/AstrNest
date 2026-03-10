@@ -73,13 +73,26 @@
 
   // 检查上传权限
   async function checkUploadPermission() {
+    // 检查扩展上下文是否有效
+    if (!isExtensionContextValid()) {
+      console.log('Extension context invalidated, skipping permission check');
+      return;
+    }
+
     try {
       const response = await chrome.runtime.sendMessage({ action: 'checkUploadPermission' });
+
+      // 检查是否有运行时错误
+      if (chrome.runtime.lastError) {
+        console.log('Extension runtime error:', chrome.runtime.lastError.message);
+        return;
+      }
+
       uploadPermission = response;
 
       // 更新上传区域的提示
       const uploadHint = document.querySelector('.chenxi-upload-hint');
-      if (uploadHint && response.maxFilesPerUpload) {
+      if (uploadHint && response && response.maxFilesPerUpload) {
         uploadHint.textContent = `或点击选择文件 (最多 ${response.maxFilesPerUpload} 个)`;
       }
     } catch (error) {
@@ -440,30 +453,64 @@
     document.body.appendChild(btn);
   }
 
+  // 检查扩展上下文是否有效
+  function isExtensionContextValid() {
+    try {
+      return chrome.runtime && chrome.runtime.id !== undefined;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // 检查扩展上下文是否有效
+  function isExtensionContextValid() {
+    try {
+      return chrome.runtime && chrome.runtime.id;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // 更新认证状态
   function updateAuthStatus() {
-    chrome.runtime.sendMessage({ action: 'getAuthStatus' }, (response) => {
-      const avatar = document.getElementById('chenxi-avatar');
-      const username = document.getElementById('chenxi-username');
-      const status = document.getElementById('chenxi-user-status');
+    // 检查扩展上下文是否有效
+    if (!isExtensionContextValid()) {
+      console.log('Extension context invalidated, skipping auth update');
+      return;
+    }
 
-      if (!avatar || !username || !status) return;
+    try {
+      chrome.runtime.sendMessage({ action: 'getAuthStatus' }, (response) => {
+        // 检查发送消息时是否出错
+        if (chrome.runtime.lastError) {
+          console.log('Extension communication error:', chrome.runtime.lastError.message);
+          return;
+        }
 
-      currentAuthStatus = response || { isAuthenticated: false, profile: null };
+        const avatar = document.getElementById('chenxi-avatar');
+        const username = document.getElementById('chenxi-username');
+        const status = document.getElementById('chenxi-user-status');
 
-      if (response && response.isAuthenticated && response.profile) {
-        const profile = response.profile;
-        avatar.src = profile.avatarUrl || `${API_BASE_URL}/assets/img/avatar.png`;
-        username.textContent = profile.displayName || profile.username;
-        status.textContent = '已登录';
-        status.classList.add('logged-in');
-      } else {
-        avatar.src = `${API_BASE_URL}/assets/img/avatar.png`;
-        username.textContent = '未登录';
-        status.textContent = '点击登录';
-        status.classList.remove('logged-in');
-      }
-    });
+        if (!avatar || !username || !status) return;
+
+        currentAuthStatus = response || { isAuthenticated: false, profile: null };
+
+        if (response && response.isAuthenticated && response.profile) {
+          const profile = response.profile;
+          avatar.src = profile.avatarUrl || `${API_BASE_URL}/assets/img/avatar.png`;
+          username.textContent = profile.displayName || profile.username;
+          status.textContent = '已登录';
+          status.classList.add('logged-in');
+        } else {
+          avatar.src = `${API_BASE_URL}/assets/img/avatar.png`;
+          username.textContent = '未登录';
+          status.textContent = '点击登录';
+          status.classList.remove('logged-in');
+        }
+      });
+    } catch (error) {
+      console.log('Failed to update auth status:', error.message);
+    }
   }
 
   // 工具函数：文件转Base64
@@ -520,6 +567,12 @@
 
   // 监听来自background的消息
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    // 检查扩展上下文是否有效
+    if (!isExtensionContextValid()) {
+      console.log('Extension context invalidated, ignoring message');
+      return false;
+    }
+
     if (request.action === 'getAllImages') {
       const images = Array.from(document.querySelectorAll('img'))
         .filter(img => img.src && !img.src.startsWith('data:'))
@@ -562,14 +615,19 @@
 
     // 监听页面可见性变化，更新认证状态
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
+      if (!document.hidden && isExtensionContextValid()) {
         updateAuthStatus();
         checkUploadPermission();
       }
     });
 
     // 定期检查认证状态（每30秒）
-    setInterval(() => {
+    const intervalId = setInterval(() => {
+      if (!isExtensionContextValid()) {
+        console.log('Extension context invalidated, clearing interval');
+        clearInterval(intervalId);
+        return;
+      }
       updateAuthStatus();
       checkUploadPermission();
     }, 30000);
