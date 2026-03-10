@@ -350,9 +350,10 @@ onBeforeUnmount(() => {
   border-radius: 24px;
   border: 1px solid var(--border-soft);
   padding: 1.25rem;
-  background: var(--panel-overlay);
+  background: var(--color-bg-strong);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   transition: background-color 0.3s ease, border-color 0.3s ease;
+  color: var(--color-text-primary);
 }
 
 .quota-card--danger {

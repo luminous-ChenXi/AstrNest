@@ -545,7 +545,7 @@ onMounted(() => {
   background: linear-gradient(135deg, rgba(249, 168, 200, 0.15), rgba(174, 208, 237, 0.15));
   border: 1px solid rgba(249, 168, 200, 0.3);
   border-radius: 999px;
-  color: #E87A9F;
+  color: var(--color-brand-primary);
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.75rem;
@@ -561,7 +561,7 @@ onMounted(() => {
   font-weight: 700;
   margin: 0 0 0.5rem;
   color: var(--color-text-primary);
-  background: linear-gradient(135deg, #1a1a2e, #E87A9F);
+  background: linear-gradient(135deg, var(--color-text-primary), var(--color-brand-primary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -579,20 +579,20 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 1.75rem;
-  background: linear-gradient(135deg, #F9A8C8, #E87A9F);
-  color: white;
+  background: linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-coral));
+  color: var(--color-on-accent);
   border: none;
   border-radius: 1rem;
   font-weight: 600;
   font-size: 0.9375rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(232, 122, 159, 0.35);
+  box-shadow: 0 4px 15px rgba(255, 107, 157, 0.35);
 }
 
 .btn-primary-gradient:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(232, 122, 159, 0.45);
+  box-shadow: 0 8px 25px rgba(255, 107, 157, 0.45);
 }
 
 .btn-icon {
@@ -640,18 +640,18 @@ onMounted(() => {
 }
 
 .stat-icon-wrap.pink {
-  background: linear-gradient(135deg, rgba(249, 168, 200, 0.2), rgba(249, 168, 200, 0.1));
-  color: #E87A9F;
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.2), rgba(255, 107, 157, 0.1));
+  color: var(--color-brand-primary);
 }
 
 .stat-icon-wrap.blue {
-  background: linear-gradient(135deg, rgba(174, 208, 237, 0.2), rgba(174, 208, 237, 0.1));
-  color: #5B8DB8;
+  background: linear-gradient(135deg, rgba(135, 206, 235, 0.2), rgba(135, 206, 235, 0.1));
+  color: var(--color-brand-sky);
 }
 
 .stat-icon-wrap.mint {
-  background: linear-gradient(135deg, rgba(167, 243, 208, 0.2), rgba(167, 243, 208, 0.1));
-  color: #10B981;
+  background: linear-gradient(135deg, rgba(168, 230, 207, 0.2), rgba(168, 230, 207, 0.1));
+  color: var(--color-brand-mint);
 }
 
 .stat-icon-wrap.purple {
@@ -698,21 +698,21 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   border: 3px solid transparent;
-  border-top-color: #F9A8C8;
+  border-top-color: var(--color-brand-primary);
   border-radius: 50%;
   animation: spin 1.2s linear infinite;
 }
 
 .loading-ring:nth-child(2) {
   inset: 8px;
-  border-top-color: #AED0ED;
+  border-top-color: var(--color-brand-sky);
   animation-duration: 0.9s;
   animation-direction: reverse;
 }
 
 .loading-ring:nth-child(3) {
   inset: 16px;
-  border-top-color: #E87A9F;
+  border-top-color: var(--color-brand-coral);
   animation-duration: 0.6s;
 }
 
@@ -743,14 +743,14 @@ onMounted(() => {
   position: absolute;
   width: 120px;
   height: 120px;
-  background: linear-gradient(135deg, rgba(249, 168, 200, 0.15), rgba(174, 208, 237, 0.15));
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(135, 206, 235, 0.15));
   border-radius: 50%;
 }
 
 .empty-icon {
   width: 56px;
   height: 56px;
-  color: #E87A9F;
+  color: var(--color-brand-primary);
   position: relative;
   z-index: 1;
 }
@@ -789,14 +789,14 @@ onMounted(() => {
 .album-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
-  border-color: rgba(249, 168, 200, 0.3);
+  border-color: rgba(255, 107, 157, 0.3);
 }
 
 /* 封面区域 */
 .album-card-cover {
   position: relative;
   height: 180px;
-  background: linear-gradient(135deg, #f8f9fc, #eef0f5);
+  background: var(--color-bg-strong);
   overflow: hidden;
 }
 
@@ -848,8 +848,8 @@ onMounted(() => {
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.875rem;
-  background: rgba(16, 185, 129, 0.9);
-  color: white;
+  background: rgba(46, 204, 113, 0.9);
+  color: var(--color-on-accent);
   font-size: 0.75rem;
   font-weight: 500;
   border-radius: 999px;
@@ -886,8 +886,8 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: white;
-  color: #1a1a2e;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
   border: none;
   border-radius: 0.75rem;
   font-weight: 500;
@@ -974,7 +974,7 @@ onMounted(() => {
 }
 
 .album-card-path:hover {
-  background: rgba(249, 168, 200, 0.1);
+  background: rgba(255, 107, 157, 0.1);
 }
 
 .path-icon {
@@ -987,7 +987,7 @@ onMounted(() => {
   flex: 1;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.8125rem;
-  color: #E87A9F;
+  color: var(--color-brand-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1033,18 +1033,18 @@ onMounted(() => {
 .action-btn:hover {
   border-color: var(--color-brand-primary);
   color: var(--color-brand-primary);
-  background: rgba(249, 168, 200, 0.1);
+  background: rgba(255, 107, 157, 0.1);
 }
 
 .action-btn.primary {
   flex: 1;
-  background: linear-gradient(135deg, rgba(249, 168, 200, 0.15), rgba(249, 168, 200, 0.05));
-  border-color: rgba(249, 168, 200, 0.3);
-  color: #E87A9F;
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(255, 107, 157, 0.05));
+  border-color: rgba(255, 107, 157, 0.3);
+  color: var(--color-brand-primary);
 }
 
 .action-btn.primary:hover {
-  background: linear-gradient(135deg, rgba(249, 168, 200, 0.25), rgba(249, 168, 200, 0.1));
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.25), rgba(255, 107, 157, 0.1));
 }
 
 .action-btn.danger:hover {
@@ -1066,7 +1066,7 @@ onMounted(() => {
 }
 
 .form-hint.text-warning {
-  color: #f59e0b;
+  color: var(--color-brand-coral);
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -1105,14 +1105,14 @@ onMounted(() => {
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #F9A8C8, #E87A9F);
+  background: linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-coral));
   border-radius: 12px;
 }
 
 .dialog-icon .icon {
   width: 24px;
   height: 24px;
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .dialog-info h3 {
@@ -1158,7 +1158,7 @@ onMounted(() => {
 }
 
 .btn-create {
-  background: linear-gradient(135deg, #F9A8C8, #E87A9F);
+  background: linear-gradient(135deg, var(--color-brand-primary), var(--color-brand-coral));
   border: none;
 }
 
@@ -1188,7 +1188,7 @@ onMounted(() => {
 .stat-num {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #E87A9F;
+  color: var(--color-brand-primary);
 }
 
 .detail-actions {
@@ -1209,7 +1209,7 @@ onMounted(() => {
 .section-icon {
   width: 1.125rem;
   height: 1.125rem;
-  color: #E87A9F;
+  color: var(--color-brand-primary);
 }
 
 .detail-empty {
@@ -1283,7 +1283,7 @@ onMounted(() => {
 .media-name {
   margin: 0;
   font-size: 0.6875rem;
-  color: white;
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

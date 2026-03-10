@@ -38,7 +38,8 @@
     "storage",
     "activeTab",
     "contextMenus",
-    "notifications"
+    "notifications",
+    "scripting"
   ],
   "host_permissions": [
     "https://luminouschenxi.net/*",

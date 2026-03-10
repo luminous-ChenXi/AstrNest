@@ -515,6 +515,12 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
 // 监听标签页更新，尝试从页面获取认证信息
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url?.includes('luminouschenxi.net')) {
+    // 检查 chrome.scripting API 是否可用
+    if (typeof chrome.scripting === 'undefined' || !chrome.scripting.executeScript) {
+      console.log('Scripting API not available');
+      return;
+    }
+
     // 向页面注入脚本获取localStorage中的认证信息
     chrome.scripting.executeScript({
       target: { tabId: tabId },
@@ -537,8 +543,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
           });
         }
       }
-    }).catch(() => {
+    }).catch((error) => {
       // 忽略错误（可能是特殊页面无法执行脚本）
+      console.log('Failed to execute script:', error);
     });
   }
 });

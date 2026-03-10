@@ -1,5 +1,13 @@
-Add-Type -AssemblyName System.Drawing
+# 生成扩展图标脚本
+# 使用前端项目的 SVG Logo
 
+Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Xml
+
+# 读取SVG文件
+$svgContent = Get-Content "icons\logo.svg" -Raw
+
+# 创建不同尺寸的图标
 $sizes = @(16, 32, 48, 128)
 
 foreach ($size in $sizes) {
@@ -8,38 +16,43 @@ foreach ($size in $sizes) {
     $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
     $g.Clear([System.Drawing.Color]::Transparent)
 
-    # 圆角矩形
-    $rect = New-Object System.Drawing.Rectangle(2, 2, $size-4, $size-4)
-    $radius = [int]($size * 0.2)
+    # 绘制渐变背景圆
+    $rect = New-Object System.Drawing.Rectangle(0, 0, $size, $size)
 
-    $path = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $path.AddArc($rect.X, $rect.Y, $radius*2, $radius*2, 180, 90)
-    $path.AddArc($rect.Right-$radius*2, $rect.Y, $radius*2, $radius*2, 270, 90)
-    $path.AddArc($rect.Right-$radius*2, $rect.Bottom-$radius*2, $radius*2, $radius*2, 0, 90)
-    $path.AddArc($rect.X, $rect.Bottom-$radius*2, $radius*2, $radius*2, 90, 90)
-    $path.CloseFigure()
+    # 创建渐变画笔 (粉色到薄荷绿)
+    $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+        $rect,
+        [System.Drawing.Color]::FromArgb(255, 255, 107, 157),  # #ff6b9d
+        [System.Drawing.Color]::FromArgb(255, 78, 205, 196),   # #4ecdc4
+        45.0
+    )
 
-    # 粉色到薄荷绿渐变
-    $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush($rect, [System.Drawing.Color]::FromArgb(255, 255, 107, 157), [System.Drawing.Color]::FromArgb(255, 78, 205, 196), 45)
-    $g.FillPath($brush, $path)
+    # 填充圆形背景
+    $g.FillEllipse($brush, $rect)
 
-    # 白色图片图标 - 简单的山形
-    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::White, [Math]::Max(1, $size * 0.08))
-    $pen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
-    $pen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+    # 绘制白色Logo路径（简化的星星/闪光形状）
+    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
 
-    # 画山形线条
-    $g.DrawLine($pen, $size*0.25, $size*0.65, $size*0.35, $size*0.5)
-    $g.DrawLine($pen, $size*0.35, $size*0.5, $size*0.5, $size*0.6)
-    $g.DrawLine($pen, $size*0.5, $size*0.6, $size*0.8, $size*0.4)
+    # 根据尺寸调整绘制
+    $center = $size / 2
+    $radius = $size * 0.35
 
-    # 画太阳
-    $sunBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
-    $sunSize = [int]($size * 0.12)
-    $g.FillEllipse($sunBrush, $size*0.6, $size*0.25, $sunSize, $sunSize)
+    # 创建一个简单的星形/闪光形状
+    $points = @()
+    $numPoints = 8
+    for ($i = 0; $i -lt $numPoints * 2; $i++) {
+        $angle = [Math]::PI * $i / $numPoints - [Math]::PI / 2
+        $r = if ($i % 2 -eq 0) { $radius } else { $radius * 0.4 }
+        $x = $center + $r * [Math]::Cos($angle)
+        $y = $center + $r * [Math]::Sin($angle)
+        $points += New-Object System.Drawing.PointF($x, $y)
+    }
+
+    $whiteBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+    $g.FillPolygon($whiteBrush, $points)
 
     $g.Dispose()
-    $bmp.Save("icons/icon-$size.png", [System.Drawing.Imaging.ImageFormat]::Png)
+    $bmp.Save("icons\icon-$size.png", [System.Drawing.Imaging.ImageFormat]::Png)
     $bmp.Dispose()
 
     Write-Host "Created icon-$size.png"
