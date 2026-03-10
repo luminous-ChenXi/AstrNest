@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 import chenxiFocus from './directives/chenxiFocus'
 import lazyAnimate from './directives/lazyAnimate'
+import logger from './utils/logger.js'
 import './assets/main.css'
 import './assets/styles/theme.css'
 
@@ -24,6 +25,9 @@ console.error = function(...args) {
   }
   originalError.apply(console, args)
 }
+
+// 将 logger 挂载到全局
+app.config.globalProperties.$logger = logger
 
 app.config.globalProperties.$message = ElMessage
 
