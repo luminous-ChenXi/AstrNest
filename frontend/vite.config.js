@@ -27,8 +27,8 @@ export default defineConfig({
   // 示例：'https://cdn.example.com/' 或 'https://your-bucket.oss-cn-beijing.aliyuncs.com/'
   // 注意：末尾必须带斜杠 /
   // ============================================
-  // base: '/',  // 使用绝对路径，确保所有资源从根目录加载
-  base: 'https://assets.luminouschenxi.net/',
+  // 从环境变量读取，默认为根路径
+  base: process.env.VITE_ASSETS_BASE_URL || '/',
   plugins: [
     vue(),
     disableDevCachePlugin(),
