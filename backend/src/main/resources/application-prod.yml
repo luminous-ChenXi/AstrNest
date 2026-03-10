@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    hikari:
+      minimum-idle: ${ASTRNEST_DB_MIN_IDLE:10}
+      maximum-pool-size: ${ASTRNEST_DB_MAX_POOL_SIZE:50}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+        show_sql: false
+
+logging:
+  level:
+    root: INFO
+    com.chenxi.astrnest: INFO
+    org.springframework.security: WARN
+  file:
+    name: /var/log/astrnest/application.log
+    max-size: 10MB
+    max-history: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never
