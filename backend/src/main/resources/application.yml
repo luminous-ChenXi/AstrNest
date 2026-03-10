@@ -4,55 +4,20 @@ server:
 spring:
   application:
     name: astrnest-backend
-  datasource:
-    url: ${ASTRNEST_DB_URL:jdbc:mysql://localhost:3306/astrnest?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
-    username: ${ASTRNEST_DB_USERNAME:astrnest}
-    password: ${ASTRNEST_DB_PASSWORD:}
-    hikari:
-      pool-name: AstrNestHikari
-      minimum-idle: ${ASTRNEST_DB_MIN_IDLE:5}
-      maximum-pool-size: ${ASTRNEST_DB_MAX_POOL_SIZE:20}
-      idle-timeout: 300000 # 5m
-      max-lifetime: 540000 # 9m，低于 MySQL wait_timeout
-      connection-timeout: 30000
-      validation-timeout: 5000
-      leak-detection-threshold: 0
-      data-source-properties:
-        cachePrepStmts: true
-        prepStmtCacheSize: 250
-        prepStmtCacheSqlLimit: 2048
-        useServerPrepStmts: true
-        useLocalSessionState: true
-        rewriteBatchedStatements: true
-        cacheResultSetMetadata: true
-        cacheServerConfiguration: true
-        elideSetAutoCommits: true
-        maintainTimeStats: false
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   servlet:
     multipart:
       max-file-size: ${ASTRNEST_MULTIPART_MAX_FILE_SIZE:20MB}
       max-request-size: ${ASTRNEST_MULTIPART_MAX_REQUEST_SIZE:20MB}
       resolve-lazily: true
-  jpa:
-    hibernate:
-      ddl-auto: update
-    open-in-view: false
-    properties:
-      hibernate:
-        format_sql: true
-        default_batch_fetch_size: ${ASTRNEST_JPA_DEFAULT_BATCH_FETCH_SIZE:50}
-        jdbc.batch_size: ${ASTRNEST_JPA_JDBC_BATCH_SIZE:50}
 
 astrnest:
   storage:
     strategy: ${ASTRNEST_STORAGE_STRATEGY:LOCAL}
     local:
-      # Linux 服务器建议使用 /var/www/astrnest/storage 或 /home/astrnest/storage
-      # 确保应用用户对该目录有读写权限
       root: ${ASTRNEST_STORAGE_ROOT:./storage/upload}
       public-base-url: ${ASTRNEST_STORAGE_PUBLIC:/upload}
-  cors:
-    allowed-origins: ${ASTRNEST_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,https://luminouschenxi.net,https://www.luminouschenxi.net}
   api-key:
     header-name: ${ASTRNEST_API_KEY_HEADER:X-API-Key}
     default-daily-quota: ${ASTRNEST_API_DEFAULT_QUOTA:1000}
@@ -63,18 +28,3 @@ astrnest:
     quality: ${ASTRNEST_VIDEO_THUMBNAIL_QUALITY:2}
     timeout-seconds: ${ASTRNEST_VIDEO_THUMBNAIL_TIMEOUT:20}
     cover-directory: ${ASTRNEST_VIDEO_THUMBNAIL_SUBDIR:cover}
-
-logging:
-  level:
-    root: INFO
-    com.chenxi.astrnest: DEBUG
-    org.springframework.security: DEBUG
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,loggers
-  endpoint:
-    health:
-      show-details: when_authorized
