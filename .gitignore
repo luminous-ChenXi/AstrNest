@@ -2,21 +2,24 @@
 /软著/
 /.vscode/
 /.skills/
-/.github/
 /.codebuddy/
 /Demo/
 /NapCatDocs-main/
 /AstrNest-docs/
+/.trae/
 
 # 依赖目录
 **/node_modules/
 **/vendor/
 
 # 构建输出
-# **/dist/
+**/dist/
 **/dist-ssr/
 **/target/
 **/build/
+
+# 运行时存储与上传内容
+/storage/
 
 # 日志文件
 logs/
@@ -33,6 +36,15 @@ lerna-debug.log*
 .env.*.local
 .env.development
 .env.production
+
+# Python 缓存与编译产物
+__pycache__/
+*.pyc
+*.class
+
+# 本地临时/私有文件
+commit_msg.txt
+.gitconfig_local
 
 # 编辑器文件
 .idea/
@@ -76,7 +88,4 @@ coverage/
 *.7z
 
 # 其他
-*.local
 HELP.md
-/.trae/
-/tools
