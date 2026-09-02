@@ -78,9 +78,13 @@ echo Admin email [default: admin@example.com]:
 set /p ADMIN_EMAIL="> "
 if "!ADMIN_EMAIL!"=="" set ADMIN_EMAIL=admin@example.com
 
-echo Admin password [default: chenxi123]:
+echo Admin password (required, no default):
 set /p ADMIN_PASS="> "
-if "!ADMIN_PASS!"=="" set ADMIN_PASS=chenxi123
+if "!ADMIN_PASS!"=="" (
+    echo [ERROR] Admin password cannot be empty.
+    pause
+    exit /b 1
+)
 
 echo Confirm password:
 set /p ADMIN_PASS2="> "
@@ -182,7 +186,7 @@ if "!FULL_INIT!"=="1" (
     (
     echo CREATE DATABASE IF NOT EXISTS astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
     echo.
-    echo CREATE USER IF NOT EXISTS 'astrnest'@'%%' IDENTIFIED BY 'chenxi123';
+    echo CREATE USER IF NOT EXISTS 'astrnest'@'%%' IDENTIFIED BY '!DB_PASS!';
     echo GRANT ALL PRIVILEGES ON astrnest.* TO 'astrnest'@'%%';
     echo FLUSH PRIVILEGES;
     echo.

@@ -169,12 +169,10 @@ cd AstrNest
 mysql -u root -p < backend/db/init.sql
 ```
 
-> **⚠️ Important Reminder**: Before starting the backend, ensure the database configuration is correct. Default configuration is as follows (located in `backend/src/main/resources/application.yml`):
+> **⚠️ Important Reminder**: Before starting the backend, ensure the database configuration is correct (prefer injecting everything via environment variables, see `.env.example`):
 > - Database URL: `jdbc:mysql://localhost:3306/astrnest`
 > - Username: `astrnest` (can be overridden via environment variable `ASTRNEST_DB_USERNAME`)
-> - Password: `chenxi123` (can be overridden via environment variable `ASTRNEST_DB_PASSWORD`)
->
-> If the database username/password differs from the above, please modify `application.yml` or override via environment variables, otherwise the backend will fail to start.
+> - Password: injected via the `ASTRNEST_DB_PASSWORD` environment variable; never commit real credentials
 
 3) Start backend
 ```bash
@@ -210,7 +208,7 @@ npm run dev
 > - If "403 Forbidden" is displayed, please check if the current user role has permission to access that interface.
 > - If "500 Internal Server Error" is displayed, please check the backend logs to find specific error information.
 
-**Default Admin**: `admin` / `chenxi123` (Please be sure to change).
+**Default Admin**: `admin` / `ChangeMe_123!` (first-deployment placeholder only — **change the password immediately after first login**, or set up your own admin via `init-admin.py`).
 
 > If you want to see configuration details directly (environment variables, file paths, initialization scripts, FFmpeg, storage switching, etc.), please jump to `CONFIG_GUIDE.md`.
 
@@ -246,7 +244,7 @@ For more detailed environment variables, Nginx reverse proxy, CDN/object storage
 # Login
 curl -X POST "http://localhost:8080/api/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"chenxi123"}'
+  -d '{"username":"<your-username>","password":"<your-password>"}'
 
 # Upload (API Key)
 curl -X POST "http://localhost:8080/api/uploads" \

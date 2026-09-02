@@ -396,7 +396,11 @@ def main():
             print(f"{Colors.OKGREEN}[OK] 密码验证通过{Colors.ENDC}")
     else:
         print(f"{Colors.OKCYAN}用户 '{app_user}' 不存在，将创建新用户{Colors.ENDC}")
-        app_pass = get_input(f"设置用户 '{app_user}' 的密码", "chenxi123")
+        while True:
+            app_pass = get_input(f"设置用户 '{app_user}' 的密码", password=True)
+            if app_pass:
+                break
+            print(f"{Colors.FAIL}[错误] 密码不能为空，请输入强密码{Colors.ENDC}")
     
     # 创建数据库和用户（根据系统类型）
     print(f"\n{Colors.OKCYAN}正在创建数据库和用户...{Colors.ENDC}")
@@ -414,7 +418,11 @@ def main():
     
     admin_user = get_input("管理员用户名", "admin")
     admin_email = get_input("管理员邮箱", "admin@example.com")
-    admin_pass = get_input("管理员密码", "chenxi123")
+    while True:
+        admin_pass = get_input("管理员密码", password=True)
+        if admin_pass:
+            break
+        print(f"{Colors.FAIL}[错误] 管理员密码不能为空，请输入强密码{Colors.ENDC}")
     admin_pass2 = get_input("确认密码", password=True)
     
     if admin_pass != admin_pass2:

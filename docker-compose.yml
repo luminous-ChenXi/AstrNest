@@ -8,10 +8,11 @@ services:
     env_file:
       - ./.env
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-astrnestRoot!}
+      # 密码类变量不设默认值：缺失时 compose 会直接报错，避免带着弱口令启动
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-astrnest}
       MYSQL_USER: ${MYSQL_USER:-astrnest}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-astrnestPass!}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 中设置 MYSQL_PASSWORD}
     command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_general_ci"]
     volumes:
       - mysql_data:/var/lib/mysql
@@ -32,16 +33,16 @@ services:
     environment:
       ASTRNEST_DB_URL: ${ASTRNEST_DB_URL:-jdbc:mysql://mysql:3306/astrnest?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
       ASTRNEST_DB_USERNAME: ${ASTRNEST_DB_USERNAME:-astrnest}
-      ASTRNEST_DB_PASSWORD: ${ASTRNEST_DB_PASSWORD:-astrnestPass!}
+      ASTRNEST_DB_PASSWORD: ${ASTRNEST_DB_PASSWORD:?请在 .env 中设置 ASTRNEST_DB_PASSWORD}
       ASTRNEST_STORAGE_ROOT: ${ASTRNEST_STORAGE_ROOT:-/storage/upload}
       ASTRNEST_STORAGE_PUBLIC: ${ASTRNEST_STORAGE_PUBLIC:-/upload}
       ASTRNEST_ASSET_DOMAIN: ${ASTRNEST_ASSET_DOMAIN:-}
-      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://luminouschenxi.net}
-      PUBLIC_ASSET_URL: ${PUBLIC_ASSET_URL:-https://luminouschenxi.net/upload}
-      BACKEND_API_PUBLIC_URL: ${BACKEND_API_PUBLIC_URL:-https://api.luminouschenxi.net}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://your-domain.example}
+      PUBLIC_ASSET_URL: ${PUBLIC_ASSET_URL:-https://your-domain.example/upload}
+      BACKEND_API_PUBLIC_URL: ${BACKEND_API_PUBLIC_URL:-https://api.your-domain.example}
       ASTRNEST_STORAGE_STRATEGY: ${ASTRNEST_STORAGE_STRATEGY:-LOCAL}
       ASTRNEST_ADMIN_USERNAME: ${ASTRNEST_ADMIN_USERNAME:-admin}
-      ASTRNEST_ADMIN_PASSWORD: ${ASTRNEST_ADMIN_PASSWORD:-chenxi123}
+      ASTRNEST_ADMIN_PASSWORD: ${ASTRNEST_ADMIN_PASSWORD:?请在 .env 中设置 ASTRNEST_ADMIN_PASSWORD（部署后立即修改）}
       ASTRNEST_ADMIN_DISPLAY: ${ASTRNEST_ADMIN_DISPLAY:-超级管理员}
       ASTRNEST_ADMIN_EMAIL: ${ASTRNEST_ADMIN_EMAIL:-admin@example.com}
       ASTRNEST_API_KEY_HEADER: ${ASTRNEST_API_KEY_HEADER:-X-API-Key}

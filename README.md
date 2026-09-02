@@ -168,12 +168,10 @@ cd AstrNest
 mysql -u root -p < backend/db/init.sql
 ```
 
-> **⚠️ 重要提醒**：启动后端前，请确保数据库配置正确。默认配置如下（位于 `backend/src/main/resources/application.yml`）：
+> **⚠️ 重要提醒**：启动后端前，请确保数据库配置正确（推荐全部通过环境变量注入，参见 `.env.example`）：
 > - 数据库URL：`jdbc:mysql://localhost:3306/astrnest`
 > - 用户名：`astrnest`（可通过环境变量 `ASTRNEST_DB_USERNAME` 覆盖）
-> - 密码：`chenxi123`（可通过环境变量 `ASTRNEST_DB_PASSWORD` 覆盖）
->
-> 如果数据库用户名/密码与上述不同，请修改 `application.yml` 或通过环境变量覆盖，否则后端将启动失败。
+> - 密码：通过环境变量 `ASTRNEST_DB_PASSWORD` 注入，请勿提交到仓库
 
 3) 启动后端
 ```bash
@@ -209,7 +207,7 @@ npm run dev
 > - 如果显示“403 Forbidden”，请检查当前用户角色是否有访问该接口的权限。
 > - 如果显示“500 Internal Server Error”，请检查后端日志，查找具体错误信息。
 
-**默认管理员**：`admin` / `chenxi123`（请务必修改）。
+**默认管理员**：`admin` / `ChangeMe_123!`（仅为首次部署占位，**登录后请立即修改密码**，或使用 `init-admin.py` 自定义管理员）。
 
 > 如果你想直接看配置细节（环境变量、文件路径、初始化脚本、FFmpeg、存储切换等），请跳转 `CONFIG_GUIDE.md`。
 
@@ -245,7 +243,7 @@ docker compose --env-file .env up -d
 # 登录
 curl -X POST "http://localhost:8080/api/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"chenxi123"}'
+  -d '{"username":"<你的用户名>","password":"<你的密码>"}'
 
 # 上传（API Key）
 curl -X POST "http://localhost:8080/api/uploads" \

@@ -3,7 +3,7 @@ CREATE DATABASE IF NOT EXISTS astrnest
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_general_ci;
 
-CREATE USER IF NOT EXISTS 'astrnest'@'localhost' IDENTIFIED BY 'chenxi123';
+CREATE USER IF NOT EXISTS 'astrnest'@'localhost' IDENTIFIED BY 'CHANGE_ME_STRONG_PASSWORD';
 GRANT ALL PRIVILEGES ON astrnest.* TO 'astrnest'@'%';
 FLUSH PRIVILEGES;
 
@@ -1763,7 +1763,9 @@ INSERT INTO roles (id, name, description) VALUES
     (3, 'GUEST', '访客')
 ON DUPLICATE KEY UPDATE description = VALUES(description);
 
-INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, 'chenxi', '$2b$12$AhO/lerqryDjI8KIlv5WgusVTmYErREAwE9rdJg9cRv9v26YjDTe2', 'Admin', 'luminouschenxi@outlook.com', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;
+-- 种子管理员（仅为首次部署占位）：用户名 admin，初始密码 ChangeMe_123!
+-- ⚠️ 首次部署后必须立即运行 init-admin.py 重设管理员密码，或登录后在安全中心修改！
+INSERT INTO users (id, username, password, nickname, email, active, created_at) VALUES (1, 'admin', '$2b$12$SOG1m96Ip1sr1kANhmDyQOVLGs.C4OJW8FiTuHmL7cN6DHTRztnF6', 'Admin', 'admin@example.com', 1, NOW()) ON DUPLICATE KEY UPDATE password=VALUES(password), nickname=VALUES(nickname), email=VALUES(email), active=1;
 
 INSERT IGNORE INTO user_roles (user_id, role_id)
 SELECT u.id, r.id FROM users u JOIN roles r ON r.name = 'ADMIN' WHERE u.username = 'admin';

@@ -63,12 +63,12 @@ WordPress的安装流程（存在安全隐患）：
 
 > 密钥、数据库口令、邮件授权码等一律放环境变量或密钥管理服务（KMS/Vault），不要提交到代码库或镜像。
 
-### 1.3 环境变量设置指南（以 `ASTRNEST_DB_PASSWORD=chenxi123` 为例）
+### 1.3 环境变量设置指南（以 `ASTRNEST_DB_PASSWORD=ChangeMe_123!` 为例）
 - **.env 的作用**：Compose/脚本统一入口，供 docker compose 与 shell 读取。模板是 `.env.example`，实际生效的是 `.env`，需填入真实值（与 MySQL 实例一致），同时保持 `MYSQL_PASSWORD` 与 `ASTRNEST_DB_PASSWORD` 一致。
-- **Windows PowerShell（当前会话）**：`$Env:ASTRNEST_DB_PASSWORD="chenxi123"`，然后在同一终端启动后端。
+- **Windows PowerShell（当前会话）**：`$Env:ASTRNEST_DB_PASSWORD="ChangeMe_123!"`，然后在同一终端启动后端。
 - **Windows 永久环境变量**：控制面板 → 系统 → 高级系统设置 → 环境变量，新增/修改用户或系统变量 `ASTRNEST_DB_PASSWORD`。
-- **Docker Compose**：在 `.env`（非 `.env.example`）写 `ASTRNEST_DB_PASSWORD=chenxi123`，并确保 `MYSQL_PASSWORD` 匹配 MySQL 实际密码；保存后 `docker compose --env-file .env up -d`。
-- **Linux/macOS**：`export ASTRNEST_DB_PASSWORD="chenxi123"`，随后在同一会话运行后端。
+- **Docker Compose**：在 `.env`（非 `.env.example`）写 `ASTRNEST_DB_PASSWORD=ChangeMe_123!`，并确保 `MYSQL_PASSWORD` 匹配 MySQL 实际密码；保存后 `docker compose --env-file .env up -d`。
+- **Linux/macOS**：`export ASTRNEST_DB_PASSWORD="ChangeMe_123!"`，随后在同一会话运行后端。
 
 > 建议：生产环境统一用环境变量/密钥管理器注入数据库口令，避免直接写入 `application.yml`。
 
@@ -99,7 +99,7 @@ spring:
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/astrnest?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     username: astrnest
-    password: astrnestPass!
+    password: ChangeMe_123!
   servlet:
     multipart:
       max-file-size: 20MB
@@ -113,7 +113,7 @@ astrnest:
       public-base-url: /upload
   admin:
     username: admin
-    password: chenxi123
+    password: ChangeMe_123!
     display-name: 超级管理员
     email: admin@example.com
 ```
@@ -203,8 +203,8 @@ mysql -u root -p < backend/db/init.sql
 ```sql
 CREATE DATABASE IF NOT EXISTS astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
-CREATE USER IF NOT EXISTS 'astrnest'@'localhost' IDENTIFIED BY 'chenxi123';
-CREATE USER IF NOT EXISTS 'astrnest'@'%' IDENTIFIED BY 'chenxi123';
+CREATE USER IF NOT EXISTS 'astrnest'@'localhost' IDENTIFIED BY 'ChangeMe_123!';
+CREATE USER IF NOT EXISTS 'astrnest'@'%' IDENTIFIED BY 'ChangeMe_123!';
 
 GRANT ALL PRIVILEGES ON astrnest.* TO 'astrnest'@'localhost';
 GRANT ALL PRIVILEGES ON astrnest.* TO 'astrnest'@'%';
@@ -337,10 +337,10 @@ Spring Boot 不会自动加载项目根目录的 .env 文件
 **2. `application.yml` 中的语法错误**
 ```yaml
 # ❌ 错误的写法（带单引号）
-password: ${ASTRNEST_DB_PASSWORD:'chenxi123'}
+password: ${ASTRNEST_DB_PASSWORD:'ChangeMe_123!'}
 
 # ✅ 正确的写法（不带单引号）
-password: ${ASTRNEST_DB_PASSWORD:chenxi123}
+password: ${ASTRNEST_DB_PASSWORD:ChangeMe_123!}
 ```
 
 **3. 配置优先级问题**
@@ -359,8 +359,8 @@ Spring Boot 配置优先级（从高到低）：
 ```powershell
 # 在启动后端的同一个 PowerShell 窗口中设置
 $Env:ASTRNEST_ADMIN_USERNAME="admin"
-$Env:ASTRNEST_ADMIN_PASSWORD="chenxi123"
-$Env:ASTRNEST_DB_PASSWORD="chenxi123"
+$Env:ASTRNEST_ADMIN_PASSWORD="ChangeMe_123!"
+$Env:ASTRNEST_DB_PASSWORD="ChangeMe_123!"
 
 # 然后启动后端
 cd backend
@@ -372,8 +372,8 @@ cd backend
 1. 控制面板 → 系统 → 高级系统设置 → 环境变量
 2. 添加用户变量：
    - `ASTRNEST_ADMIN_USERNAME` = `admin`
-   - `ASTRNEST_ADMIN_PASSWORD` = `chenxi123`
-   - `ASTRNEST_DB_PASSWORD` = `chenxi123`
+   - `ASTRNEST_ADMIN_PASSWORD` = `ChangeMe_123!`
+   - `ASTRNEST_DB_PASSWORD` = `ChangeMe_123!`
 3. 重启 PowerShell 或 IDE 使环境变量生效
 
 **方案 C：直接修改 application.yml（兜底配置）**
@@ -381,7 +381,7 @@ cd backend
 astrnest:
   admin:
     username: admin
-    password: chenxi123  # 直接写死，不通过环境变量
+    password: ChangeMe_123!  # 直接写死，不通过环境变量
 ```
 
 #### 12.1.3 不同场景的推荐做法
