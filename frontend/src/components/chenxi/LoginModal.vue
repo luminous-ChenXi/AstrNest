@@ -1,29 +1,10 @@
 <script setup>
 import { ElMessage } from 'element-plus'
 import { Lock, User, Close } from '@element-plus/icons-vue'
-import { reactive, ref, watch, onMounted } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '../../services/auth'
 import { useAuthStore } from '../../stores/auth'
-
-// 加载 login 文件夹中的图片
-const loginImageModules = import.meta.glob('../../assets/img/login/*', {
-  eager: true,
-  import: 'default',
-})
-const loginImagePool = Object.values(loginImageModules).filter(Boolean)
-
-const currentImage = ref('')
-
-const pickRandomImage = () => {
-  if (!loginImagePool.length) return ''
-  const randomIndex = Math.floor(Math.random() * loginImagePool.length)
-  return loginImagePool[randomIndex]
-}
-
-onMounted(() => {
-  currentImage.value = pickRandomImage()
-})
 
 const props = defineProps({
   visible: {
@@ -124,15 +105,14 @@ watch(() => props.visible, (newVal, oldVal) => {
           <div class="modal-content">
             <!-- 左侧：品牌展示 -->
             <div class="modal-brand">
-              <!-- 背景图片 -->
+              <!-- 品牌渐变背景（纯 CSS，随主题切换） -->
               <div class="brand-image-container">
-                <img
-                  v-if="currentImage"
-                  :src="currentImage"
-                  alt="Login background"
-                  class="brand-background-image"
-                />
-                <div v-else class="brand-image-placeholder">
+                <div class="brand-aurora">
+                  <div class="aurora-blob aurora-primary"></div>
+                  <div class="aurora-blob aurora-accent"></div>
+                  <div class="aurora-blob aurora-sky"></div>
+                </div>
+                <div class="brand-image-placeholder">
                   <span class="placeholder-text">辰汐图床</span>
                 </div>
               </div>
@@ -294,6 +274,44 @@ watch(() => props.visible, (newVal, oldVal) => {
   height: 100%;
   object-fit: cover;
   object-position: center;
+}
+
+.brand-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, #FADCE9 0%, #F9A8C8 50%, #E87A9F 100%);
+}
+
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(48px);
+  opacity: 0.55;
+}
+
+.aurora-primary {
+  width: 70%;
+  aspect-ratio: 1;
+  top: -20%;
+  left: -15%;
+  background: var(--halo-primary);
+}
+
+.aurora-accent {
+  width: 60%;
+  aspect-ratio: 1;
+  bottom: -18%;
+  right: -12%;
+  background: var(--halo-secondary);
+}
+
+.aurora-sky {
+  width: 50%;
+  aspect-ratio: 1;
+  top: 34%;
+  left: 36%;
+  background: radial-gradient(circle at 50% 50%, rgba(135, 206, 235, 0.3), transparent 65%);
 }
 
 .brand-image-placeholder {

@@ -530,40 +530,38 @@ onMounted(loadData)
   }
 }
 
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .action-panel {
-    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
-    border-color: rgba(255, 255, 255, 0.06);
-  }
+/* Dark Mode：跟随站内主题开关（<html> 上的 .dark 类） */
+:root.dark .action-panel {
+  background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+}
 
-  .stat-item {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.04);
-  }
+:root.dark .stat-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.04);
+}
 
-  .stat-label {
-    color: #94a3b8;
-  }
+:root.dark .stat-label {
+  color: #94a3b8;
+}
 
-  .stat-value {
-    color: #f1f5f9;
-  }
+:root.dark .stat-value {
+  color: #f1f5f9;
+}
 
-  .like-btn {
-    background: rgba(16, 185, 129, 0.15);
-    border-color: rgba(16, 185, 129, 0.3);
-  }
+:root.dark .like-btn {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
 
-  .visibility-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: #e2e8f0;
-  }
+:root.dark .visibility-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+}
 
-  .visibility-btn.private {
-    background: rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.3);
-  }
+:root.dark .visibility-btn.private {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
 }
 </style>
