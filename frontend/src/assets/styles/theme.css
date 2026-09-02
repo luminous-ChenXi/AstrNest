@@ -45,6 +45,23 @@
   --admin-header-bg: rgba(255, 255, 255, 0.95);
   --admin-header-border: rgba(26, 26, 46, 0.05);
 
+  /* 以下变量曾被组件引用但此前未定义，现按原 fallback 语义补齐（全部随主题切换） */
+  --bg-body: var(--color-bg-secondary);
+  --bg-card: var(--admin-panel-bg);
+  --bg-input: #f9fafb;
+  --bg-secondary: var(--color-bg-secondary);
+  --border-medium: var(--border-strong);
+  --brand-primary: var(--color-brand-primary);
+  --brand-accent: var(--color-brand-accent);
+  --color-bg-tertiary: #e5e7eb;
+  --color-brand-primary-rgb: 255, 107, 157;
+  --color-brand-accent-rgb: 78, 205, 196;
+  --color-text-muted: var(--text-muted);
+  --text-body-secondary: var(--text-muted);
+  --text-body-muted: var(--text-muted);
+  --text-body-soft: var(--text-soft);
+  --text-body-faint: var(--text-faint);
+
   /* Light theme specific gradients - 粉色/薄荷绿/浅蓝 */
   --bg-gradient: linear-gradient(135deg, #fff5f7 0%, #f0fdfa 50%, #f0f9ff 100%);
   --bg-gradient-mixed: radial-gradient(circle at 15% 20%, rgba(255, 182, 193, 0.4), transparent 45%),
@@ -113,6 +130,10 @@
   --admin-accent-soft: rgba(255, 143, 171, 0.15);
   --admin-header-bg: rgba(15, 15, 26, 0.95);
   --admin-header-border: rgba(255, 255, 255, 0.06);
+
+  /* 明暗取值不同的补充变量 */
+  --bg-input: rgba(40, 40, 65, 0.6);
+  --color-bg-tertiary: #4b5563;
 
   /* Dark theme specific gradients - 深色 + 暖色点缀 */
   --bg-gradient: radial-gradient(circle at 20% 20%, rgba(255, 143, 171, 0.2), transparent 45%),

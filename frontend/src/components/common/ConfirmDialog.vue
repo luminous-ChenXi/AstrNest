@@ -258,28 +258,26 @@ const handleCancel = () => {
   transform: scale(0.9) translateY(20px);
 }
 
-/* 深色模式适配 */
-@media (prefers-color-scheme: dark) {
-  .confirm-dialog {
-    background: var(--color-bg-primary, #1f2937);
-    border-color: var(--border-soft, rgba(255, 255, 255, 0.1));
-  }
+/* 深色模式适配：跟随站内主题开关（<html> 上的 .dark 类），而非系统偏好 */
+:root.dark .confirm-dialog {
+  background: var(--color-bg-primary, #1f2937);
+  border-color: var(--border-soft, rgba(255, 255, 255, 0.1));
+}
 
-  .dialog-title {
-    color: var(--color-text-primary, #f9fafb);
-  }
+:root.dark .dialog-title {
+  color: var(--color-text-primary, #f9fafb);
+}
 
-  .dialog-message {
-    color: var(--color-text-secondary, #9ca3af);
-  }
+:root.dark .dialog-message {
+  color: var(--color-text-secondary, #9ca3af);
+}
 
-  .btn-cancel {
-    background: var(--color-bg-secondary, #374151);
-    color: var(--color-text-secondary, #9ca3af);
-  }
+:root.dark .btn-cancel {
+  background: var(--color-bg-secondary, #374151);
+  color: var(--color-text-secondary, #9ca3af);
+}
 
-  .btn-cancel:hover {
-    background: var(--color-bg-tertiary, #4b5563);
-  }
+:root.dark .btn-cancel:hover {
+  background: var(--color-bg-tertiary, #4b5563);
 }
 </style>

@@ -1669,55 +1669,53 @@ onMounted(() => {
   }
 }
 
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .custom-modal-container {
-    background: #1a1a2e;
-  }
+/* Dark Mode：跟随站内主题开关（<html> 上的 .dark 类） */
+:root.dark .custom-modal-container {
+  background: #1a1a2e;
+}
 
-  .custom-modal-header {
-    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
-    border-color: rgba(255, 255, 255, 0.06);
-  }
+:root.dark .custom-modal-header {
+  background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+}
 
-  .custom-modal-header .modal-title {
-    color: #f1f5f9;
-  }
+:root.dark .custom-modal-header .modal-title {
+  color: #f1f5f9;
+}
 
-  .custom-modal-header .close-btn {
-    background: rgba(255, 255, 255, 0.1);
-  }
+:root.dark .custom-modal-header .close-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
 
-  .custom-modal-header .close-icon {
-    color: #94a3b8;
-  }
+:root.dark .custom-modal-header .close-icon {
+  color: #94a3b8;
+}
 
-  .detail-stat-card {
-    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
-    border-color: rgba(255, 255, 255, 0.06);
-  }
+:root.dark .detail-stat-card {
+  background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+}
 
-  .stat-card-label {
-    color: #94a3b8;
-  }
+:root.dark .stat-card-label {
+  color: #94a3b8;
+}
 
-  .section-title {
-    color: #f1f5f9;
-  }
+:root.dark .section-title {
+  color: #f1f5f9;
+}
 
-  .detail-empty .empty-illustration {
-    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
-    border-color: rgba(255, 255, 255, 0.06);
-  }
+:root.dark .detail-empty .empty-illustration {
+  background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+}
 
-  .detail-empty .empty-title {
-    color: #e2e8f0;
-  }
+:root.dark .detail-empty .empty-title {
+  color: #e2e8f0;
+}
 
-  .action-btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: #e2e8f0;
-  }
+:root.dark .action-btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
 }
 </style>

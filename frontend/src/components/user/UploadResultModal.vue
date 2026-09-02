@@ -800,63 +800,61 @@ const getAiTagClass = (type) => {
   }
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .modal-container {
-    background: #1a1a2e;
-  }
+/* Dark Mode Support：跟随站内主题开关（<html> 上的 .dark 类） */
+:root.dark .modal-container {
+  background: #1a1a2e;
+}
 
-  .modal-header {
-    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
-    border-color: rgba(255, 255, 255, 0.06);
-  }
+:root.dark .modal-header {
+  background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+}
 
-  .modal-title {
-    color: #f1f5f9;
-  }
+:root.dark .modal-title {
+  color: #f1f5f9;
+}
 
-  .close-btn {
-    background: rgba(255, 255, 255, 0.1);
-  }
+:root.dark .close-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
 
-  .close-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-  }
+:root.dark .close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
 
-  .close-icon {
-    color: #94a3b8;
-  }
+:root.dark .close-icon {
+  color: #94a3b8;
+}
 
-  .media-preview {
-    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
-    border-color: rgba(255, 255, 255, 0.06);
-  }
+:root.dark .media-preview {
+  background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+}
 
-  .media-name {
-    color: #e2e8f0;
-  }
+:root.dark .media-name {
+  color: #e2e8f0;
+}
 
-  .ai-review-card {
-    background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
-    border-color: rgba(255, 255, 255, 0.06);
-  }
+:root.dark .ai-review-card {
+  background: linear-gradient(135deg, #252542 0%, #1a1a2e 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+}
 
-  .ai-review-title {
-    color: #f1f5f9;
-  }
+:root.dark .ai-review-title {
+  color: #f1f5f9;
+}
 
-  .ai-icon {
-    color: #94a3b8;
-  }
+:root.dark .ai-icon {
+  color: #94a3b8;
+}
 
-  .format-textarea {
-    background: #252542;
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #e2e8f0;
-  }
+:root.dark .format-textarea {
+  background: #252542;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
 
-  .format-textarea:focus {
-    background: #1a1a2e;
-  }
+:root.dark .format-textarea:focus {
+  background: #1a1a2e;
 }
 </style>
