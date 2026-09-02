@@ -101,6 +101,7 @@ public class UploadService {
     UserAccount uploader = resolveUser(authentication);
     ApiKey apiKey = resolveApiKey(authentication);
     Set<ChenxiTag> baseTags = new LinkedHashSet<>(chenxiTagService.resolveTags(tagNames));
+    enforceUserQuotas(uploader, files);
 
     // 构建视频文件名到封面的映射
     java.util.Map<String, MultipartFile> coverMap = buildCoverMap(videoCovers, videoCoverMapping);

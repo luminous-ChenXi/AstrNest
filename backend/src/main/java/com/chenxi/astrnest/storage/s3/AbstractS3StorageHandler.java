@@ -306,6 +306,9 @@ public abstract class AbstractS3StorageHandler implements StorageHandler {
       case KS3:
         // 金山云 KS3: https://ks3-<region>.ksyun.com
         return "https://ks3-" + region + ".ksyun.com";
+      case ALIYUN_OSS:
+        // 阿里云 OSS: https://oss-<region>.aliyuncs.com
+        return "https://oss-" + region + ".aliyuncs.com";
       case S3_COMPATIBLE:
         // S3 兼容存储: 不需要额外配置，SDK 会根据 region 自动构建或使用用户配置的 endpoint
       default:

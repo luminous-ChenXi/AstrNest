@@ -181,6 +181,20 @@ public class ChenxiAuthService {
     return token;
   }
 
+  @Transactional
+  public void verifyEmailCode(String email, String code, ChenxiEmailScene scene) {
+    ChenxiEmailToken token = emailTokenRepository.findTopByEmailAndSceneAndConsumedFalseOrderByCreatedAtDesc(email, scene)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先获取验证码"));
+    Instant now = Instant.now();
+    if (token.getExpiresAt().isBefore(now)) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "验证码已失效，请重新获取");
+    }
+    if (!token.getCode().equalsIgnoreCase(code)) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "验证码不正确");
+    }
+    // 验证通过，不消耗验证码
+  }
+
   private String generateCode() {
     int value = RANDOM.nextInt(900_000) + 100_000;
     return Integer.toString(value);

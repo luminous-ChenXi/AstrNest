@@ -55,13 +55,13 @@ const quotaCards = computed(() => {
   const summary = overview.value
   const totalLimit = summary.totalUploadLimit
   if (totalLimit && totalLimit > 0) {
-    const used = summary.totalUploads || 0
-    const remaining = Math.max(totalLimit - used, 0)
+    const remaining = typeof summary.totalRemaining === 'number' ? summary.totalRemaining : -1
+    const used = remaining >= 0 ? Math.max(totalLimit - remaining, 0) : summary.totalUploads
     const progress = Math.min(Math.round((used / totalLimit) * 100), 100)
     cards.push({
       key: 'total',
       label: '总数量上限',
-      badge: remaining === 0 ? '数量已达上限' : `${remaining} 张剩余`,
+      badge: remaining === 0 ? '数量已达上限' : remaining < 0 ? '不限' : `${remaining} 张剩余`,
       value: `${used}/${totalLimit} 张`,
       progress,
       danger: remaining === 0,
@@ -185,39 +185,41 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="space-y-8">
-    <section class="grid gap-4 md:grid-cols-3">
+  <div class="space-y-6 md:space-y-8">
+    <!-- 统计卡片区域 -->
+    <section class="grid grid-cols-3 gap-2 md:gap-4">
       <div
         v-for="card in [
-          { label: '累计上传', value: overview.totalUploads },
-          { label: '今日上传', value: overview.todayUploads },
-          { label: '存储占用', value: prettySize(overview.storageBytes) },
+          { label: '累计上传', value: overview.totalUploads, icon: 'Upload' },
+          { label: '今日上传', value: overview.todayUploads, icon: 'TrendingUp' },
+          { label: '存储占用', value: prettySize(overview.storageBytes), icon: 'HardDrive' },
         ]"
         :key="card.label"
-        class="glass-panel rounded-3xl border border-body bg-surface-overlay p-5 shadow-card"
+        class="glass-panel rounded-2xl md:rounded-3xl border border-body bg-surface-overlay p-3 md:p-5 shadow-card hover:shadow-lg transition-shadow"
       >
-        <p class="text-xs uppercase tracking-[0.35em] text-body-soft">{{ card.label }}</p>
-        <p class="mt-2 text-3xl font-semibold text-gradient">{{ card.value }}</p>
+        <p class="text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.35em] text-body-soft">{{ card.label }}</p>
+        <p class="mt-1 md:mt-2 text-xl md:text-3xl font-semibold text-gradient">{{ card.value }}</p>
       </div>
     </section>
 
-    <section v-if="quotaCards.length" class="glass-panel rounded-[32px] border border-body bg-surface-strong p-6 shadow-card">
-      <div class="grid gap-4 md:grid-cols-2">
+    <!-- 配额卡片区域 -->
+    <section v-if="quotaCards.length" class="glass-panel rounded-2xl md:rounded-[32px] border border-body bg-surface-strong p-4 md:p-6 shadow-card">
+      <div class="grid gap-3 md:gap-4 md:grid-cols-2">
         <article
           v-for="card in quotaCards"
           :key="card.key"
           class="quota-card"
           :class="card.danger ? 'quota-card--danger' : ''"
         >
-          <div class="flex items-center justify-between text-sm">
+          <div class="flex items-center justify-between text-xs md:text-sm">
             <p class="font-semibold">{{ card.label }}</p>
             <span class="badge">{{ card.badge }}</span>
           </div>
-          <p class="mt-3 text-2xl font-semibold">{{ card.value }}</p>
+          <p class="mt-2 md:mt-3 text-xl md:text-2xl font-semibold">{{ card.value }}</p>
           <div class="quota-track">
             <div class="quota-progress" :style="{ width: card.progress + '%' }" />
           </div>
-          <p class="text-sm text-body-soft">{{ card.hint }}</p>
+          <p class="text-xs md:text-sm text-body-soft">{{ card.hint }}</p>
         </article>
       </div>
       <div v-for="alert in quotaAlerts" :key="alert" class="quota-alert">
@@ -225,28 +227,34 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <section class="glass-panel space-y-6 rounded-[32px] border border-body bg-surface-overlay p-6">
-      <div class="flex flex-wrap items-center gap-3">
+    <!-- 上传区域 -->
+    <section class="glass-panel space-y-4 md:space-y-6 rounded-2xl md:rounded-[32px] border border-body bg-surface-overlay p-4 md:p-6">
+      <div class="flex flex-wrap items-center gap-2 md:gap-3">
         <div>
-          <h3 class="text-xl font-semibold">上传媒体</h3>
-          <p class="text-sm text-body-soft">拖拽 / 点击 / Ctrl+V </p>
+          <h3 class="text-lg md:text-xl font-semibold">上传媒体</h3>
+          <p class="text-xs md:text-sm text-body-soft">拖拽 / 点击 / Ctrl+V </p>
         </div>
-        <span class="chip-soft px-3 py-1 text-xs">审查：自动 + 人工信号</span>
+        <span class="chip-soft px-2 md:px-3 py-1 text-[10px] md:text-xs">审查：自动 + 人工信号</span>
       </div>
       <div
-        class="dashboard-dropzone flex flex-col items-center justify-center gap-4 rounded-[32px] border-2 border-dashed px-6 py-12 text-center transition"
+        class="dashboard-dropzone flex flex-col items-center justify-center gap-3 md:gap-4 rounded-2xl md:rounded-[32px] border-2 border-dashed px-4 md:px-6 py-8 md:py-12 text-center transition"
         :class="{ 'dashboard-dropzone--active': isDragging }"
         @drop="onDrop"
         @dragover="onDragOver"
         @dragleave="onDragLeave"
       >
         <input ref="fileInput" type="file" class="hidden" multiple accept="image/*,video/*" @change="onFileChange" />
-        <p class="text-lg font-semibold">将图片拖入此处或点击选择</p>
-        <p class="text-sm text-body-soft">支持 JPG / PNG / GIF / WEBP 以及 MP4 / WEBM 短视频，单次最多 30 个文件</p>
-        <div class="flex flex-wrap justify-center gap-3">
+        <div class="w-12 h-12 md:w-16 md:h-16 rounded-full bg-surface-strong flex items-center justify-center mb-2">
+          <svg class="w-6 h-6 md:w-8 md:h-8 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
+        </div>
+        <p class="text-base md:text-lg font-semibold">将图片拖入此处或点击选择</p>
+        <p class="text-xs md:text-sm text-body-soft px-2">支持 JPG / PNG / GIF / WEBP 以及 MP4 / WEBM 短视频，单次最多 30 个文件</p>
+        <div class="flex flex-wrap justify-center gap-2 md:gap-3 mt-2">
           <button
             type="button"
-            class="rounded-full bg-gradient-to-r from-brand-primary to-brand-accent px-6 py-2 text-sm font-semibold shadow-[0_12px_40px_rgba(127,123,255,0.35)] transition hover:translate-y-0.5 disabled:opacity-60"
+            class="rounded-full bg-gradient-to-r from-brand-primary to-brand-accent px-4 md:px-6 py-2 text-xs md:text-sm font-semibold shadow-[0_12px_40px_rgba(127,123,255,0.35)] transition hover:translate-y-0.5 disabled:opacity-60"
             :disabled="uploadBusy"
             @click="openPicker"
           >
@@ -254,13 +262,13 @@ onBeforeUnmount(() => {
           </button>
           <button
             type="button"
-            class="rounded-full border border-body px-6 py-2 text-sm font-semibold text-body-secondary transition hover:border-brand-primary hover:text-body-primary"
+            class="rounded-full border border-body px-4 md:px-6 py-2 text-xs md:text-sm font-semibold text-body-secondary transition hover:border-brand-primary hover:text-body-primary"
             @click="remindPaste"
           >
             监听剪贴板
           </button>
         </div>
-        <p class="text-xs text-body-soft">{{ pasteHint }}</p>
+        <p class="text-[10px] md:text-xs text-body-soft">{{ pasteHint }}</p>
         <el-alert
           v-if="uploadError"
           :title="uploadError"
@@ -280,26 +288,27 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <section class="glass-panel rounded-[32px] border border-body bg-surface-overlay p-6">
-      <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <!-- 最近上传区域 -->
+    <section class="glass-panel rounded-2xl md:rounded-[32px] border border-body bg-surface-overlay p-4 md:p-6">
+      <div class="mb-4 md:mb-6 flex flex-wrap items-center justify-between gap-2 md:gap-3">
         <div>
-          <h3 class="text-xl font-semibold">最近上传</h3>
-          <p class="text-sm text-body-soft">系统自动保留最近 5 条记录</p>
+          <h3 class="text-lg md:text-xl font-semibold">最近上传</h3>
+          <p class="text-xs md:text-sm text-body-soft">系统自动保留最近 5 条记录</p>
         </div>
         <RouterLink
-          class="rounded-full border border-body px-4 py-2 text-xs font-semibold text-body-muted transition hover:border-brand-primary hover:text-body-primary"
+          class="rounded-full border border-body px-3 md:px-4 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold text-body-muted transition hover:border-brand-primary hover:text-body-primary"
           :to="{ name: 'user-images' }"
         >
           查看全部
         </RouterLink>
       </div>
-      <div v-if="loadingOverview" class="text-sm text-body-soft">正在加载...</div>
-      <div v-else-if="!overview.latestUploads?.length" class="text-sm text-body-soft">暂时没有上传记录</div>
-      <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div v-if="loadingOverview" class="text-xs md:text-sm text-body-soft">正在加载...</div>
+      <div v-else-if="!overview.latestUploads?.length" class="text-xs md:text-sm text-body-soft">暂时没有上传记录</div>
+      <div v-else class="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <article
           v-for="item in overview.latestUploads"
           :key="item.id"
-          class="group overflow-hidden rounded-2xl border border-body bg-surface-strong shadow-card transition hover:-translate-y-1"
+          class="group overflow-hidden rounded-xl md:rounded-2xl border border-body bg-surface-strong shadow-card transition hover:-translate-y-1 hover:shadow-lg"
         >
           <div class="relative">
             <el-tag
@@ -307,13 +316,13 @@ onBeforeUnmount(() => {
               :type="aiBadgeForItem(item).type"
               effect="dark"
               size="small"
-              class="absolute left-3 top-3 z-10"
+              class="absolute left-2 md:left-3 top-2 md:top-3 z-10 !text-[10px] md:!text-xs"
             >
               {{ aiBadgeForItem(item).text }}
             </el-tag>
             <template v-if="item.mediaCategory === 'VIDEO'">
               <video
-                class="h-48 w-full object-cover"
+                class="h-36 md:h-48 w-full object-cover"
                 :poster="item.thumbnailUrl || undefined"
                 preload="metadata"
                 muted
@@ -321,16 +330,16 @@ onBeforeUnmount(() => {
               >
                 <source :src="item.publicUrl" />
               </video>
-              <span class="media-chip absolute right-3 top-3 rounded-full px-3 py-1 text-xs">短视频</span>
+              <span class="media-chip absolute right-2 md:right-3 top-2 md:top-3 rounded-full px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs">短视频</span>
             </template>
             <template v-else>
-              <img :src="item.publicUrl" :alt="item.fileName" class="h-48 w-full object-cover" />
+              <img :src="item.publicUrl" :alt="item.fileName" class="h-36 md:h-48 w-full object-cover" />
             </template>
           </div>
-          <div class="space-y-1 border-t border-body p-4 text-sm">
-            <p class="font-semibold">{{ item.fileName }}</p>
-            <p class="text-xs text-body-soft">{{ formatDate(item.uploadedAt) }}</p>
-            <p v-if="item.aiReview?.errorMessage" class="text-xs text-rose-300">{{ item.aiReview.errorMessage }}</p>
+          <div class="space-y-0.5 md:space-y-1 border-t border-body p-3 md:p-4">
+            <p class="text-xs md:text-sm font-semibold truncate">{{ item.fileName }}</p>
+            <p class="text-[10px] md:text-xs text-body-soft">{{ formatDate(item.uploadedAt) }}</p>
+            <p v-if="item.aiReview?.errorMessage" class="text-[10px] md:text-xs text-rose-300">{{ item.aiReview.errorMessage }}</p>
           </div>
         </article>
       </div>

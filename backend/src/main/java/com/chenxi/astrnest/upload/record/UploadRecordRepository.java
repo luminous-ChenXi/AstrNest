@@ -128,4 +128,6 @@ public interface UploadRecordRepository extends JpaRepository<UploadRecord, Long
       @Param("userId") Long userId,
       @Param("albumId") Long albumId,
       Pageable pageable);
+
+  List<UploadRecord> findTop3ByPublicAccessibleTrueAndViolationFalseOrderByLikeCountDesc();
 }

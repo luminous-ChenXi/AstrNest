@@ -1,7 +1,9 @@
 package com.chenxi.astrnest.gallery;
 
+import com.chenxi.astrnest.gallery.dto.PublicGalleryItemResponse;
 import com.chenxi.astrnest.gallery.dto.PublicGalleryMetricsResponse;
 import com.chenxi.astrnest.gallery.dto.PublicGalleryPageResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
@@ -42,5 +44,12 @@ public class PublicGalleryController {
       @RequestHeader(value = "X-Chenxi-Visitor", required = false) String visitorToken
   ) {
     return publicGalleryService.searchByTagKeyword(keyword, page, size, authentication, visitorToken);
+  }
+
+  @GetMapping(value = "/public/top-liked", produces = MediaType.APPLICATION_JSON_VALUE)
+  public List<PublicGalleryItemResponse> getTopLikedImages(
+      @RequestParam(defaultValue = "3") int limit
+  ) {
+    return publicGalleryService.getTopLikedImages(Math.min(Math.max(limit, 1), 10));
   }
 }

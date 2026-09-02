@@ -361,6 +361,7 @@ function removeFile(index) {
 
 function clearSelection() {
   selectedFiles.value = []
+  selectedTags.value = []
 }
 
 function clearSelectedTags() {

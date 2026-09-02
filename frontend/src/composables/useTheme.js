@@ -6,6 +6,7 @@ export const useTheme = () => {
     selector: 'html',
     attribute: 'class',
     emitAuto: true, // This is important to react to system changes
+    initialValue: 'auto', // 默认自动跟随系统主题
   })
 
   return {

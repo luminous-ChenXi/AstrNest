@@ -45,22 +45,22 @@ onMounted(loadSettings)
 
 <template>
   <div class="user-security space-y-8">
-    <section class="glass-panel rounded-[32px] border border-white/10 bg-white/5 p-6">
+    <section class="glass-panel rounded-[32px] border border-body bg-surface-overlay p-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 class="text-xl font-semibold">API 安全</h3>
-          <p class="text-sm text-white/60">保持密钥安全，必要时及时重置</p>
+          <p class="text-sm text-body-soft">保持密钥安全，必要时及时重置</p>
         </div>
-        <span class="rounded-full border border-white/20 px-4 py-1 text-xs text-white/70">Header: {{ settings.apiHeaderName }}</span>
+        <span class="rounded-full border border-body px-4 py-1 text-xs text-body-muted">Header: {{ settings.apiHeaderName }}</span>
       </div>
-      <p class="mt-4 text-sm text-white/60">默认日调用配额：{{ settings.defaultDailyQuota }}</p>
+      <p class="mt-4 text-sm text-body-soft">默认日调用配额：{{ settings.defaultDailyQuota }}</p>
     </section>
 
-    <section class="glass-panel rounded-[32px] border border-white/10 bg-white/5 p-6">
+    <section class="glass-panel rounded-[32px] border border-body bg-surface-overlay p-6">
       <h4 class="text-xl font-semibold">修改密码</h4>
-      <p class="text-sm text-white/60">建议定期更新密码，避免多人共用。</p>
+      <p class="text-sm text-body-soft">建议定期更新密码，避免多人共用。</p>
       <form class="mt-6 space-y-4" @submit.prevent="submit">
-        <label class="block text-sm text-white/70">
+        <label class="block text-sm text-body-muted">
           当前密码
           <input
             v-model="passwordForm.currentPassword"
@@ -68,10 +68,10 @@ onMounted(loadSettings)
             autocomplete="current-password"
             required
             placeholder="请输入当前密码"
-            class="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+            class="mt-2 w-full rounded-2xl border border-body bg-surface-overlay px-4 py-3 text-sm text-body-primary placeholder:text-body-faint focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
           />
         </label>
-        <label class="block text-sm text-white/70">
+        <label class="block text-sm text-body-muted">
           新密码
           <input
             v-model="passwordForm.newPassword"
@@ -79,10 +79,10 @@ onMounted(loadSettings)
             autocomplete="new-password"
             required
             placeholder="请输入新密码"
-            class="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+            class="mt-2 w-full rounded-2xl border border-body bg-surface-overlay px-4 py-3 text-sm text-body-primary placeholder:text-body-faint focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
           />
         </label>
-        <label class="block text-sm text-white/70">
+        <label class="block text-sm text-body-muted">
           确认新密码
           <input
             v-model="passwordForm.confirmPassword"
@@ -90,12 +90,12 @@ onMounted(loadSettings)
             autocomplete="new-password"
             required
             placeholder="再次输入新密码"
-            class="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
+            class="mt-2 w-full rounded-2xl border border-body bg-surface-overlay px-4 py-3 text-sm text-body-primary placeholder:text-body-faint focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/40"
           />
         </label>
-        <p v-if="message" :class="message.includes('失败') ? 'text-sm text-brand-accent' : 'text-sm text-brand-emerald'">{{ message }}</p>
+        <p v-if="message" :class="message.includes('失败') ? 'text-sm text-brand-accent' : 'text-sm text-emerald-500'">{{ message }}</p>
         <button
-          class="w-full rounded-2xl bg-gradient-to-r from-brand-primary to-brand-accent py-3 text-sm font-semibold shadow-[0_20px_60px_rgba(127,123,255,0.35)] transition hover:translate-y-0.5 disabled:opacity-60"
+          class="w-full rounded-2xl bg-gradient-to-r from-brand-primary to-brand-accent py-3 text-sm font-semibold text-white shadow-[0_20px_60px_rgba(127,123,255,0.35)] transition hover:translate-y-0.5 disabled:opacity-60"
           type="submit"
           :disabled="saving"
         >
@@ -104,19 +104,19 @@ onMounted(loadSettings)
       </form>
     </section>
 
-    <section class="glass-panel rounded-[32px] border border-white/10 bg-white/5 p-6">
+    <section class="glass-panel rounded-[32px] border border-body bg-surface-overlay p-6">
       <div class="flex items-center justify-between gap-3">
         <div>
           <h4 class="text-xl font-semibold">最近登录</h4>
-          <p class="text-sm text-white/60">帮助你发现异常登录</p>
+          <p class="text-sm text-body-soft">帮助你发现异常登录</p>
         </div>
       </div>
-      <div v-if="loading" class="mt-4 text-sm text-white/60">加载中…</div>
-      <div v-else-if="!settings.recentLogins?.length" class="mt-4 text-sm text-white/60">暂未记录登录历史</div>
-      <div v-else class="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-black/20">
+      <div v-if="loading" class="mt-4 text-sm text-body-soft">加载中…</div>
+      <div v-else-if="!settings.recentLogins?.length" class="mt-4 text-sm text-body-soft">暂未记录登录历史</div>
+      <div v-else class="mt-4 overflow-x-auto rounded-2xl border border-body bg-surface-strong">
         <table class="w-full text-left text-sm">
           <thead>
-            <tr class="text-white/60">
+            <tr class="text-body-soft">
               <th class="px-4 py-3">时间</th>
               <th class="px-4 py-3">IP</th>
               <th class="px-4 py-3">位置</th>
@@ -124,7 +124,7 @@ onMounted(loadSettings)
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in settings.recentLogins" :key="row.id || row.occurredAt" class="border-t border-white/5 text-white/80">
+            <tr v-for="row in settings.recentLogins" :key="row.id || row.occurredAt" class="border-t border-body text-body-secondary">
               <td class="px-4 py-3">{{ new Date(row.occurredAt).toLocaleString() }}</td>
               <td class="px-4 py-3">{{ row.ip }}</td>
               <td class="px-4 py-3">{{ row.location || '未知区域' }}</td>
@@ -135,20 +135,20 @@ onMounted(loadSettings)
       </div>
     </section>
 
-    <section class="glass-panel rounded-[32px] border border-white/10 bg-white/5 p-6">
+    <section class="glass-panel rounded-[32px] border border-body bg-surface-overlay p-6">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h4 class="text-xl font-semibold">API 接口管理</h4>
-          <p class="text-sm text-white/60">使用密钥在任何客户端直接上传媒体</p>
+          <p class="text-sm text-body-soft">使用密钥在任何客户端直接上传媒体</p>
         </div>
         <RouterLink
-          class="rounded-full border border-white/20 px-5 py-2 text-sm font-semibold text-white/80 transition hover:border-brand-primary hover:text-white"
+          class="rounded-full border border-body px-5 py-2 text-sm font-semibold text-body-secondary transition hover:border-brand-primary hover:text-body-primary"
           :to="{ name: 'user-api' }"
         >
           去管理
         </RouterLink>
       </div>
-      <ul class="mt-4 space-y-2 text-sm text-white/70">
+      <ul class="mt-4 space-y-2 text-sm text-body-muted">
         <li>✔ 复制 Demo/上传API实例.txt 中的 cURL / JS 示例即可接入</li>
         <li>✔ 支持密码保护、CDN 域名切换与多格式输出</li>
         <li>✔ 分别查看调用次数与分钟级限流，发现异常可立即禁用</li>
@@ -158,42 +158,5 @@ onMounted(loadSettings)
 </template>
 
 <style scoped>
-.user-security :deep(.text-white\/80) {
-  color: var(--text-body-secondary);
-}
-
-.user-security :deep(.text-white\/70) {
-  color: var(--text-body-muted);
-}
-
-.user-security :deep(.text-white\/60) {
-  color: var(--text-body-soft);
-}
-
-.user-security :deep(.text-white\/50),
-.user-security :deep(.text-white\/40) {
-  color: var(--text-body-faint);
-}
-
-.user-security :deep(.text-white) {
-  color: var(--color-text-primary);
-}
-
-.user-security :deep(.bg-white\/5) {
-  background-color: var(--panel-overlay) !important;
-}
-
-.user-security :deep(.bg-black\/20) {
-  background-color: var(--color-bg-strong) !important;
-}
-
-.user-security :deep(.border-white\/10),
-.user-security :deep(.border-white\/15),
-.user-security :deep(.border-white\/20) {
-  border-color: var(--border-soft) !important;
-}
-
-.user-security :deep(.placeholder\:text-white\/40::placeholder) {
-  color: var(--text-body-faint);
-}
+/* 所有样式已迁移到 Tailwind CSS 类 */
 </style>
