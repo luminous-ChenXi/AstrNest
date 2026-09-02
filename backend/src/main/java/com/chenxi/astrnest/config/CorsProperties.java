@@ -14,6 +14,7 @@ public class CorsProperties {
       "http://localhost:5173",
       "http://127.0.0.1:5173",
       "http://192.168.1.100:5173",
+      "http://192.168.1.200:5173",
       "https://luminouschenxi.net",
       "https://www.luminouschenxi.net"
   );

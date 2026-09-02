@@ -6,7 +6,7 @@ import { User, Menu, X } from 'lucide-vue-next'
 
 import ThemeSwitcher from './ThemeSwitcher.vue'
 import LoginModal from '../chenxi/LoginModal.vue'
-import LogoSvg from './LogoSvg.vue'
+import SiteLogo from './SiteLogo.vue'
 import { useAuthStore } from '../../stores/auth'
 
 const showLoginModal = ref(false)
@@ -94,7 +94,7 @@ const toggleMobileMenu = () => {
       <!-- Logo 区域 -->
       <RouterLink to="/" class="logo-link">
         <div class="logo-badge">
-          <LogoSvg :width="32" :height="32" />
+          <SiteLogo :width="32" :height="32" />
         </div>
         <div class="logo-text">
           <span class="logo-eyebrow">member space</span>

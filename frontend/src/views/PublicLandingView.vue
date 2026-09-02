@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="landing-wrapper">
     <div class="landing-page relative min-h-screen overflow-hidden">
       <!-- 动态背景层 - 三色混合过渡 (60%覆盖，40%留白) -->
@@ -24,7 +24,7 @@
       <div class="header-inner mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
         <div class="flex items-center gap-3 md:gap-4">
           <div class="logo-wrapper">
-            <LogoSvg :width="40" :height="40" />
+            <SiteLogo :width="40" :height="40" />
           </div>
           <div class="logo-text">
             <p class="logo-title">AstrNest</p>
@@ -333,7 +333,7 @@ import PublicGalleryGrid from '../components/public/PublicGalleryGrid.vue'
 import PublicAnnouncementSpotlight from '../components/public/PublicAnnouncementSpotlight.vue'
 import ChenxiGlobalFooter from '../components/common/ChenxiGlobalFooter.vue'
 import ThemeSwitcher from '../components/common/ThemeSwitcher.vue'
-import LogoSvg from '../components/common/LogoSvg.vue'
+import SiteLogo from '../components/common/SiteLogo.vue'
 import SocialCard from '../components/chenxi/SocialCard.vue'
 import '../assets/styles/chenxi-transitions.css'
 import '../assets/styles/chenxi-interactions.css'

@@ -109,6 +109,23 @@ public class PublicGalleryService {
   }
 
   @Transactional(readOnly = true)
+  public List<PublicGalleryItemResponse> getTopLikedImages(int limit) {
+    List<UploadRecord> records = uploadRecordRepository.findTop3ByPublicAccessibleTrueAndViolationFalseOrderByLikeCountDesc();
+    List<Long> recordIds = records.stream().map(UploadRecord::getId).toList();
+    Map<Long, List<ChenxiTagResponse>> tagMap = resolveTags(recordIds);
+
+    return records.stream()
+        .map(record -> mapItem(
+            record,
+            false,
+            null,
+            tagMap.getOrDefault(record.getId(), List.of())
+        ))
+        .limit(limit)
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
   public PublicGalleryPageResponse searchByTagKeyword(
       String keyword,
       int page,

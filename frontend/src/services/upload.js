@@ -87,7 +87,6 @@ export const uploadFiles = async (files, tags = [], onProgress = null) => {
       .filter((tag) => tag?.length)
       .forEach((tag) => formData.append('tags', tag))
   }
-
   onProgress?.({ stage: 'uploading', current: 0, total: 100 })
 
   const { data } = await http.post('/api/uploads', formData, {
@@ -145,6 +144,7 @@ export const uploadFilesBatch = async (files, tags = [], onProgress = null) => {
   // 如果只有一批，直接上传
   if (batches.length === 1) {
     const result = await uploadFiles(files, tags, onProgress)
+    // 兼容新旧响应格式
     if (result && Array.isArray(result.uploaded)) {
       return result
     }
@@ -187,7 +187,7 @@ export const uploadFilesBatch = async (files, tags = [], onProgress = null) => {
         }
       })
 
-      // 处理响应
+      // 处理响应 - 兼容新旧格式
       if (result && Array.isArray(result.uploaded)) {
         allUploaded.push(...result.uploaded)
         allSkipped.push(...(result.skipped || []))
