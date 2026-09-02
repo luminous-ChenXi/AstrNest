@@ -45,7 +45,6 @@
    ```
 
 ### AI 审核密钥（可选）
-PS：“（可选）“表示可以不写，为什么不写？可以是Lazy、也可以是安全。。。反正，都行，想写就写
 - 若需在本地调试腾讯云图片审核/标签流程，请在 `.env` 或 shell 中设置以下环境变量，后端会在系统配置未填写时读取这些值：
   - `ASTRNEST_AI_TENCENT_SECRET_ID`
   - `ASTRNEST_AI_TENCENT_SECRET_KEY`
