@@ -2,7 +2,7 @@
 <script setup>
 import { ElMessage, ElSteps, ElStep, ElForm, ElFormItem, ElInput, ElButton } from 'element-plus'
 import { User, Message as MailIcon, Lock } from '@element-plus/icons-vue'
-import { computed, reactive, ref, watch, onMounted } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { debounce } from 'lodash-es'
 import ChenxiCaptchaInput from '../../components/chenxi/ChenxiCaptchaInput.vue'
@@ -10,31 +10,11 @@ import { requestRegisterCode, registerChenxiAccount, checkEmailAvailability } fr
 import { useChenxiEmailCode } from '../../composables/useChenxiEmailCode'
 import http from '../../services/http'
 
-const backgroundUrl = ref('')
-const backgroundModules = import.meta.glob('../../assets/img/backgroud/*', {
-  eager: true,
-  import: 'default',
-})
-const backgroundPool = Object.values(backgroundModules).filter(Boolean)
-const fallbackBackground =
-  'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80'
-
-const resolvedBackground = computed(() => backgroundUrl.value || fallbackBackground)
 const MAX_PARALLAX_OFFSET = 36
 const parallaxOffset = ref({ x: 0, y: 0 })
 const backgroundTransformStyle = computed(() => ({
   transform: `translate3d(${parallaxOffset.value.x}px, ${parallaxOffset.value.y}px, 0) scale(1.02)`,
 }))
-
-const pickBackground = () => {
-  if (!backgroundPool.length) return fallbackBackground
-  const randomIndex = Math.floor(Math.random() * backgroundPool.length)
-  return backgroundPool[randomIndex]
-}
-
-onMounted(() => {
-  backgroundUrl.value = pickBackground()
-})
 
 const handleMouseMove = (event) => {
   if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
@@ -241,12 +221,11 @@ const handleSubmit = async () => {
     @mouseleave="resetParallax"
   >
     <div class="background-layer" aria-hidden="true">
-      <img
-        :src="resolvedBackground"
-        alt="AstrNest background"
-        class="background-image"
-        :style="backgroundTransformStyle"
-      />
+      <div class="background-aurora" :style="backgroundTransformStyle">
+        <div class="aurora-blob aurora-primary"></div>
+        <div class="aurora-blob aurora-accent"></div>
+        <div class="aurora-blob aurora-sky"></div>
+      </div>
     </div>
     <div class="background-overlay"></div>
     <div class="auth-panel">
@@ -392,13 +371,43 @@ const handleSubmit = async () => {
   z-index: 0;
 }
 
-.background-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.background-aurora {
+  position: absolute;
+  inset: -6%;
   transform-origin: center;
   transition: transform 0.85s cubic-bezier(0.33, 1, 0.68, 1);
   will-change: transform;
+}
+
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  opacity: 0.55;
+}
+
+.aurora-primary {
+  width: 55vmax;
+  height: 55vmax;
+  top: -18%;
+  left: -12%;
+  background: var(--halo-primary);
+}
+
+.aurora-accent {
+  width: 42vmax;
+  height: 42vmax;
+  bottom: -20%;
+  right: -10%;
+  background: var(--halo-secondary);
+}
+
+.aurora-sky {
+  width: 36vmax;
+  height: 36vmax;
+  top: 32%;
+  left: 38%;
+  background: radial-gradient(circle at 50% 50%, rgba(135, 206, 235, 0.28), transparent 65%);
 }
 
 .background-overlay {

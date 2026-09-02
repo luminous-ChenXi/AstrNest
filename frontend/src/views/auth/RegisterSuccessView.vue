@@ -1,39 +1,22 @@
 <script setup>
 import { RouterLink } from 'vue-router'
 import { CheckCircle2, Sparkles, ArrowRight, Home, Shield, Zap, Lock, Sun, Moon, PartyPopper, Star, Trophy } from 'lucide-vue-next'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { usePreferredDark } from '@vueuse/core'
+import { useTheme } from '../../composables/useTheme'
 
-const isDark = ref(true)
-const STORAGE_KEY = 'chenxi-theme'
 const fireworks = ref([])
 const particles = ref([])
 let animationId = null
 
-// 从 localStorage 获取主题设置
-const getStoredTheme = () => {
-  if (typeof window === 'undefined') return true
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored !== null) {
-    return stored === 'dark'
-  }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
+// 主题统一走全局 useTheme（<html> 上的 .dark 类）
+const { mode } = useTheme()
+const preferredDark = usePreferredDark()
+const isDark = computed(() => (mode.value === 'auto' ? preferredDark.value : mode.value === 'dark'))
 
-// 保存主题设置
-const storeTheme = (dark) => {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(STORAGE_KEY, dark ? 'dark' : 'light')
-}
-
-// 初始化主题
-const initTheme = () => {
-  isDark.value = getStoredTheme()
-}
-
-// 手动切换主题
+// 手动切换主题（写入全局模式，全站生效）
 const toggleTheme = () => {
-  isDark.value = !isDark.value
-  storeTheme(isDark.value)
+  mode.value = isDark.value ? 'light' : 'dark'
 }
 
 // 烟花粒子类
@@ -164,18 +147,15 @@ const initCanvas = () => {
 }
 
 onMounted(() => {
-  initTheme()
-  
-  // 监听 storage 事件
-  window.addEventListener('storage', (e) => {
-    if (e.key === STORAGE_KEY) {
-      isDark.value = e.newValue === 'dark'
-    }
-  })
-  
+  // 兼容旧版本写入的私有主题键，迁移后移除
+  if (localStorage.getItem('chenxi-theme') !== null) {
+    mode.value = localStorage.getItem('chenxi-theme') === 'dark' ? 'dark' : 'light'
+    localStorage.removeItem('chenxi-theme')
+  }
+
   // 初始化烟花
   const cleanup = initCanvas()
-  
+
   onUnmounted(() => {
     if (animationId) {
       cancelAnimationFrame(animationId)

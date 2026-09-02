@@ -1,8 +1,10 @@
 <script setup>
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElButton } from 'element-plus'
+import { usePreferredDark } from '@vueuse/core'
 import { Sun, Moon } from 'lucide-vue-next'
+import { useTheme } from '../../composables/useTheme'
 
 const props = defineProps({
   title: { type: String, default: '辰汐安全云' },
@@ -11,59 +13,24 @@ const props = defineProps({
 })
 
 const route = useRoute()
-const STORAGE_KEY = 'chenxi-theme'
 
-// 主题状态
-const isDark = ref(true)
+// 主题统一走全局 useTheme（<html> 上的 .dark 类），此处只做展示层联动
+const { mode } = useTheme()
+const preferredDark = usePreferredDark()
+const isDark = computed(() => (mode.value === 'auto' ? preferredDark.value : mode.value === 'dark'))
 
-// 从 localStorage 获取主题设置
-const getStoredTheme = () => {
-  if (typeof window === 'undefined') return true
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored !== null) {
-    return stored === 'dark'
-  }
-  // 如果没有存储，检测系统偏好
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
-// 保存主题设置到 localStorage
-const storeTheme = (dark) => {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(STORAGE_KEY, dark ? 'dark' : 'light')
-}
-
-// 初始化主题
-const initTheme = () => {
-  isDark.value = getStoredTheme()
-}
-
-// 监听系统主题变化
-onMounted(() => {
-  initTheme()
-
-  // 监听 storage 事件，当其他页面切换主题时同步
-  window.addEventListener('storage', (e) => {
-    if (e.key === STORAGE_KEY) {
-      isDark.value = e.newValue === 'dark'
-    }
-  })
-
-  // 监听系统主题变化（仅在用户没有手动设置时）
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  mediaQuery.addEventListener('change', (e) => {
-    // 只有当用户没有手动设置过主题时才自动切换
-    if (localStorage.getItem(STORAGE_KEY) === null) {
-      isDark.value = e.matches
-    }
-  })
-})
-
-// 手动切换主题
+// 手动切换主题（写入全局模式，全站生效）
 const toggleTheme = () => {
-  isDark.value = !isDark.value
-  storeTheme(isDark.value)
+  mode.value = isDark.value ? 'light' : 'dark'
 }
+
+onMounted(() => {
+  // 兼容旧版本写入的私有主题键，迁移后移除
+  if (localStorage.getItem('chenxi-theme') !== null) {
+    mode.value = localStorage.getItem('chenxi-theme') === 'dark' ? 'dark' : 'light'
+    localStorage.removeItem('chenxi-theme')
+  }
+})
 
 const navLinks = [
   { to: { path: '/', query: { login: '1' } }, label: '登录' },
