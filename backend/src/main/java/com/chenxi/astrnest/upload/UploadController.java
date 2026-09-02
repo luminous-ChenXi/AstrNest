@@ -1,9 +1,9 @@
 package com.chenxi.astrnest.upload;
 
 import com.chenxi.astrnest.storage.StorageService;
-import com.chenxi.astrnest.system.SystemConfigService;
 import com.chenxi.astrnest.upload.dto.UploadBatchResponse;
 import com.chenxi.astrnest.upload.record.UploadRecordService;
+import com.chenxi.astrnest.system.SystemConfigService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -45,11 +45,12 @@ public class UploadController {
       @RequestParam(value = "videoCoverMapping", required = false) List<String> videoCoverMapping,
       Authentication authentication, HttpServletRequest request) {
     // 检查是否允许访客上传
-    boolean isAuthenticated = authentication != null && authentication.isAuthenticated();
+    boolean isAuthenticated = authentication != null && authentication.isAuthenticated()
+        && !"anonymousUser".equals(authentication.getPrincipal());
     String clientIp = resolveClientIp(request);
 
     if (!isAuthenticated) {
-      // 访客上传权限检查
+      // 访客上传权限检查（内部含 guestUploadEnabled 开关判断）
       guestUploadService.checkGuestUploadPermission(clientIp);
     }
 

@@ -69,7 +69,7 @@
           <p class="sync-time">刚刚更新 · {{ lastUpdated || '同步中' }}</p>
         </div>
 
-        <!-- Hero 视觉区 - 精选图集卡片 -->
+        <!-- Hero 视觉区 - 精选图集 / 热门图片卡片 -->
         <div v-if="heroTiles.length > 0" class="hero-visual">
           <div 
             v-for="(tile, index) in heroTiles" 
@@ -387,7 +387,7 @@ import ChenxiGlobalFooter from '../../components/common/ChenxiGlobalFooter.vue'
 import UserNavbar from '../../components/common/UserNavbar.vue'
 import GalleryPreviewModal from '../../components/public/GalleryPreviewModal.vue'
 import { usePublicGallery } from '../../composables/usePublicGallery'
-import { likeImage, unlikeImage, searchGalleryByTag } from '../../services/gallery'
+import { likeImage, unlikeImage, searchGalleryByTag, fetchTopLikedImages } from '../../services/gallery'
 import { useAuthStore } from '../../stores/auth'
 import { albumApi } from '../../api/album'
 import '../../assets/styles/chenxi-interactions.css'
@@ -417,6 +417,9 @@ const totalImages = ref(0)
 // Featured 图集数据
 const featuredAlbums = ref([])
 const featuredAlbumsLoading = ref(false)
+// 热门图片数据（无图集时作为首屏卡片兜底）
+const topLikedImages = ref([])
+const topLikedLoading = ref(false)
 
 const filterOptions = [
   { id: 'all', label: '综合' },
@@ -654,8 +657,15 @@ const heroTiles = computed(() => {
       }
     })
   }
-  // 如果没有图集数据，返回空数组（不显示卡片）
-  return []
+  // 没有图集数据时，回退到点赞最多的图片卡片
+  return topLikedImages.value.map((item, index) => ({
+    id: item.id ?? `hero-${index}`,
+    title: item.fileName || `灵感速记 #${index + 1}`,
+    tag: item.mediaCategory === 'VIDEO' ? '视频集' : '图集',
+    meta: `${item.ownerDisplayName || '匿名创作者'} · ${numberFormatter.format(item.likeCount || 0)} 喜欢`,
+    cover: item.publicUrl || resolvePublicUrl(item),
+    gradient: getPlaceholderGradient(item.id),
+  }))
 })
 
 const featuredStories = computed(() => {
@@ -1098,9 +1108,23 @@ const copyLink = async (link) => {
   }
 }
 
+const loadTopLikedImages = async () => {
+  try {
+    topLikedLoading.value = true
+    const data = await fetchTopLikedImages(3)
+    topLikedImages.value = data || []
+  } catch (error) {
+    console.error('加载热门图片失败', error)
+    topLikedImages.value = []
+  } finally {
+    topLikedLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadGallery(0, { reset: true })
   loadFeaturedAlbums()
+  loadTopLikedImages()
 })
 </script>
 
