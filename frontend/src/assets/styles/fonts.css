@@ -1,0 +1,34 @@
+/* Local-first fallback: avoid外网依赖，优先使用本机已安装的 Plus Jakarta Sans */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Plus Jakarta Sans'), local('PlusJakartaSans-Regular');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Plus Jakarta Sans Medium'), local('PlusJakartaSans-Medium'), local('Plus Jakarta Sans');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Plus Jakarta Sans SemiBold'), local('PlusJakartaSans-SemiBold'), local('Plus Jakarta Sans');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Plus Jakarta Sans Bold'), local('PlusJakartaSans-Bold'), local('Plus Jakarta Sans');
+}
+
+/* 如需完全离线，请将对应 woff2 放到 public/fonts 并在此补充 src:url('/fonts/xxx.woff2') format('woff2')。 */

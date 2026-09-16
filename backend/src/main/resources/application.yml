@@ -1,0 +1,41 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: astrnest-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  servlet:
+    multipart:
+      max-file-size: ${ASTRNEST_MULTIPART_MAX_FILE_SIZE:20MB}
+      max-request-size: ${ASTRNEST_MULTIPART_MAX_REQUEST_SIZE:20MB}
+      resolve-lazily: true
+
+astrnest:
+  security:
+    # 是否信任反向代理头（X-Real-IP / X-Forwarded-For）：默认 false，直接取 remoteAddr，
+    # 防止客户端伪造请求头绕过限流与配额；部署在可信 nginx 等代理之后时置为 true
+    trusted-proxy: ${ASTRNEST_TRUSTED_PROXY:false}
+  storage:
+    strategy: ${ASTRNEST_STORAGE_STRATEGY:LOCAL}
+    local:
+      root: ${ASTRNEST_STORAGE_ROOT:./storage/upload}
+      public-base-url: ${ASTRNEST_STORAGE_PUBLIC:/upload}
+  api-key:
+    header-name: ${ASTRNEST_API_KEY_HEADER:X-API-Key}
+    default-daily-quota: ${ASTRNEST_API_DEFAULT_QUOTA:1000}
+  # SSO 外部身份源登录：默认关闭；issuer 示例 https://passport.example.com（兼容辰汐通行证等 OAuth2.1/OIDC 身份源）
+  sso:
+    enabled: ${ASTRNEST_SSO_ENABLED:false}
+    issuer: ${ASTRNEST_SSO_ISSUER:}
+    client-id: ${ASTRNEST_SSO_CLIENT_ID:}
+    redirect-uri: ${ASTRNEST_SSO_REDIRECT_URI:}
+    scopes: openid, profile, email
+  video-thumbnail:
+    enabled: ${ASTRNEST_VIDEO_THUMBNAIL_ENABLED:true}
+    ffmpeg-path: ${ASTRNEST_VIDEO_THUMBNAIL_FFMPEG:ffmpeg}
+    capture-offset: ${ASTRNEST_VIDEO_THUMBNAIL_CAPTURE:PT1S}
+    quality: ${ASTRNEST_VIDEO_THUMBNAIL_QUALITY:2}
+    timeout-seconds: ${ASTRNEST_VIDEO_THUMBNAIL_TIMEOUT:20}
+    cover-directory: ${ASTRNEST_VIDEO_THUMBNAIL_SUBDIR:cover}
