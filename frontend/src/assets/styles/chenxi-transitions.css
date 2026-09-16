@@ -1,0 +1,113 @@
+.chenxi-transition-enter-active,
+.chenxi-transition-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chenxi-transition-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.chenxi-transition-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.chenxi-fade-enter-active,
+.chenxi-fade-leave-active {
+  transition: opacity 0.25s ease-in-out;
+}
+
+.chenxi-fade-enter-from,
+.chenxi-fade-leave-to {
+  opacity: 0;
+}
+
+.chenxi-scale-enter-active,
+.chenxi-scale-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chenxi-scale-enter-from,
+.chenxi-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.chenxi-user-dropdown .el-dropdown-menu {
+  animation: chenxi-dropdown-fade-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes chenxi-dropdown-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chenxi-user-avatar {
+  position: relative;
+  overflow: hidden;
+}
+
+.chenxi-user-avatar::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.chenxi-user-avatar:hover::before {
+  transform: translateX(100%);
+}
+
+:root {
+  --chenxi-page-transition-duration: 0.5s;
+  --chenxi-page-transition-ease: cubic-bezier(0.6, 0.2, 0.1, 1);
+}
+
+.chenxi-page-forward-enter-active,
+.chenxi-page-forward-leave-active,
+.chenxi-page-back-enter-active,
+.chenxi-page-back-leave-active,
+.chenxi-page-fade-enter-active,
+.chenxi-page-fade-leave-active {
+  transition: opacity var(--chenxi-page-transition-duration) var(--chenxi-page-transition-ease),
+    transform var(--chenxi-page-transition-duration) var(--chenxi-page-transition-ease);
+  will-change: opacity, transform;
+}
+
+.chenxi-page-forward-enter-from {
+  opacity: 0;
+  transform: translate3d(32px, 0, 0) scale(0.985);
+}
+
+.chenxi-page-forward-leave-to {
+  opacity: 0;
+  transform: translate3d(-40px, 0, 0) scale(0.96);
+}
+
+.chenxi-page-back-enter-from {
+  opacity: 0;
+  transform: translate3d(-28px, 0, 0) scale(0.985);
+}
+
+.chenxi-page-back-leave-to {
+  opacity: 0;
+  transform: translate3d(36px, 0, 0) scale(0.96);
+}
+
+.chenxi-page-fade-enter-from,
+.chenxi-page-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.985);
+}

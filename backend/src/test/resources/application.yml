@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:astrnest;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  servlet:
+    multipart:
+      max-file-size: 512MB
+      max-request-size: 512MB
+      resolve-lazily: true
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+  main:
+    allow-bean-definition-overriding: true
