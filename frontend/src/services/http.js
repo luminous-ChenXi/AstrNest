@@ -75,7 +75,21 @@ const formatErrorMessage = (error) => {
 }
 
 http.interceptors.response.use(
-  (response) => response,
+  async (response) => {
+    // 令牌滑动续期：后端认证成功且剩余有效期不足一半时，通过该响应头下发新 JWT
+    const refreshedToken = response?.headers?.['x-astrnest-refreshed-token']
+    if (refreshedToken) {
+      try {
+        const auth = await getAuthStore()
+        if (auth.isAuthenticated) {
+          auth.refreshSession(refreshedToken)
+        }
+      } catch (error) {
+        // 续期失败不影响当前请求
+      }
+    }
+    return response
+  },
   async (error) => {
     const url = error?.config?.url || ''
     const isAuthAttempt = url.includes('/api/auth/login') || url.includes('/api/auth/register')

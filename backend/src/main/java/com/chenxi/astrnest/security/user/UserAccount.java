@@ -43,7 +43,7 @@ public class UserAccount {
 
   /**
    * 外部身份源唯一标识（OIDC/OAuth2.1 的 sub），影子账号专用；本地账号恒为 null。
-   * 仅在 astrnest.sso.enabled 开启且外部身份源登录时写入（见 passport 包）。
+   * 仅在 chenxi.passport.enabled 开启且外部身份源登录时写入（见 passport 包）。
    */
   @Column(name = "sso_sub", unique = true, length = 64)
   private String ssoSub;

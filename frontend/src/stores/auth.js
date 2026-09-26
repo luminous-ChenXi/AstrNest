@@ -180,6 +180,16 @@ export const useAuthStore = defineStore('auth', {
       this.expiresAt = expiresAt
       localStorage.setItem(EXPIRES_AT_KEY, String(expiresAt))
     },
+    // 令牌滑动续期（chenxi.passport.access-token-days，默认 30 天）：
+    // 后端在剩余有效期不足一半时通过 X-AstrNest-Refreshed-Token 响应头下发新 JWT，
+    // 前端替换本地 token 并顺延过期时间——活跃用户会话持续滚动，30 天完全不活动才过期
+    refreshSession(newToken) {
+      if (!newToken) return
+      this.token = newToken
+      this.expiresAt = Date.now() + SESSION_TTL_MS
+      localStorage.setItem(TOKEN_KEY, newToken)
+      localStorage.setItem(EXPIRES_AT_KEY, String(this.expiresAt))
+    },
     updateProfile(profile) {
       this.profile = profile
       localStorage.setItem(PROFILE_KEY, JSON.stringify(profile))

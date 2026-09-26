@@ -21,9 +21,13 @@ import org.springframework.util.StringUtils;
  *
  * <p>密钥来源：{@code astrnest.jwt.secret}（推荐通过环境变量 {@code ASTRNEST_JWT_SECRET} 注入）。
  * 未配置或长度不足 32 字符时，启动阶段生成一次性随机密钥并打 WARN 日志——此时重启后所有已签发 token 失效，
- * 生产环境必须显式配置。
+ * 生产环境必须显式配置。</p>
  *
- * <p>claims：{@code sub}=用户名、{@code uid}=用户 id、{@code iat}、{@code exp}。
+ * <p>有效期口径（统一规范）：TTL 取 {@code chenxi.passport.access-token-days}（默认 30 天），
+ * 语义为「令牌不活动过期」——{@link JwtAuthenticationFilter} 在剩余有效期不足一半时通过
+ * 响应头滑动续期，活跃用户的会话因此持续顺延；超过 TTL 完全不活动才真正过期。</p>
+ *
+ * <p>claims：{@code sub}=用户名、{@code uid}=用户 id、{@code iat}、{@code exp}。</p>
  */
 @Service
 public class JwtTokenService {
@@ -32,14 +36,14 @@ public class JwtTokenService {
 
   static final String CLAIM_UID = "uid";
   private static final int MIN_SECRET_CHARS = 32;
-  private static final long DEFAULT_TTL_HOURS = 72L;
+  private static final long DEFAULT_TTL_DAYS = 30L;
 
   private final SecretKey secretKey;
   private final Duration ttl;
 
   public JwtTokenService(
       @Value("${astrnest.jwt.secret:}") String configuredSecret,
-      @Value("${astrnest.jwt.ttl-hours:72}") long ttlHours) {
+      @Value("${chenxi.passport.access-token-days:30}") long accessTokenDays) {
     if (StringUtils.hasText(configuredSecret) && configuredSecret.trim().length() >= MIN_SECRET_CHARS) {
       this.secretKey = Keys.hmacShaKeyFor(configuredSecret.trim().getBytes(StandardCharsets.UTF_8));
     } else {
@@ -47,9 +51,9 @@ public class JwtTokenService {
           + "生产必须配置 ASTRNEST_JWT_SECRET，否则重启后所有 token 失效", MIN_SECRET_CHARS);
       this.secretKey = Jwts.SIG.HS256.key().build();
     }
-    long hours = ttlHours > 0 ? ttlHours : DEFAULT_TTL_HOURS;
-    this.ttl = Duration.ofHours(hours);
-    log.info("JWT 签发器已就绪：TTL={} 小时，密钥来源={}", hours,
+    long days = accessTokenDays > 0 ? accessTokenDays : DEFAULT_TTL_DAYS;
+    this.ttl = Duration.ofDays(days);
+    log.info("JWT 签发器已就绪：TTL={} 天（不活动过期，滑动刷新），密钥来源={}", days,
         StringUtils.hasText(configuredSecret) ? "配置项 astrnest.jwt.secret" : "临时随机密钥");
   }
 
@@ -78,6 +82,19 @@ public class JwtTokenService {
       log.debug("拒绝无效 JWT：{}", ex.getMessage());
       return Optional.empty();
     }
+  }
+
+  /**
+   * 是否需要滑动续期：剩余有效期不足 TTL 一半时为 true。
+   * 调用方（JwtAuthenticationFilter）据此签发新 token 并放入响应头，实现「不活动过期」语义。
+   */
+  public boolean needsRefresh(Claims claims) {
+    Date expiration = claims.getExpiration();
+    if (expiration == null) {
+      return false;
+    }
+    long remainingMillis = expiration.getTime() - System.currentTimeMillis();
+    return remainingMillis < ttl.toMillis() / 2;
   }
 
   /** token 有效期（秒），用于登录响应的 expiresIn 字段。 */

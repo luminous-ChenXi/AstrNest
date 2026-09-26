@@ -23,7 +23,14 @@ public class CorsProperties {
 
   private List<String> allowedHeaders = List.of("*");
 
-  private List<String> exposedHeaders = List.of("Content-Disposition", "X-RateLimit-Remaining", "X-RateLimit-Reset");
+  // exposedHeaders 含 JWT 滑动续期响应头（JwtAuthenticationFilter，chenxi.passport.access-token-days 语义），
+  // 保证跨域部署时前端也能读到刷新 token
+  private List<String> exposedHeaders = List.of(
+      "Content-Disposition",
+      "X-RateLimit-Remaining",
+      "X-RateLimit-Reset",
+      "X-AstrNest-Refreshed-Token"
+  );
 
   private boolean allowCredentials = true;
 

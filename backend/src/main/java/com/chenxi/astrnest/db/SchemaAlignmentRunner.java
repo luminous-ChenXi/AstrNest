@@ -1,5 +1,6 @@
 package com.chenxi.astrnest.db;
 
+import java.sql.DatabaseMetaData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -16,6 +17,13 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
 
   @Override
   public void run(ApplicationArguments args) {
+    if (!isMySql()) {
+      // 本类是 MySQL 专用的存量库对齐（CHANGE COLUMN / ADD UNIQUE KEY / information_schema.STATISTICS
+      // 等语法与字典表为 MySQL 特有）；H2 等非 MySQL 环境（如单元测试内嵌库）直接跳过，
+      // 避免 SQL 方言不兼容导致启动失败。生产 MySQL 行为不受影响。
+      log.info("Skipping MySQL schema alignment: datasource is not MySQL");
+      return;
+    }
     alignColumn("upload_records", "object_key", "storage_path", "VARCHAR(255) NOT NULL");
     alignColumn("upload_records", "public_url", "image_link", "VARCHAR(255) NOT NULL");
     alignColumn("upload_records", "image_name", "file_name", "VARCHAR(180) NOT NULL");
@@ -29,13 +37,24 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
     ensureColumnExists("upload_records", "last_access_at", "DATETIME NULL AFTER invoke_count");
     ensureColumnExists("system_config", "auto_cleanup_days", "INT NOT NULL DEFAULT 30 AFTER guest_like_enabled");
 
-    // SSO 影子账号列（astrnest.sso 默认关闭，仅外部身份源登录时写入数据，结构始终补齐）
+    // SSO 影子账号列（chenxi.passport 默认关闭，仅外部身份源登录时写入数据，结构始终补齐）
     ensureColumnExists("users", "sso_sub", "VARCHAR(64) NULL AFTER avatar_url");
     ensureColumnExists("users", "identity_source", "VARCHAR(32) NOT NULL DEFAULT 'local' AFTER sso_sub");
     ensureIndexExists("users", "uk_users_sso_sub", "ALTER TABLE users ADD UNIQUE KEY uk_users_sso_sub (sso_sub)");
 
     // 安装向导完成标记表（install 包使用；全新库由 install-schema.sql 创建，旧库在此补齐）
     ensureInstallStateTable();
+  }
+
+  /** 数据源是否为 MySQL（H2 内嵌库等环境跳过 MySQL 专用对齐）。探测失败按 MySQL 处理，维持原行为。 */
+  private boolean isMySql() {
+    try {
+      DatabaseMetaData metaData = jdbcTemplate.getDataSource().getConnection().getMetaData();
+      String product = metaData == null ? null : metaData.getDatabaseProductName();
+      return product == null || product.toLowerCase().contains("mysql");
+    } catch (Exception exception) {
+      return true;
+    }
   }
 
   /**

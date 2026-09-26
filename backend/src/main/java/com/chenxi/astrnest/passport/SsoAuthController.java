@@ -5,7 +5,6 @@ import com.chenxi.astrnest.passport.dto.SsoConfigResponse;
 import com.chenxi.astrnest.passport.dto.SsoExchangeRequest;
 import com.chenxi.astrnest.user.dto.LoginResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,11 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * SSO 登录公开接口（{@code /api/auth/sso/**}，默认关闭）。
+ * 通行证登录公开接口（{@code /api/auth/sso/**}，默认关闭，配置命名空间 {@code chenxi.passport.*}）。
  *
  * <ul>
  *   <li>{@code GET /api/auth/sso/config}：返回身份源配置与端点，关闭时 enabled=false，前端隐藏入口；</li>
- *   <li>{@code POST /api/auth/sso/exchange}：凭身份源 access_token 换取本地 JWT（同本地登录响应）。</li>
+ *   <li>{@code POST /api/auth/sso/exchange}：OIDC 授权码 + PKCE（code + codeVerifier，推荐）
+ *       或遗留 access_token 直换，换取本地 JWT（同本地登录响应）。</li>
  * </ul>
  *
  * <p>防滥用：AuthProtectionService 的锁定维度按「用户名+IP」设计，SSO exchange 无用户名语义，
@@ -43,7 +43,7 @@ public class SsoAuthController {
   private static final int EXCHANGE_LIMIT_PER_MINUTE = 10;
   private static final long WINDOW_MILLIS = 60_000L;
 
-  private final SsoProperties ssoProperties;
+  private final ChenxiPassportProperties ssoProperties;
   private final SsoIdentityService ssoIdentityService;
   private final ClientIpResolver clientIpResolver;
 
@@ -69,12 +69,20 @@ public class SsoAuthController {
   }
 
   @PostMapping("/exchange")
-  public LoginResponse exchange(@Valid @RequestBody SsoExchangeRequest request, HttpServletRequest httpRequest) {
+  public LoginResponse exchange(@RequestBody SsoExchangeRequest request, HttpServletRequest httpRequest) {
     if (!effectivelyEnabled()) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SSO 登录未启用");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "通行证登录未启用");
+    }
+    if (request == null || !request.hasCredential()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "缺少登录凭证：请提供 code + codeVerifier 或 accessToken");
     }
     String ip = clientIpResolver.resolve(httpRequest);
     ensureExchangeAllowed(ip);
+    if (StringUtils.hasText(request.code()) && StringUtils.hasText(request.codeVerifier())) {
+      // OIDC 授权码 + PKCE：由后端完成换 token，浏览器不接触通行证 token
+      return ssoIdentityService.exchangeByAuthorizationCode(request.code(), request.codeVerifier(), httpRequest);
+    }
+    // 遗留路径：前端自行换好 access_token，后端回站自省校验
     return ssoIdentityService.exchangeByAccessToken(request.accessToken(), httpRequest);
   }
 

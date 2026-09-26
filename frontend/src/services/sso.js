@@ -1,16 +1,16 @@
 import http from './http'
 
 /**
- * SSO（外部身份源）登录前端辅助。
+ * SSO（外部身份源/辰汐通行证）登录前端辅助。配置命名空间：chenxi.passport.*（默认关闭）。
  *
- * 兼容任何 OAuth 2.1 / OIDC「授权码 + PKCE(S256)」的 public client 身份源
- * （如"辰汐通行证"，示例 issuer：https://passport.example.com）。
+ * 兼容任何 OAuth 2.1 / OIDC「授权码 + PKCE(S256)」的 public client 身份源。
  *
  * 流程：
  *   1. fetchSsoConfig 拉取本地配置（enabled/issuer/端点等）；
  *   2. createPkce 生成 code_verifier / code_challenge，连同 state/nonce 存 sessionStorage；
  *   3. buildAuthorizeUrl 跳转身份源授权页；
- *   4. 回调页用 code 换 access_token（exchangeCode），再调本地 /api/auth/sso/exchange 换本地 JWT。
+ *   4. 回调页把 code + codeVerifier 提交本地 /api/auth/sso/exchange（服务端完成换 token），
+ *      换取与本地登录一致的本地 JWT。
  */
 
 // sessionStorage 键名：回调页与登录发起页共享
@@ -67,35 +67,16 @@ export const buildAuthorizeUrl = (cfg, { state, nonce, codeChallenge }) => {
 }
 
 /**
- * 授权码换登录态：
- *   第一步 POST {issuer}/oauth2/token（form：grant_type/client_id/code/redirect_uri/code_verifier）
- *   拿身份源 access_token；第二步调本地 /api/auth/sso/exchange 换本地 JWT，
- *   返回与本地登录一致的 { token, profile, tokenType, expiresIn }。
+ * 授权码换登录态（统一走本地后端，服务端交换）：
+ *   POST /api/auth/sso/exchange { code, codeVerifier }
+ *   后端向 {issuer}/oauth2/token 完成 PKCE 换取（public client，无 client_secret）、
+ *   回站自省 + userinfo + 影子账号，返回与本地登录一致的 { token, profile, tokenType, expiresIn }。
  *
- * 注意：第一步直接请求身份源（跨域由身份源 CORS 保证），不带本地鉴权头，故用原生 fetch；
- * 第二步走统一的 http 实例。
+ * 与旧版差异：浏览器不再直接请求身份源 token 端点（免除身份源 CORS 依赖），
+ * 通行证 access_token 全程不出现在浏览器。
  */
-export const exchangeCode = async (cfg, { code, codeVerifier }) => {
-  const body = new URLSearchParams({
-    grant_type: 'authorization_code',
-    client_id: cfg.clientId,
-    code,
-    redirect_uri: cfg.redirectUri,
-    code_verifier: codeVerifier,
-  })
-  const tokenResponse = await fetch(cfg.tokenEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  })
-  if (!tokenResponse.ok) {
-    throw new Error(`SSO 授权码换取失败（HTTP ${tokenResponse.status}）`)
-  }
-  const tokenData = await tokenResponse.json()
-  if (!tokenData?.access_token) {
-    throw new Error('SSO 授权码换取失败：身份源未返回 access_token')
-  }
-  const { data } = await http.post('/api/auth/sso/exchange', { accessToken: tokenData.access_token })
+export const exchangeCode = async (_cfg, { code, codeVerifier }) => {
+  const { data } = await http.post('/api/auth/sso/exchange', { code, codeVerifier })
   return data
 }
 

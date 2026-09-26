@@ -1,6 +1,7 @@
 <template>
   <div class="app-shell">
     <ChenxiPageLoader :active="isPageLoading" />
+    <LicenseBanner />
     <RouterView v-slot="{ Component }">
       <Transition :name="activeTransition" mode="out-in">
         <component :is="Component" :key="routeKey" />
@@ -13,6 +14,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import ChenxiPageLoader from './components/common/ChenxiPageLoader.vue'
+import LicenseBanner from './components/common/LicenseBanner.vue'
 import { useUiStore } from './stores/ui'
 import { useTheme } from '@/composables/useTheme'
 
