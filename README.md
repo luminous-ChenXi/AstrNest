@@ -14,7 +14,7 @@
     <img src="https://img.shields.io/badge/spring--boot-3.4.1-brightgreen.svg?style=flat-square&logo=spring" alt="spring-boot">
   </a>
   <a href="https://github.com/luminous-ChenXi/astrnest/blob/master/LICENSE">
-    <img src="https://img.shields.io/badge/license-GPL%20v3-blue.svg?style=flat-square" alt="license">
+    <img src="https://img.shields.io/badge/license-GPL--3.0%20with%20Additional%20Terms%20%28Non--Commercial%29-blue.svg?style=flat-square" alt="license">
   </a>
   <a href="https://github.com/luminous-ChenXi/astrnest/releases">
     <img src="https://img.shields.io/github/release/luminous-ChenXi/astrnest.svg?style=flat-square" alt="GitHub release">
@@ -32,7 +32,7 @@
   <a href="#tech-stack">技术栈</a> · 
   <a href="#acknowledgments">致谢</a> ·   
   <a href="https://discord.gg/hBsqcfwC9Q">Discord</a> · 
-  <a href="https://github.com/luminous-ChenXi/astrnest_backend">后端部分</a>
+  <a href="./backend">后端部分</a>
 </p>
 
 </div>
@@ -63,31 +63,25 @@ _Modern full-stack image hosting platform built with Spring Boot 3.4.1 and Vue 3
 - **响应式设计**: 现代化UI组件库，支持PC端、移动端、平板端等多端适配
 - **实时监控**: 系统运行状态监控与操作日志审计
 - **邮件服务**: 集成邮件模板与验证码发送功能，默认预置阿里云邮局 SMTP
-## License Warning | GPL v3 开源协议警示
+## License Warning | GPL-3.0 with Additional Terms (Non-Commercial) 协议警示
 ### ⚠️ **重要许可提醒** ⚠️
 
-**本项目采用 GNU General Public License v3 (GPL v3) 协议开源**
+**本项目采用 GNU General Public License v3 (GPL-3.0) 协议开源，并追加非商用附加条款（禁商用 + 署名）；与 GPL-3.0 冲突处以附加条款为准，全文见 [LICENSE](LICENSE)**
 
-### 法律声明：
-- **任何使用、修改、分发本代码的行为都必须遵守 GPL v3 协议**
-- **基于本项目的衍生作品必须同样以 GPL v3 协议开源**
-- **禁止将本代码用于闭源商业项目**
-- **禁止移除版权信息和许可声明**
+### 四条红线：
+- ✅ **自由部署**：按本协议部署、运行本软件无需另行许可
+- ✅ **自由修改发布**：可自由修改、发布，但衍生作品必须同样以 "GPL-3.0 + 本附加条款" 开源，分发时提供源代码
+- ❌ **禁止商用**：未经版权人事先书面授权，不得将本软件或其衍生作品用于任何商业用途（包括但不限于出售、付费服务/SaaS 收费、商业产品捆绑、广告变现）
+- ❌ **必须署名**：衍生作品或引用本软件代码的作品，必须保留原始版权声明与本协议全文，并在显著位置（关于页/README/文档）注明原始项目名称与仓库地址
 
 ### 对不良开发人员的警告：
 **请注意：以下行为将构成侵权并可能面临法律责任：**
 - ❌ 私自修改协议或移除版权声明
-- ❌ 将代码用于闭源商业产品而不开源
+- ❌ 将代码用于任何商业用途（含闭源商业产品与商业服务）
 - ❌ 声称代码为自己原创
-- ❌ 绕过 GPL 协议要求分发衍生作品
+- ❌ 绕过本协议要求分发衍生作品
 
-### 您的义务：
-- ✅ 保留原始版权和许可信息  
-- ✅ 基于本项目的修改必须同样开源  
-- ✅ 分发时必须提供源代码  
-- ✅ 明确标识修改内容和修改者
-
-**此项目开发周期3个月，开发时间较长，由辰汐团队自主开发，其开发过程艰辛；违反 GPL 协议将面临法律追责，请尊重开源精神！**
+**此项目开发周期3个月，开发时间较长，由辰汐（ChenXi）自主开发，其开发过程艰辛；违反协议将面临法律追责，请尊重开源精神！**
 
 ## Tech Stack | 技术栈
 
@@ -361,7 +355,7 @@ curl -X POST "http://localhost:8081/api/uploads" \
 
 ## License | 许可证
 
-本项目基于 [GNU General Public License v3 (GPL v3)](LICENSE) 开源。
+本项目基于 [GPL-3.0 with Additional Terms (Non-Commercial)](LICENSE) 开源（附加非商用条款：禁商用 + 署名）。
 
 ![GPL-v3](https://www.gnu.org/graphics/gplv3-127x51.png)
 
@@ -379,3 +373,5 @@ curl -X POST "http://localhost:8081/api/uploads" \
 ---
 求点赞！求关注！求投喂！
 ⭐ 如果这个项目对您有帮助，请给我们一个 Star！
+
+> 若受本项目启发，欢迎附上出处链接。/ If this project inspires your work, a link back is appreciated.

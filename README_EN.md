@@ -14,7 +14,7 @@ Modern full-stack media management platform built with Spring Boot 3.4.1 and Vue
     <img src="https://img.shields.io/badge/spring--boot-3.4.1-brightgreen.svg?style=flat-square&logo=spring" alt="spring-boot">
   </a>
   <a href="https://github.com/luminous-ChenXi/astrnest/blob/master/LICENSE">
-    <img src="https://img.shields.io/badge/license-GPL%20v3-blue.svg?style=flat-square" alt="license">
+    <img src="https://img.shields.io/badge/license-GPL--3.0%20with%20Additional%20Terms%20%28Non--Commercial%29-blue.svg?style=flat-square" alt="license">
   </a>
   <a href="https://github.com/luminous-ChenXi/astrnest/releases">
     <img src="https://img.shields.io/github/release/luminous-ChenXi/astrnest.svg?style=flat-square" alt="GitHub release">
@@ -32,7 +32,7 @@ Modern full-stack media management platform built with Spring Boot 3.4.1 and Vue
   <a href="#tech-stack">Tech Stack</a> · 
   <a href="#acknowledgments">Acknowledgments</a> ·   
   <a href="https://discord.gg/hBsqcfwC9Q">Discord</a> · 
-  <a href="https://github.com/luminous-ChenXi/astrnest_backend">Backend</a>
+  <a href="./backend">Backend</a>
 </p>
 
 </div>
@@ -64,31 +64,25 @@ Only youth and dreams are worth living for!
 - **Real-time Monitoring**: System operation status monitoring and operation log auditing
 - **Email Service**: Integrated email templates and verification code sending functionality, with Alibaba Cloud Mail SMTP pre-configured by default
 
-## License Warning | GPL v3 Open Source License Notice
+## License Warning | GPL-3.0 with Additional Terms (Non-Commercial)
 ### ⚠️ **Important License Reminder** ⚠️
 
-**This project is open-sourced under the GNU General Public License v3 (GPL v3)**
+**This project is open-sourced under the GNU General Public License v3 (GPL-3.0) with Additional Terms (Non-Commercial + Attribution); in case of conflict with GPL-3.0, the Additional Terms prevail. See the full text in [LICENSE](LICENSE)**
 
-### Legal Statement:
-- **Any use, modification, or distribution of this code must comply with the GPL v3 license**
-- **Derivative works based on this project must also be open-sourced under GPL v3**
-- **Prohibited from using this code in closed-source commercial projects**
-- **Prohibited from removing copyright information and license notices**
+### Four Red Lines:
+- ✅ **Freedom to Deploy**: deploying and running this software under this license requires no further permission
+- ✅ **Freedom to Modify and Redistribute**: modifications and redistribution are allowed, but derivative works must be licensed under the same terms ("GPL-3.0 + these Additional Terms") with source code provided
+- ❌ **No Commercial Use**: you may not use this software or derivative works for any commercial purpose (including but not limited to selling, paid services/SaaS, commercial bundling, or advertising monetization) without prior written authorization from the copyright holder
+- ❌ **Attribution Required**: any derivative work or work that incorporates code from this software must retain the original copyright notice and this license in full, and must credit the original project name and repository URL in a prominent location (About page / README / documentation)
 
 ### Warning to Unethical Developers:
 **Please note: The following actions constitute infringement and may face legal liability:**
 - ❌ Privately modifying the license or removing copyright notices
-- ❌ Using the code in closed-source commercial products without open-sourcing
+- ❌ Using the code for any commercial purpose (including closed-source commercial products and commercial services)
 - ❌ Claiming the code as your own original work
-- ❌ Circumventing GPL license requirements when distributing derivative works
+- ❌ Circumventing this license when distributing derivative works
 
-### Your Obligations:
-- ✅ Retain original copyright and license information  
-- ✅ Modifications based on this project must also be open-sourced  
-- ✅ Source code must be provided when distributing  
-- ✅ Clearly identify modified content and modifiers
-
-**This project has a development cycle of 3 months, developed independently by the ChenXi team. The development process was arduous; violating the GPL license will result in legal consequences. Please respect the open-source spirit!**
+**This project has a development cycle of 3 months, developed independently by ChenXi. The development process was arduous; violating the license will result in legal consequences. Please respect the open-source spirit!**
 
 ## Tech Stack
 
@@ -362,7 +356,7 @@ If you encounter problems, please:
 
 ## License
 
-This project is open-sourced under [GNU General Public License v3 (GPL v3)](LICENSE).
+This project is open-sourced under [GPL-3.0 with Additional Terms (Non-Commercial)](LICENSE) (non-commercial + attribution additional terms).
 
 ![GPL-v3](https://www.gnu.org/graphics/gplv3-127x51.png)
 
@@ -380,3 +374,5 @@ For security-related issues, please see [SECURITY.md](SECURITY.md).
 ---
 Please like! Please follow! Please support!
 ⭐ If this project helps you, please give us a Star!
+
+> 若受本项目启发，欢迎附上出处链接。/ If this project inspires your work, a link back is appreciated.

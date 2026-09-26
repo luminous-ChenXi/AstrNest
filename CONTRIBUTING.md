@@ -160,7 +160,7 @@ npm run test
 
 ## 许可证
 
-通过向本项目提交代码，您同意您的贡献将根据项目的 GNU General Public License v3 (GPL v3) 许可证进行授权。
+通过向本项目提交代码，您同意您的贡献将根据本项目的协议（GPL-3.0 及附加条款：禁商用 + 署名，详见 [LICENSE](LICENSE)）进行授权。
 
 ---
 
