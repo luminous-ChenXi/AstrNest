@@ -264,9 +264,9 @@ router.beforeEach(async (to, _from, next) => {
   auth.pruneIfExpired()
 
   // 安装向导全局守卫：未安装（含后端 503）强制进入 /install；
-  // 已安装且已写完成标记则拒绝再进 /install。
-  // 注意：创建管理员后 installed 即为 true，但完成标记（finished）尚未写入——
-  // 此时仍允许停留在 /install 完成第 4 步，避免刷新页面后被弹出去导致向导无法收尾。
+  // 已安装且防重装锁命中（完成标记或 install.lock）则拒绝再进 /install。
+  // 注意：创建管理员后 installed 即为 true，但完成标记/锁尚未写入——
+  // 此时仍允许停留在 /install 完成收尾步骤，避免刷新页面后被弹出去导致向导无法收尾。
   // 请求失败标记为 unknown 时放行，由向导页展示错误与重试入口，避免守卫死循环。
   try {
     const install = useInstallStore()
@@ -275,7 +275,7 @@ router.beforeEach(async (to, _from, next) => {
       next('/install')
       return
     }
-    if (install.status === 'installed' && install.finished && to.path === '/install') {
+    if (install.status === 'installed' && (install.finished || install.locked) && to.path === '/install') {
       next('/')
       return
     }

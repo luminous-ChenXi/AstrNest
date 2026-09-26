@@ -19,7 +19,7 @@ const extractMessage = (error, fallback) => {
 
 export const getInstallError = (error, fallback = '请求失败') => extractMessage(error, fallback)
 
-/** GET /api/install/status → { installed, schemaState, checks:[{id,name,passed,warning,detail}] } */
+/** GET /api/install/status → { installed, schemaState, finished, locked, checks:[{id,name,passed,warning,detail}] } */
 export const fetchInstallStatus = async () => {
   const { data } = await installHttp.get('/api/install/status', { timeout: 10000 })
   return data
@@ -28,6 +28,12 @@ export const fetchInstallStatus = async () => {
 /** POST /api/install/database → 建表摘要（建表数/跳过项） */
 export const runDatabaseInstall = async () => {
   const { data } = await installHttp.post('/api/install/database', {}, { timeout: 120000 })
+  return data
+}
+
+/** POST /api/install/site-config → { success, message }（站点配置步骤，可跳过不调用） */
+export const saveSiteConfig = async (payload) => {
+  const { data } = await installHttp.post('/api/install/site-config', payload, { timeout: 30000 })
   return data
 }
 

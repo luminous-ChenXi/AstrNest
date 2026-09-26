@@ -50,6 +50,7 @@ public class InstallSetupService {
   private final JdbcTemplate jdbcTemplate;
   private final PasswordEncoder passwordEncoder;
   private final PlatformTransactionManager transactionManager;
+  private final InstallLockService installLockService;
 
   // ==================== 步骤 2：安装数据库 ====================
 
@@ -176,6 +177,8 @@ public class InstallSetupService {
     Timestamp installedAt = jdbcTemplate.queryForObject(
         "SELECT installed_at FROM install_state WHERE id = 1", Timestamp.class);
     LocalDateTime time = installedAt == null ? LocalDateTime.now() : installedAt.toLocalDateTime();
+    // 四重防护之 lock 文件：DB 标记之外的独立防重装信号（写入失败不阻断收尾）
+    installLockService.writeLock();
     return new InstallFinishResponse(true, time.format(TIMESTAMP_FORMATTER), "安装完成");
   }
 

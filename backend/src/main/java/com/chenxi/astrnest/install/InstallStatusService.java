@@ -47,6 +47,7 @@ public class InstallStatusService {
   private final JdbcTemplate jdbcTemplate;
   private final StorageProperties storageProperties;
   private final VideoThumbnailProperties videoThumbnailProperties;
+  private final InstallLockService installLockService;
 
   /** 缓存条目：快照与采集时间绑定为一个不可变对象，保证读侧原子可见 */
   private volatile CacheEntry cacheEntry;
@@ -108,10 +109,19 @@ public class InstallStatusService {
     }
   }
 
+  /**
+   * 防重装锁是否命中：DB 完成标记或 install.lock 文件任一存在即命中。
+   * 命中后安装向导的写端点一律 403（四重防护中的 API 层）。
+   */
+  public boolean isLocked() {
+    return isFinished() || installLockService.isLocked();
+  }
+
   /** 构建完整状态响应（含环境检测项列表） */
   public InstallStatusResponse buildStatus() {
     InstallSnapshot snapshot = getSnapshot();
-    return new InstallStatusResponse(snapshot.installed(), snapshot.schemaState(), isFinished(), buildChecks(snapshot));
+    return new InstallStatusResponse(
+        snapshot.installed(), snapshot.schemaState(), isFinished(), isLocked(), buildChecks(snapshot));
   }
 
   /** 构建环境检测项列表（数据库 / 表结构 / 存储目录 / Java / ffmpeg） */

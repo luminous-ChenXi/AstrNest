@@ -12,6 +12,7 @@ export const useInstallStore = defineStore('install', () => {
   const status = ref('unknown')
   const installed = ref(false)
   const finished = ref(false)
+  const locked = ref(false)
   const schemaState = ref(null)
   const checks = ref([])
   const error = ref(null)
@@ -24,6 +25,7 @@ export const useInstallStore = defineStore('install', () => {
     status: status.value,
     installed: installed.value,
     finished: finished.value,
+    locked: locked.value,
     schemaState: schemaState.value,
     checks: checks.value,
   })
@@ -31,6 +33,8 @@ export const useInstallStore = defineStore('install', () => {
   const applyPayload = (data) => {
     installed.value = Boolean(data?.installed)
     finished.value = Boolean(data?.finished)
+    // 防重装锁：install.lock 文件或 DB 完成标记任一命中即锁定（缺省视为随 finished）
+    locked.value = Boolean(data?.locked ?? data?.finished)
     schemaState.value = data?.schemaState || null
     checks.value = Array.isArray(data?.checks) ? data.checks : []
     status.value = installed.value ? 'installed' : 'not-installed'
@@ -52,7 +56,7 @@ export const useInstallStore = defineStore('install', () => {
       } catch (err) {
         if (err?.response?.status === 503) {
           // 后端守卫的 503 也视为未安装（理论 /api/install/status 不会被拦，容错兜底）
-          applyPayload({ installed: false, finished: false, schemaState: null, checks: [] })
+          applyPayload({ installed: false, finished: false, locked: false, schemaState: null, checks: [] })
         } else {
           status.value = 'unknown'
           error.value = err?.message || '无法连接服务器'
@@ -67,5 +71,5 @@ export const useInstallStore = defineStore('install', () => {
     return inflight
   }
 
-  return { status, installed, finished, schemaState, checks, error, fetchStatus }
+  return { status, installed, finished, locked, schemaState, checks, error, fetchStatus }
 })

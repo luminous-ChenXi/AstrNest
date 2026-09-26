@@ -11,8 +11,12 @@ import {
   HomeFilled,
   Loading,
   Monitor,
+  Connection,
   Coin,
+  Setting,
   User,
+  Key,
+  CopyDocument,
   SuccessFilled,
 } from '@element-plus/icons-vue'
 import {
@@ -20,13 +24,16 @@ import {
   finishInstall,
   getInstallError,
   runDatabaseInstall,
+  saveSiteConfig,
 } from '../../services/install'
 import { useInstallStore } from '../../stores/install'
 
 const router = useRouter()
 const installStore = useInstallStore()
 
-const STEPS = ['环境检测', '安装数据库', '创建管理员', '完成']
+// 统一规范流程：环境检测 → 数据库配置 → 初始化 → 站点配置 → 创建管理员 → 完成
+const STEPS = ['环境检测', '数据库配置', '初始化', '站点配置', '创建管理员', '完成']
+const STEP = { CHECKS: 0, DATABASE: 1, INIT: 2, SITE: 3, ADMIN: 4, FINISH: 5 }
 
 const loading = ref(true)
 const currentStep = ref(0)
@@ -35,6 +42,7 @@ const installError = ref(null)
 
 const installingDb = ref(false)
 const databaseResult = ref(null)
+const savingSite = ref(false)
 const creatingAdmin = ref(false)
 const adminResult = ref(null)
 const finishing = ref(false)
@@ -47,6 +55,17 @@ const form = reactive({
   confirmPassword: '',
 })
 
+// 站点配置（全部可跳过：保存才写入，未提供的项保持系统默认）
+const siteForm = reactive({
+  registrationEnabled: false,
+  guestUploadEnabled: false,
+  maxUploadMb: 20,
+  assetDomain: '',
+})
+
+// 强密码一次性展示：明文只在生成后/创建前可见，创建成功后系统任何页面都不再回显
+const generatedPassword = ref('')
+
 const DOC_URL = 'https://github.com/luminous-ChenXi/AstrNest/blob/main/CONFIG_GUIDE.md'
 
 const checks = computed(() => installStore.checks)
@@ -56,6 +75,8 @@ const fatalChecks = computed(() =>
   checks.value.filter((item) => !item.passed && !item.warning)
 )
 const hasFatalProblem = computed(() => fatalChecks.value.length > 0)
+
+const databaseCheck = computed(() => checks.value.find((item) => item.id === 'database') || null)
 
 const usernamePattern = /^[A-Za-z0-9_.-]{3,32}$/
 
@@ -110,11 +131,11 @@ const refreshStatus = async (force = true) => {
   installError.value = null
   try {
     await installStore.fetchStatus(force)
-    // 已安装且已写完成标记 → 展示「系统已安装」卡片；
-    // 已建管理员但未写标记（如第 4 步前刷新页面）→ 直接进入「完成」步骤收尾
-    alreadyInstalled.value = installStore.installed && installStore.finished
-    if (installStore.installed && !installStore.finished) {
-      currentStep.value = 3
+    // 已安装且（已写完成标记或防重装锁命中）→ 展示「系统已安装」卡片；
+    // 已建管理员但未收尾（如最后一步前刷新页面）→ 直接进入「完成」步骤收尾
+    alreadyInstalled.value = installStore.installed && (installStore.finished || installStore.locked)
+    if (installStore.installed && !installStore.finished && !installStore.locked) {
+      currentStep.value = STEP.FINISH
     }
   } finally {
     loading.value = false
@@ -125,10 +146,10 @@ onMounted(() => {
   refreshStatus(true)
 })
 
-// 进入「安装数据库」步骤时：表结构已就绪（EMPTY/INSTALLED）则自动跳过
+// 流程跳转守卫：进入「初始化」时表结构已就绪则跳过；数据库不可用时无法前进
 watch(currentStep, (step) => {
-  if (step === 1 && schemaState.value && schemaState.value !== 'NOT_INSTALLED') {
-    currentStep.value = 2
+  if (step === STEP.INIT && schemaState.value && schemaState.value !== 'NOT_INSTALLED') {
+    currentStep.value = STEP.SITE
   }
 })
 
@@ -138,7 +159,12 @@ const goNextFromChecks = () => {
     ElMessage.warning('请先完成环境检测')
     return
   }
-  currentStep.value = schemaState.value === 'NOT_INSTALLED' ? 1 : 2
+  currentStep.value = STEP.DATABASE
+}
+
+const goNextFromDatabase = () => {
+  if (!databaseCheck.value?.passed) return
+  currentStep.value = schemaState.value === 'NOT_INSTALLED' ? STEP.INIT : STEP.SITE
 }
 
 const handleInstallDatabase = async () => {
@@ -153,6 +179,73 @@ const handleInstallDatabase = async () => {
     ElMessage.error(getInstallError(error, '数据库安装失败'))
   } finally {
     installingDb.value = false
+  }
+}
+
+const handleSaveSiteConfig = async () => {
+  savingSite.value = true
+  try {
+    await saveSiteConfig({
+      registrationEnabled: siteForm.registrationEnabled,
+      guestUploadEnabled: siteForm.guestUploadEnabled,
+      maxUploadMb: siteForm.maxUploadMb,
+      assetDomain: siteForm.assetDomain.trim(),
+    })
+    ElMessage.success('站点配置已保存')
+    currentStep.value = STEP.ADMIN
+  } catch (error) {
+    ElMessage.error(getInstallError(error, '站点配置保存失败'))
+  } finally {
+    savingSite.value = false
+  }
+}
+
+const skipSiteConfig = () => {
+  currentStep.value = STEP.ADMIN
+}
+
+/**
+ * 生成 16 位强密码：保证至少含大写、小写、数字、符号各一，其余随机填充并整体洗牌。
+ * 明文只在生成面板展示一次（可复制），要求在"确认密码"里二次输入；
+ * 创建成功后日志、接口响应、完成页一律不回显。
+ */
+const generateStrongPassword = () => {
+  const length = 16
+  const lowerSet = 'abcdefghijklmnopqrstuvwxyz'
+  const upperSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const digitSet = '0123456789'
+  const symbolSet = '!@#$%^&*()-_=+[]{}'
+  const allSets = [lowerSet, upperSet, digitSet, symbolSet]
+
+  const randomInt = (max) => {
+    const bytes = new Uint32Array(1)
+    crypto.getRandomValues(bytes)
+    return bytes[0] % max
+  }
+
+  const chars = allSets.map((set) => set[randomInt(set.length)])
+  const allChars = allSets.join('')
+  while (chars.length < length) {
+    chars.push(allChars[randomInt(allChars.length)])
+  }
+  // Fisher-Yates 洗牌，打乱"每类一位"的固定位置
+  for (let i = chars.length - 1; i > 0; i -= 1) {
+    const j = randomInt(i + 1)
+    ;[chars[i], chars[j]] = [chars[j], chars[i]]
+  }
+  const password = chars.join('')
+  form.password = password
+  form.confirmPassword = ''
+  generatedPassword.value = password
+}
+
+const copyGeneratedPassword = async () => {
+  if (!generatedPassword.value) return
+  try {
+    await navigator.clipboard.writeText(generatedPassword.value)
+    ElMessage.success('密码已复制，请妥善保存')
+  } catch (error) {
+    ElMessage.warning('复制失败，请手动选择复制')
   }
 }
 
@@ -172,7 +265,10 @@ const handleCreateAdmin = async () => {
       displayName: form.username.trim(),
     })
     ElMessage.success('管理员创建成功')
-    currentStep.value = 3
+    generatedPassword.value = ''
+    form.password = ''
+    form.confirmPassword = ''
+    currentStep.value = STEP.FINISH
   } catch (error) {
     ElMessage.error(getInstallError(error, '创建管理员失败'))
   } finally {
@@ -187,7 +283,7 @@ const goFinish = async () => {
     finishResult.value = await finishInstall()
   } catch (error) {
     if (error?.response?.status === 403) {
-      // 403 = 完成标记已存在（向导已结束），视为成功
+      // 403 = 完成标记/锁已存在（向导已结束），视为成功
       finishResult.value = { success: true, installedAt: '', message: '安装已完成' }
     } else {
       ElMessage.error(getInstallError(error, '完成安装失败'))
@@ -198,15 +294,16 @@ const goFinish = async () => {
 }
 
 watch(currentStep, (step) => {
-  if (step === 3 && !finishResult.value) {
+  if (step === STEP.FINISH && !finishResult.value) {
     goFinish()
   }
 })
 
-const goHome = async () => {
+// 安装完成强制进入登录页：AstrNest 登录为首页登录弹层（/?login=1）
+const goLogin = async () => {
   // 强制刷新安装状态，避免路由守卫使用过期缓存再次跳回 /install
   await installStore.fetchStatus(true)
-  router.push('/')
+  router.push({ path: '/', query: { login: '1' } })
 }
 </script>
 
@@ -219,7 +316,7 @@ const goHome = async () => {
           <span class="brand-name">AstrNest</span>
         </div>
         <h1 class="install-title">安装向导</h1>
-        <p class="install-subtitle">首次部署引导：检测环境 → 安装数据库 → 创建管理员 → 完成</p>
+        <p class="install-subtitle">首次部署引导：环境检测 → 数据库配置 → 初始化 → 站点配置 → 创建管理员 → 完成</p>
       </header>
 
       <el-steps class="install-steps" :active="currentStep" align-center finish-status="success">
@@ -231,11 +328,11 @@ const goHome = async () => {
         <div class="installed-box">
           <el-icon class="installed-icon" :size="46"><SuccessFilled /></el-icon>
           <h2>系统已安装</h2>
-          <p class="muted">检测到 AstrNest 已完成安装。出于安全考虑，安装向导已关闭，不可重复初始化。</p>
+          <p class="muted">检测到 AstrNest 已完成安装（防重装锁已生效）。出于安全考虑，安装向导已关闭，不可重复初始化。</p>
           <div class="actions">
-            <el-button type="primary" size="large" @click="goHome">
+            <el-button type="primary" size="large" @click="goLogin">
               <el-icon class="btn-icon"><HomeFilled /></el-icon>
-              前往首页
+              前往登录
             </el-button>
           </div>
         </div>
@@ -316,12 +413,58 @@ const goHome = async () => {
           </div>
         </section>
 
-        <!-- 步骤 2：安装数据库 -->
+        <!-- 步骤 2：数据库配置 -->
         <section v-show="currentStep === 1" class="install-card">
+          <div class="card-head">
+            <el-icon class="card-icon"><Connection /></el-icon>
+            <div>
+              <h2>数据库配置</h2>
+              <p class="muted">确认数据库连接可用。AstrNest 的数据库连接由部署配置承载，向导内只做确认与引导。</p>
+            </div>
+          </div>
+
+          <div class="step-body">
+            <div v-if="databaseCheck" class="db-status">
+              <el-icon
+                class="check-icon"
+                :class="databaseCheck.passed && !databaseCheck.warning ? 'ok' : databaseCheck.passed || databaseCheck.warning ? 'warn' : 'fail'"
+                :size="24"
+              >
+                <CircleCheckFilled v-if="databaseCheck.passed && !databaseCheck.warning" />
+                <WarningFilled v-else-if="databaseCheck.warning" />
+                <CircleCloseFilled v-else />
+              </el-icon>
+              <div>
+                <div class="check-name">{{ databaseCheck.name }}</div>
+                <div class="check-detail">{{ databaseCheck.detail }}</div>
+              </div>
+            </div>
+
+            <el-alert type="info" :closable="false" show-icon title="如何修改数据库连接">
+              <div class="muted">
+                连接参数通过环境变量或配置文件指定：<code>ASTRNEST_DB_URL</code>、
+                <code>ASTRNEST_DB_USERNAME</code>、<code>ASTRNEST_DB_PASSWORD</code>
+                （docker-compose 部署时写在 <code>.env</code>）。如需更换数据库，请修改后重启后端再继续安装。
+                详见 <a :href="DOC_URL" target="_blank" rel="noreferrer">CONFIG_GUIDE</a>。
+              </div>
+            </el-alert>
+          </div>
+
+          <div class="actions">
+            <el-button :icon="Refresh" :loading="loading" @click="refreshStatus(true)">重新检测</el-button>
+            <el-button type="primary" :disabled="!databaseCheck?.passed" @click="goNextFromDatabase">
+              下一步
+              <el-icon class="btn-icon"><ArrowRight /></el-icon>
+            </el-button>
+          </div>
+        </section>
+
+        <!-- 步骤 3：初始化 -->
+        <section v-show="currentStep === 2" class="install-card">
           <div class="card-head">
             <el-icon class="card-icon"><Coin /></el-icon>
             <div>
-              <h2>安装数据库</h2>
+              <h2>初始化</h2>
               <p class="muted">将创建 AstrNest 所需的数据表、索引与默认配置（幂等执行，重复点击不会破坏已有数据）。</p>
             </div>
           </div>
@@ -330,7 +473,7 @@ const goHome = async () => {
             <p class="muted">即将执行 <code>backend/db/install-schema.sql</code>：包含用户、媒体、图集、公告等核心表与默认角色。</p>
             <div class="actions">
               <el-button type="primary" size="large" :loading="installingDb" @click="handleInstallDatabase">
-                {{ installingDb ? '正在安装…' : '开始安装数据库' }}
+                {{ installingDb ? '正在安装…' : '开始初始化数据库' }}
               </el-button>
             </div>
           </div>
@@ -340,7 +483,7 @@ const goHome = async () => {
               :type="databaseResult.success ? 'success' : 'error'"
               :closable="false"
               show-icon
-              :title="databaseResult.success ? '数据库安装完成' : '数据库安装未完全成功'"
+              :title="databaseResult.success ? '数据库初始化完成' : '数据库初始化未完全成功'"
             >
               <div class="muted">
                 共执行 {{ databaseResult.executedStatements }} 条语句（其中建表语句 {{ databaseResult.tablesCreated }} 条，已存在的自动跳过），
@@ -355,7 +498,7 @@ const goHome = async () => {
               <el-button
                 v-if="databaseResult.success"
                 type="primary"
-                @click="currentStep = 2"
+                @click="currentStep = 3"
               >
                 下一步
                 <el-icon class="btn-icon"><ArrowRight /></el-icon>
@@ -364,8 +507,45 @@ const goHome = async () => {
           </div>
         </section>
 
-        <!-- 步骤 3：创建管理员 -->
-        <section v-show="currentStep === 2" class="install-card">
+        <!-- 步骤 4：站点配置 -->
+        <section v-show="currentStep === 3" class="install-card">
+          <div class="card-head">
+            <el-icon class="card-icon"><Setting /></el-icon>
+            <div>
+              <h2>站点配置</h2>
+              <p class="muted">设置初始站点开关（安装后可在管理后台随时调整）。不确定时可直接跳过，保持系统默认。</p>
+            </div>
+          </div>
+
+          <el-form label-position="top" class="site-form">
+            <el-form-item label="开放邮箱注册">
+              <el-switch v-model="siteForm.registrationEnabled" />
+              <span class="form-hint">关闭时仅管理员可创建账号（默认关闭）</span>
+            </el-form-item>
+            <el-form-item label="允许访客上传">
+              <el-switch v-model="siteForm.guestUploadEnabled" />
+              <span class="form-hint">未登录访客可在配额内上传（默认关闭）</span>
+            </el-form-item>
+            <el-form-item label="单文件上传上限（MB）">
+              <el-input-number v-model="siteForm.maxUploadMb" :min="1" :max="512" />
+              <span class="form-hint">默认 20 MB</span>
+            </el-form-item>
+            <el-form-item label="资源加速域名（可选）">
+              <el-input v-model="siteForm.assetDomain" placeholder="如 https://cdn.example.com，留空使用本站域名" />
+            </el-form-item>
+          </el-form>
+
+          <div class="actions">
+            <el-button @click="skipSiteConfig">跳过此步</el-button>
+            <el-button type="primary" :loading="savingSite" @click="handleSaveSiteConfig">
+              保存并下一步
+              <el-icon class="btn-icon"><ArrowRight /></el-icon>
+            </el-button>
+          </div>
+        </section>
+
+        <!-- 步骤 5：创建管理员 -->
+        <section v-show="currentStep === 4" class="install-card">
           <div class="card-head">
             <el-icon class="card-icon"><User /></el-icon>
             <div>
@@ -383,8 +563,27 @@ const goHome = async () => {
                 <el-input v-model="form.email" placeholder="用于找回密码与站内通知" maxlength="180" />
               </el-form-item>
               <el-form-item label="密码" prop="password">
-                <el-input v-model="form.password" type="password" show-password placeholder="至少 8 位，需同时包含字母和数字" />
+                <div class="password-field">
+                  <el-input
+                    v-model="form.password"
+                    type="password"
+                    show-password
+                    placeholder="至少 8 位且含字母和数字，或点击右侧生成"
+                  />
+                  <el-button :icon="Key" @click="generateStrongPassword">生成强密码</el-button>
+                </div>
               </el-form-item>
+              <div v-if="generatedPassword" class="pw-panel">
+                <div class="pw-title">
+                  <el-icon><Key /></el-icon>
+                  已生成 16 位强密码（含大小写、数字、符号）——明文仅此一次展示，请立即保存
+                </div>
+                <div class="pw-row">
+                  <code class="pw-value">{{ generatedPassword }}</code>
+                  <el-button size="small" :icon="CopyDocument" @click="copyGeneratedPassword">复制</el-button>
+                </div>
+                <div class="muted">请在下方「确认密码」中再次输入相同密码以确认你已保存；创建成功后系统不再回显。</div>
+              </div>
               <el-form-item label="确认密码" prop="confirmPassword">
                 <el-input v-model="form.confirmPassword" type="password" show-password placeholder="再次输入相同密码" />
               </el-form-item>
@@ -400,11 +599,11 @@ const goHome = async () => {
             <el-alert type="success" :closable="false" show-icon title="管理员创建成功">
               <div class="muted">
                 账号 <strong>{{ adminResult.username }}</strong>（{{ adminResult.role }}）已创建，
-                绑定邮箱 {{ adminResult.email }}。请牢记密码，稍后可在个人中心修改。
+                绑定邮箱 {{ adminResult.email }}。密码不回显：请使用刚才保存的密码登录，稍后可在个人中心修改。
               </div>
             </el-alert>
             <div class="actions">
-              <el-button type="primary" @click="currentStep = 3">
+              <el-button type="primary" @click="currentStep = 5">
                 下一步
                 <el-icon class="btn-icon"><ArrowRight /></el-icon>
               </el-button>
@@ -412,13 +611,13 @@ const goHome = async () => {
           </div>
         </section>
 
-        <!-- 步骤 4：完成 -->
-        <section v-show="currentStep === 3" class="install-card">
+        <!-- 步骤 6：完成 -->
+        <section v-show="currentStep === 5" class="install-card">
           <div class="card-head">
             <el-icon class="card-icon"><SuccessFilled /></el-icon>
             <div>
               <h2>完成安装</h2>
-              <p class="muted">写入完成标记并收尾，之后即可正常访问站点。</p>
+              <p class="muted">写入完成标记与防重装锁并收尾，之后即可正常访问站点。</p>
             </div>
           </div>
 
@@ -431,8 +630,9 @@ const goHome = async () => {
             <el-alert type="success" :closable="false" show-icon title="AstrNest 安装完成">
               <div class="muted">
                 <template v-if="finishResult.installedAt">完成时间：{{ finishResult.installedAt }}。</template>
-                安装后再次访问 <code>/install</code> 将提示「系统已安装」，写接口也会被拒绝，
-                如需重建请清空数据库后重新部署。
+                安装后再次访问 <code>/install</code> 将被引导离开，写接口也会被拒绝（防重装锁：
+                DB 完成标记 + <code>storage/install.lock</code> 文件 + API 403 + 前端跳转），
+                如需重建请清空数据库并删除锁文件后重新部署。
               </div>
             </el-alert>
             <ul class="check-list">
@@ -452,7 +652,7 @@ const goHome = async () => {
               </li>
             </ul>
             <div class="actions">
-              <el-button type="primary" size="large" @click="goHome">
+              <el-button type="primary" size="large" @click="goLogin">
                 <el-icon class="btn-icon"><HomeFilled /></el-icon>
                 前往登录
               </el-button>
@@ -637,6 +837,70 @@ const goHome = async () => {
 
 .admin-form {
   max-width: 460px;
+}
+
+.password-field {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.password-field .el-input {
+  flex: 1;
+}
+
+.pw-panel {
+  border: 1px dashed var(--color-brand-primary, #4ecdc4);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(78, 205, 196, 0.06);
+}
+
+.pw-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pw-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pw-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  word-break: break-all;
+}
+
+.site-form {
+  max-width: 460px;
+}
+
+.form-hint {
+  margin-left: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.db-status {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--border-soft);
 }
 
 .actions {

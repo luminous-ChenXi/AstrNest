@@ -233,7 +233,7 @@ echo.
 echo Admin Account:
 echo   Username: !ADMIN_USER!
 echo   Email:    !ADMIN_EMAIL!
-echo   Password: !ADMIN_PASS! (encrypted)
+echo   Password: ********（已 bcrypt 加密写入 SQL，不回显明文；请牢记刚输入的密码）
 echo.
 echo SQL files updated:
 echo   - !SQL_MAIN!
