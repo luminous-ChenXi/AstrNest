@@ -478,7 +478,9 @@ INSERT INTO roles (id, name, description)
 SELECT 2, 'USER', '普通用户' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = 'USER');
 
--- 默认系统配置：仅在首次初始化插入；重复执行不覆盖任何已保存的配置
+-- 默认系统配置：仅在首次初始化插入；重复执行不覆盖任何已保存的配置。
+-- 注意：显式列出 ai_moderation_enabled / ai_labeling_enabled——
+-- 当表结构由 Hibernate（ddl-auto=update）先行创建时这些列是 NOT NULL 且无 DEFAULT，缺列会整条 INSERT 失败。
 INSERT INTO system_config (
     id,
     max_upload_bytes,
@@ -492,6 +494,8 @@ INSERT INTO system_config (
     guest_like_enabled,
     guest_upload_enabled,
     auto_cleanup_days,
+    ai_moderation_enabled,
+    ai_labeling_enabled,
     ai_tencent_detect_scenes,
     ai_moderation_block_confidence,
     ai_moderation_review_confidence,
@@ -513,6 +517,8 @@ SELECT
     b'1',
     b'0',
     30,
+    b'0',
+    b'0',
     'web,camera,album,news',
     90,
     60,
