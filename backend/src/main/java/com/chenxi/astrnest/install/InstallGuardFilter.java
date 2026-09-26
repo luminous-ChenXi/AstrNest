@@ -66,7 +66,9 @@ public class InstallGuardFilter extends OncePerRequestFilter {
   private boolean isAllowedBeforeInstall(String path) {
     return path.startsWith("/api/install/")
         || "/api/install".equals(path)
-        || "/api/system/public-config".equals(path);
+        || "/api/system/public-config".equals(path)
+        // 授权状态为内存态只读端点（chenxi.license.* 默认关闭），不依赖业务表，安装前也放行
+        || "/api/license/status".equals(path);
   }
 
   /**

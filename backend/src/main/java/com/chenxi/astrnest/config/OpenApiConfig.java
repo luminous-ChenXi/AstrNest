@@ -24,7 +24,7 @@ public class OpenApiConfig {
             .title("AstrNest API")
             .version("v1")
             .description("现代化图床/媒体平台 API。基础路径 `/api/**`。鉴权以 Bearer JWT 为主通道："
-                + "调用 `POST /api/auth/login` 获取 `token`（JWT，默认有效期 72 小时，可用 `astrnest.jwt.ttl-hours` 配置），"
+                + "调用 `POST /api/auth/login` 获取 `token`（JWT，默认 30 天不活动过期，可用 `chenxi.passport.access-token-days` 配置），"
                 + "后续请求携带 `Authorization: Bearer <JWT>`；过期后重新登录获取。"
                 + "HTTP Basic（`Authorization: Basic <base64(user:password)>`）作为兼容通道保留，"
                 + "便于 API 插件等非交互场景。管理员接口需额外权限。")

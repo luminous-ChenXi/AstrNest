@@ -1,6 +1,7 @@
 package com.chenxi.astrnest.passport;
 
 import com.chenxi.astrnest.passport.dto.IntrospectionResult;
+import com.chenxi.astrnest.passport.dto.PassportToken;
 import com.chenxi.astrnest.passport.dto.SsoUserInfo;
 import com.chenxi.astrnest.security.dto.UserProfileResponse;
 import com.chenxi.astrnest.security.jwt.JwtTokenService;
@@ -65,7 +66,19 @@ public class SsoIdentityService {
   private final UserLoginEventService userLoginEventService;
 
   /**
-   * 凭 access_token 完成登录：自省校验 → 用户信息 → 影子账号 → 本地 JWT。
+   * OIDC 授权码 + PKCE 登录：后端凭 code + code_verifier 向通行证换 access_token
+   * （public client，无 client_secret），再走统一的影子账号编排。推荐路径，浏览器全程不接触通行证 token。
+   *
+   * @throws ResponseStatusException 401（授权码无效/已过期、凭证校验未通过）、500（环境问题）
+   */
+  @Transactional
+  public LoginResponse exchangeByAuthorizationCode(String code, String codeVerifier, HttpServletRequest request) {
+    PassportToken token = passportClient.exchangeAuthorizationCode(code, codeVerifier);
+    return exchangeByAccessToken(token.accessToken(), request);
+  }
+
+  /**
+   * 凭 access_token 完成登录（遗留路径）：自省校验 → 用户信息 → 影子账号 → 本地 JWT。
    *
    * @throws ResponseStatusException 401（凭证无效/用户信息失败）、500（缺少 USER 角色等环境问题）
    */

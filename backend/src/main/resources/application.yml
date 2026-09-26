@@ -25,13 +25,6 @@ astrnest:
   api-key:
     header-name: ${ASTRNEST_API_KEY_HEADER:X-API-Key}
     default-daily-quota: ${ASTRNEST_API_DEFAULT_QUOTA:1000}
-  # SSO 外部身份源登录：默认关闭；issuer 示例 https://passport.example.com（兼容辰汐通行证等 OAuth2.1/OIDC 身份源）
-  sso:
-    enabled: ${ASTRNEST_SSO_ENABLED:false}
-    issuer: ${ASTRNEST_SSO_ISSUER:}
-    client-id: ${ASTRNEST_SSO_CLIENT_ID:}
-    redirect-uri: ${ASTRNEST_SSO_REDIRECT_URI:}
-    scopes: openid, profile, email
   video-thumbnail:
     enabled: ${ASTRNEST_VIDEO_THUMBNAIL_ENABLED:true}
     ffmpeg-path: ${ASTRNEST_VIDEO_THUMBNAIL_FFMPEG:ffmpeg}
@@ -39,3 +32,26 @@ astrnest:
     quality: ${ASTRNEST_VIDEO_THUMBNAIL_QUALITY:2}
     timeout-seconds: ${ASTRNEST_VIDEO_THUMBNAIL_TIMEOUT:20}
     cover-directory: ${ASTRNEST_VIDEO_THUMBNAIL_SUBDIR:cover}
+
+# 辰汐生态集成（通行证登录 / 正版授权校验 / 统计上报）：全部默认关闭，关闭时对现有功能零影响。
+# 详细口径见 docs/chenxi-integration.md。
+chenxi:
+  passport:
+    # 辰汐通行证登录总开关（开启后走 OIDC 授权码 + PKCE）
+    enabled: ${CHENXI_PASSPORT_ENABLED:false}
+    issuer: ${CHENXI_PASSPORT_ISSUER:}
+    client-id: ${CHENXI_PASSPORT_CLIENT_ID:}
+    redirect-uri: ${CHENXI_PASSPORT_REDIRECT_URI:}
+    scopes: ${CHENXI_PASSPORT_SCOPES:openid,profile}
+    # 本地令牌不活动过期天数（滑动刷新：每次携带有效令牌访问自动续期）
+    access-token-days: ${CHENXI_PASSPORT_ACCESS_TOKEN_DAYS:30}
+  license:
+    # 正版授权校验总开关（N2 占位，服务端协议未定，仅 SDK 骨架）
+    enabled: ${CHENXI_LICENSE_ENABLED:false}
+    verify-url: ${CHENXI_LICENSE_VERIFY_URL:}
+    cache-days: ${CHENXI_LICENSE_CACHE_DAYS:7}
+    offline-grace-days: ${CHENXI_LICENSE_OFFLINE_GRACE_DAYS:3}
+  stats:
+    # 统计上报总开关（N2 占位，enabled=false 时为空实现）
+    enabled: ${CHENXI_STATS_ENABLED:false}
+    report-url: ${CHENXI_STATS_REPORT_URL:}
