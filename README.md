@@ -134,7 +134,7 @@ astrnest/
 
 ### 认证契约 | Authentication Contract
 - **JWT（推荐）**：调用 `POST /api/auth/login` 登录成功后返回 JWT，后续请求携带 `Authorization: Bearer <token>`。
-  - Token 默认有效期 **72 小时**，可通过 `astrnest.jwt.ttl-hours`（环境变量 `ASTRNEST_JWT_TTL_HOURS`）调整。
+  - Token 默认 **30 天不活动过期**（活跃使用自动滑动续期），可通过 `chenxi.passport.access-token-days`（环境变量 `CHENXI_PASSPORT_ACCESS_TOKEN_DAYS`）调整。
   - 生产环境必须配置签名密钥 `astrnest.jwt.secret`（环境变量 `ASTRNEST_JWT_SECRET`，请使用随机长字符串并妥善保管，勿提交仓库）。
 - **HTTP Basic（兼容保留）**：仍可用于 API 插件/脚本调用（如 Typora、PicGo 等自定义上传插件），与 API Key 认证并行支持。
 
@@ -226,27 +226,27 @@ docker compose --env-file .env up -d
 
 ### 生产配置要点 | Production Notes
 - **`ASTRNEST_TRUSTED_PROXY`**（默认 `false`）：当后端部署在 Nginx 等反向代理之后时设为 `true`，后端才会信任并解析 `X-Real-IP` / `X-Forwarded-For`，日志审计与限流才能拿到真实客户端 IP；对应配置键 `astrnest.security.trusted-proxy`。
-- **`astrnest.jwt.secret` / `astrnest.jwt.ttl-hours`**：JWT 签名密钥与 Token 有效期（默认 72 小时），生产必须显式配置 secret。
+- **`astrnest.jwt.secret`**：JWT 签名密钥，生产必须显式配置；Token 有效期由 `chenxi.passport.access-token-days` 控制（默认 30 天不活动过期）。
 - **Nginx `client_max_body_size`**：示例反代配置已放开请求体限制，需与后端 `spring.servlet.multipart.max-file-size` 保持匹配，否则大图上传会被 Nginx 拦截（413）。
 - **Docker Compose 端口绑定**：`docker-compose.yml` 中数据库与后端端口默认仅绑定 `127.0.0.1`，生产建议通过 Nginx 反代对外提供服务，不要将数据库/后端端口直接暴露公网。
 - **SSO 单点登录**：详见下方「SSO 单点登录（外部身份源）」。
 
 ### SSO 单点登录（外部身份源，默认关闭）
 
-AstrNest 支持通过 **OAuth 2.1 / OIDC「授权码 + PKCE(S256)」** 对接外部身份源实现统一登录，兼容"辰汐通行证"及任何标准 OAuth 2.1/OIDC 提供方（示例 issuer：`https://passport.example.com`）。功能**默认关闭**（`astrnest.sso.enabled=false`），关闭时前端不显示入口、后端接口返回明确错误，对现有本地登录/注册/API Key 零影响。
+AstrNest 支持通过 **OAuth 2.1 / OIDC「授权码 + PKCE(S256)」** 对接外部身份源实现统一登录，兼容"辰汐通行证"及任何标准 OAuth 2.1/OIDC 提供方（示例 issuer：`https://passport.example.com`）。功能**默认关闭**（`chenxi.passport.enabled=false`），关闭时前端不显示入口、后端接口返回明确错误，对现有本地登录/注册/API Key 零影响。详见 `docs/chenxi-integration.md`。
 
-- **登录流程**：前端跳转身份源授权页（PKCE）→ 身份源回调 `/auth/sso/callback` → 授权码换 `access_token` → `POST /api/auth/sso/exchange` 由后端回站自省校验（`{issuer}/oauth2/introspect`）并签发本地 JWT（与本地登录响应一致）。
+- **登录流程**：前端跳转身份源授权页（PKCE）→ 身份源回调 `/auth/sso/callback` → 将 `code + codeVerifier` 提交 `POST /api/auth/sso/exchange`（服务端交换，浏览器不接触通行证 token）→ 后端回站自省校验（`{issuer}/oauth2/introspect`）并签发本地 JWT（与本地登录响应一致）。
 - **影子账号**：首次 SSO 登录自动建档（`identity_source=passport`、`sso_sub` 关联身份源）；昵称/头像/邮箱每次登录以身份源为准同步，本地**只读**（不可改资料、不可改密，提示"请在身份源侧修改"）。
 - **身份源侧需注册回调地址**：`https://<your-domain>/auth/sso/callback`。
 
 | 配置键 | 环境变量 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `astrnest.sso.enabled` | `ASTRNEST_SSO_ENABLED` | `false` | 是否启用 SSO 登录 |
-| `astrnest.sso.issuer` | `ASTRNEST_SSO_ISSUER` | 空 | 身份源签发方地址，如 `https://passport.example.com` |
-| `astrnest.sso.client-id` | `ASTRNEST_SSO_CLIENT_ID` | 空 | 在身份源侧注册的 public client id |
-| `astrnest.sso.redirect-uri` | `ASTRNEST_SSO_REDIRECT_URI` | 空 | 回调地址，须与身份源侧注册完全一致 |
-| `astrnest.sso.scopes` | —（yml 配置） | `openid, profile, email` | 授权 scope |
-| `astrnest.sso.introspect-timeout-seconds` / `userinfo-timeout-seconds` | —（yml 配置） | `5` | 回站自省/用户信息请求超时（秒） |
+| `chenxi.passport.enabled` | `CHENXI_PASSPORT_ENABLED` | `false` | 是否启用通行证登录 |
+| `chenxi.passport.issuer` | `CHENXI_PASSPORT_ISSUER` | 空 | 身份源签发方地址，如 `https://passport.example.com` |
+| `chenxi.passport.client-id` | `CHENXI_PASSPORT_CLIENT_ID` | 空 | 在身份源侧注册的 public client id |
+| `chenxi.passport.redirect-uri` | `CHENXI_PASSPORT_REDIRECT_URI` | 空 | 回调地址，须与身份源侧注册完全一致 |
+| `chenxi.passport.scopes` | `CHENXI_PASSPORT_SCOPES` | `openid,profile` | 授权 scope |
+| `chenxi.passport.access-token-days` | `CHENXI_PASSPORT_ACCESS_TOKEN_DAYS` | `30` | 本地令牌不活动过期天数（滑动刷新） |
 
 ## Problem Solving | 问题解决
 

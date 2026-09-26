@@ -135,7 +135,7 @@ astrnest/
 
 ### Authentication Contract
 - **JWT (recommended)**: `POST /api/auth/login` returns a JWT on success; send it as `Authorization: Bearer <token>` on subsequent requests.
-  - Tokens are valid for **72 hours by default**, configurable via `astrnest.jwt.ttl-hours` (env `ASTRNEST_JWT_TTL_HOURS`).
+  - Tokens expire after **30 days of inactivity by default** (sliding refresh on active use), configurable via `chenxi.passport.access-token-days` (env `CHENXI_PASSPORT_ACCESS_TOKEN_DAYS`).
   - In production you must set the signing key `astrnest.jwt.secret` (env `ASTRNEST_JWT_SECRET`; use a long random string and keep it out of the repository).
 - **HTTP Basic (kept for compatibility)**: still available for API plugins/scripts (e.g. Typora, PicGo custom uploaders), alongside API Key authentication.
 
@@ -227,7 +227,7 @@ For more detailed environment variables, Nginx reverse proxy, CDN/object storage
 
 ### Production Notes
 - **`ASTRNEST_TRUSTED_PROXY`** (default `false`): set to `true` when the backend runs behind a reverse proxy (Nginx etc.), so the backend trusts and parses `X-Real-IP` / `X-Forwarded-For` and audit logs / rate limiting see the real client IP; config key: `astrnest.security.trusted-proxy`.
-- **`astrnest.jwt.secret` / `astrnest.jwt.ttl-hours`**: JWT signing key and token TTL (default 72 hours); the secret must be explicitly configured in production.
+- **`astrnest.jwt.secret`**: JWT signing key; must be explicitly configured in production. Token lifetime is controlled by `chenxi.passport.access-token-days` (default: 30 days of inactivity).
 - **Nginx `client_max_body_size`**: the sample reverse-proxy config already raises the request body limit; keep it in sync with `spring.servlet.multipart.max-file-size`, otherwise large uploads fail with 413.
 - **Docker Compose port binding**: the database and backend ports in `docker-compose.yml` are bound to `127.0.0.1` only; expose the service through a reverse proxy in production instead of publishing these ports directly.
 - **SSO single sign-on**: see "SSO Single Sign-On (External Identity Provider)" below.
