@@ -9,7 +9,7 @@
   - **兼容通道**：`Authorization: Basic <base64(username:password)>`，为便于已有插件迁移而保留
 - **Content-Type**：表单上传使用 `multipart/form-data`
 - **超时**：前端默认 15s，可在插件端自行控制
-- **会话有效期**：JWT 默认有效期 72 小时（服务端 `astrnest.jwt.ttl-hours` 可配），过期后重新调用登录接口获取新 token；不存在"长期缓存"的会话
+- **会话有效期**：JWT 默认 30 天不活动过期（服务端 `chenxi.passport.access-token-days` 可配），过期后重新调用登录接口获取新 token；不存在"长期缓存"的会话
 
 ## 登录获取 Token
 - **接口**：`POST /api/auth/login`

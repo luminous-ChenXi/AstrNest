@@ -2,6 +2,35 @@
 
 ## [Unreleased] - 2026-09-27
 
+### 安装向导对齐与 N1 管理员私密保障
+
+- 安装向导对齐统一规范六步流程：环境检测 → 数据库配置 → 初始化 → 站点配置 → 创建管理员 → 完成；
+  新增「数据库配置」连接确认步与「站点初始配置」步（开放注册/访客上传/单文件上限/加速域名，可跳过）
+- 管理员密码支持一键生成 16 位强密码（含大小写/数字/符号），明文仅生成时展示一次 + 二次输入确认；
+  日志、API 响应、完成页一律不回显；`init-admin.bat` 不再在完成输出中打印明文密码
+- 防重装升级为四重防护：DB 完成标记 + `storage/install.lock` 锁文件 + 向导写端点 403 + 前端路由跳转；
+  安装完成按钮强制跳转登录页
+
+### 辰汐通行证登录收口（chenxi.passport.*）
+
+- 配置命名空间由 `astrnest.sso.*` 收口为 `chenxi.passport.*`，默认关闭、关闭时行为与现状一致；
+  scopes 默认收紧为 `openid,profile`；docker-compose 同步透传 `CHENXI_PASSPORT_*` 环境变量
+- exchange 接口支持 OIDC 授权码 + PKCE（`{code, codeVerifier}`，服务端完成换 token，浏览器不接触通行证
+  token），保留遗留 access_token 直换路径兼容旧前端；前端 sso.js 切换为服务端交换
+- 本地令牌对齐 `access-token-days: 30` 不活动过期：剩余有效期不足一半时经
+  `X-AstrNest-Refreshed-Token` 响应头滑动续期，前端自动滚动会话
+
+### 授权与统计 SDK 骨架（N2 占位）
+
+- 新增 license 包：`LicenseClient`（启动 + 定时校验 verify-url，缓存 `cache-days`，离线 `offline-grace-days`
+  内放行，超期仅横幅提示**绝不锁数据**）、`StatsReporter`（默认关闭空实现）、配置绑定与 DTO，
+  verify/report 协议只到接口层；新增公开只读端点 `GET /api/license/status` 与前端提示横幅
+
+### 文档
+
+- 新增 `docs/chenxi-integration.md`：配置表、OIDC 流程、令牌 30 天滑动与授权按年的解耦设计、N2 预留说明；
+  CONFIG_GUIDE / README 同步 `chenxi.*` 配置键
+
 ### 协议与合规
 
 - 协议追加非商用附加条款（禁商用+署名），清理废弃分仓引用

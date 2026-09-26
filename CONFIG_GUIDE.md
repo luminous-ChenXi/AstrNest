@@ -701,42 +701,42 @@ VITE_SITE_NAME=AstrNest
 
 #### 18.2 JWT 认证
 - 登录接口 `POST /api/auth/login` 返回 JWT，后续请求携带 `Authorization: Bearer <token>`。
-- `astrnest.jwt.ttl-hours`（环境变量 `ASTRNEST_JWT_TTL_HOURS`）：Token 有效期，默认 **72 小时**。
+- 令牌有效期由 `chenxi.passport.access-token-days`（环境变量 `CHENXI_PASSPORT_ACCESS_TOKEN_DAYS`）控制，默认 **30 天**，语义为「不活动过期」：剩余有效期不足一半时，后端经 `X-AstrNest-Refreshed-Token` 响应头滑动续期，活跃用户持续滚动。
 - `astrnest.jwt.secret`（环境变量 `ASTRNEST_JWT_SECRET`）：签名密钥，生产必须设置为随机长字符串（如 `openssl rand -base64 64` 生成），切勿提交仓库；未配置时仅适合本地开发。
 - HTTP Basic 认证仍兼容保留，供 API 插件/脚本（Typora、PicGo 等）使用；与 API Key 并行。
 
-#### 18.3 SSO 外部身份源（OAuth 2.1 / OIDC，默认关闭）
+#### 18.3 辰汐通行证登录（chenxi.passport.*，OAuth 2.1 / OIDC，默认关闭）
 
-AstrNest 作为从站，支持对接任何兼容 **OAuth 2.1 / OIDC「授权码 + PKCE(S256)」** 的外部身份源实现统一登录（如"辰汐通行证"，示例 issuer：`https://passport.example.com`）。功能**默认关闭**，关闭时前端登录弹窗不显示 SSO 入口、`POST /api/auth/sso/exchange` 返回明确错误，对本地登录/注册/API Key 零影响。
+AstrNest 作为从站，支持对接任何兼容 **OAuth 2.1 / OIDC「授权码 + PKCE(S256)」** 的外部身份源实现统一登录（如"辰汐通行证"，示例 issuer：`https://passport.example.com`）。功能**默认关闭**，关闭时前端登录弹窗不显示 SSO 入口、`POST /api/auth/sso/exchange` 返回明确错误，对本地登录/注册/API Key 零影响。完整口径见 `docs/chenxi-integration.md`。
 
 配置示例（`application.yml`，均可用环境变量覆盖）：
 ```yaml
-astrnest:
-  sso:
-    enabled: ${ASTRNEST_SSO_ENABLED:false}
-    issuer: ${ASTRNEST_SSO_ISSUER:}          # 如 https://passport.example.com
-    client-id: ${ASTRNEST_SSO_CLIENT_ID:}    # 身份源侧注册的 public client id
-    redirect-uri: ${ASTRNEST_SSO_REDIRECT_URI:} # 回调地址，须与身份源注册完全一致
-    scopes: openid, profile, email           # 授权 scope
-    introspect-timeout-seconds: 5            # 回站自省超时（秒，可选）
-    userinfo-timeout-seconds: 5              # 用户信息请求超时（秒，可选）
+chenxi:
+  passport:
+    enabled: ${CHENXI_PASSPORT_ENABLED:false}
+    issuer: ${CHENXI_PASSPORT_ISSUER:}          # 如 https://passport.example.com
+    client-id: ${CHENXI_PASSPORT_CLIENT_ID:}    # 身份源侧注册的 public client id
+    redirect-uri: ${CHENXI_PASSPORT_REDIRECT_URI:} # 回调地址，须与身份源注册完全一致
+    scopes: ${CHENXI_PASSPORT_SCOPES:openid,profile} # 授权 scope
+    access-token-days: ${CHENXI_PASSPORT_ACCESS_TOKEN_DAYS:30} # 本地令牌不活动过期（滑动刷新）
 ```
 
 | 配置键 | 环境变量 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `astrnest.sso.enabled` | `ASTRNEST_SSO_ENABLED` | `false` | 是否启用 SSO 登录 |
-| `astrnest.sso.issuer` | `ASTRNEST_SSO_ISSUER` | 空 | 身份源签发方地址（末尾斜杠会自动容忍） |
-| `astrnest.sso.client-id` | `ASTRNEST_SSO_CLIENT_ID` | 空 | public client id（公共客户端，无需 client_secret） |
-| `astrnest.sso.redirect-uri` | `ASTRNEST_SSO_REDIRECT_URI` | 空 | 回调地址 |
-| `astrnest.sso.scopes` | — | `openid, profile, email` | 授权 scope |
-| `astrnest.sso.introspect-timeout-seconds` | — | `5` | token 自省请求超时（秒） |
-| `astrnest.sso.userinfo-timeout-seconds` | — | `5` | userinfo 请求超时（秒） |
+| `chenxi.passport.enabled` | `CHENXI_PASSPORT_ENABLED` | `false` | 是否启用通行证登录 |
+| `chenxi.passport.issuer` | `CHENXI_PASSPORT_ISSUER` | 空 | 身份源签发方地址（末尾斜杠会自动容忍） |
+| `chenxi.passport.client-id` | `CHENXI_PASSPORT_CLIENT_ID` | 空 | public client id（公共客户端，无需 client_secret） |
+| `chenxi.passport.redirect-uri` | `CHENXI_PASSPORT_REDIRECT_URI` | 空 | 回调地址 |
+| `chenxi.passport.scopes` | `CHENXI_PASSPORT_SCOPES` | `openid,profile` | 授权 scope |
+| `chenxi.passport.access-token-days` | `CHENXI_PASSPORT_ACCESS_TOKEN_DAYS` | `30` | 本地令牌不活动过期天数（滑动刷新） |
+
+> 正版授权校验（`chenxi.license.*`）与统计上报（`chenxi.stats.*`）为 N2 占位，默认关闭，SDK 骨架见 license 包；配置表见 `docs/chenxi-integration.md`。
 
 启用步骤：
 1. 在身份源侧注册从站，获得 `client_id`，并注册回调地址 `https://<your-domain>/auth/sso/callback`（与 `redirect-uri` 完全一致）；
-2. 配置上述环境变量并设置 `ASTRNEST_SSO_ENABLED=true`，重启后端。
+2. 配置上述环境变量并设置 `CHENXI_PASSPORT_ENABLED=true`，重启后端。
 
-登录流程：前端拉取 `GET /api/auth/sso/config` → 生成 PKCE（S256）与 `state`/`nonce` → 跳转 `{issuer}/oauth2/authorize` → 身份源回调 `/auth/sso/callback` → 前端用授权码调 `{issuer}/oauth2/token` 换 `access_token` → `POST /api/auth/sso/exchange` 由后端回站自省（`{issuer}/oauth2/introspect`，无效统一按未激活处理）并拉取 `{issuer}/userinfo`，签发与本地登录一致的本地 JWT。
+登录流程：前端拉取 `GET /api/auth/sso/config` → 生成 PKCE（S256）与 `state`/`nonce` → 跳转 `{issuer}/oauth2/authorize` → 身份源回调 `/auth/sso/callback` → 前端把 `code + codeVerifier` 提交 `POST /api/auth/sso/exchange`（**服务端交换**：后端调 `{issuer}/oauth2/token` 完成 PKCE 换取，浏览器不接触通行证 token）→ 后端回站自省（`{issuer}/oauth2/introspect`，无效统一按未激活处理）并拉取 `{issuer}/userinfo`，签发与本地登录一致的本地 JWT（30 天不活动过期、滑动续期）。
 
 影子账号行为：
 - 首次 SSO 登录自动在 `users` 表建档：`sso_sub` 关联身份源唯一标识（唯一索引 `uk_users_sso_sub`）、`identity_source=passport`（表示外部身份源，泛化即 sso）；用户名冲突自动加后缀，邮箱为空或冲突时用 `<sub>@sso.local` 占位；密码为随机不可登录值。
