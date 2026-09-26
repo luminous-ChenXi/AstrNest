@@ -37,6 +37,8 @@ Modern full-stack media management platform built with Spring Boot 3.4.1 and Vue
 
 </div>
 
+> 🪺 A member of the **Chenxi Ecosystem (辰汐生态)** — alongside [LuomiNest](https://github.com/LuminousCX/LuomiNest) (desktop AI companion), [LuomiBlog](https://github.com/luminous-ChenXi/LuomiBlog) (AI knowledge-base blog), and Teachenxi (learning companion app). This project's role: an open-source image hosting and media management platform (multi-cloud storage, AI content moderation).
+
 <img src="./templates/1728x2304.png" width = "300" height = "400" alt="AstrNest" align=right />
 <div align="center">
 

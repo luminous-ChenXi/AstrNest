@@ -37,6 +37,8 @@
 
 </div>
 
+> 🪺 **辰汐生态（Chenxi Ecosystem）** 成员项目 —— 与 [LuomiNest](https://github.com/LuminousCX/LuomiNest)（桌面 AI 陪伴）、[LuomiBlog](https://github.com/luminous-ChenXi/LuomiBlog)（AI 知识库博客）、Teachenxi（学习陪伴 App）同属辰汐生态。本项目的角色：开源图床与媒体管理平台（多云存储、AI 内容审查）。
+
 <img src="./templates/1728x2304.png" width = "300" height = "400" alt="AstrNest" align=right />
 <div align="center">
 
