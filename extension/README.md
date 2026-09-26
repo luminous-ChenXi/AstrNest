@@ -119,4 +119,4 @@ chrome.runtime.sendMessage(
 
 ## 许可证
 
-MIT
+本项目遵循仓库根目录的 [LICENSE](../LICENSE)：GPL-3.0 及附加条款（禁商用 + 署名）。

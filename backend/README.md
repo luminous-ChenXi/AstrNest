@@ -190,7 +190,7 @@ java -jar target/backend-0.0.1-SNAPSHOT.jar
 
 ## 许可证
 
-本项目基于 [GNU General Public License v3 (GPL v3)](../LICENSE) 开源。
+本项目基于 [GPL-3.0 with Additional Terms (Non-Commercial)](../LICENSE) 开源（附加非商用条款：禁商用 + 署名）。
 
 ## 联系方式
 
