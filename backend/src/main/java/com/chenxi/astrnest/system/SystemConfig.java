@@ -44,6 +44,21 @@ public class SystemConfig {
   @Column(nullable = false)
   private boolean registrationEnabled = false;
 
+  /**
+   * 注册邮箱验证开关（registration.email_verify_required，默认 false）：
+   * 开启后新注册账号必须完成邮箱验证码校验（email_verified 置位）才算激活；关闭时注册即激活。
+   * 生效前提：管理后台已配置并启用 SMTP，否则验证码无法发出。
+   */
+  @Column(name = "registration_email_verify_required", nullable = false)
+  private boolean registrationEmailVerifyRequired = false;
+
+  /**
+   * 登录二步验证开关（login.totp_required，默认 false）：
+   * 开启后所有用户登录在密码校验通过后需再输入 TOTP 动态口令（未绑定用户进入强制绑定流程）。
+   */
+  @Column(name = "login_totp_required", nullable = false)
+  private boolean loginTotpRequired = false;
+
   @Column(name = "guest_like_enabled", nullable = false)
   private boolean guestLikeEnabled = true;
 

@@ -18,13 +18,18 @@ import {
   Key,
   CopyDocument,
   SuccessFilled,
+  Message,
+  Lock,
+  Link,
 } from '@element-plus/icons-vue'
 import {
   createInstallAdmin,
   finishInstall,
   getInstallError,
+  resetInstallState,
   runDatabaseInstall,
   saveSiteConfig,
+  testDatabaseConnection,
 } from '../../services/install'
 import { useInstallStore } from '../../stores/install'
 
@@ -47,6 +52,7 @@ const creatingAdmin = ref(false)
 const adminResult = ref(null)
 const finishing = ref(false)
 const finishResult = ref(null)
+const resetting = ref(false)
 
 const form = reactive({
   username: '',
@@ -61,7 +67,22 @@ const siteForm = reactive({
   guestUploadEnabled: false,
   maxUploadMb: 20,
   assetDomain: '',
+  registrationEmailVerifyRequired: false,
+  loginTotpRequired: false,
 })
+
+// 数据库配置：位置（本机/远程）+ 连接参数 + 即时测试
+const dbForm = reactive({
+  location: 'local',
+  host: 'localhost',
+  port: 3306,
+  databaseName: '',
+  username: '',
+  password: '',
+})
+const dbTesting = ref(false)
+const dbTestResult = ref(null)
+const dbCreateIfMissing = ref(false)
 
 // 强密码一次性展示：明文只在生成后/创建前可见，创建成功后系统任何页面都不再回显
 const generatedPassword = ref('')
@@ -77,6 +98,10 @@ const fatalChecks = computed(() =>
 const hasFatalProblem = computed(() => fatalChecks.value.length > 0)
 
 const databaseCheck = computed(() => checks.value.find((item) => item.id === 'database') || null)
+
+// 完成汇总：站点地址取当前访问 origin；开关状态来自 finish 响应的 summary 快照
+const siteUrl = `${window.location.origin}`
+const finishSummary = computed(() => finishResult.value?.summary || null)
 
 const usernamePattern = /^[A-Za-z0-9_.-]{3,32}$/
 
@@ -164,8 +189,69 @@ const goNextFromChecks = () => {
 
 const goNextFromDatabase = () => {
   if (!databaseCheck.value?.passed) return
+  if (!dbTestResult.value?.success) {
+    ElMessage.warning('请先完成「测试连接」并确认连接成功')
+    return
+  }
   currentStep.value = schemaState.value === 'NOT_INSTALLED' ? STEP.INIT : STEP.SITE
 }
+
+// ==================== 数据库连接测试 ====================
+
+const switchDbLocation = (location) => {
+  dbForm.location = location
+  dbTestResult.value = null
+  dbCreateIfMissing.value = false
+  if (location === 'local') {
+    dbForm.host = 'localhost'
+    dbForm.port = 3306
+  } else {
+    dbForm.host = ''
+    dbForm.port = 3306
+  }
+}
+
+const handleTestConnection = async (withCreate = false) => {
+  const host = (dbForm.host || '').trim()
+  const name = (dbForm.databaseName || '').trim()
+  const username = (dbForm.username || '').trim()
+  if (!host) {
+    ElMessage.warning('请填写数据库主机地址')
+    return
+  }
+  if (!name) {
+    ElMessage.warning('请填写数据库名称')
+    return
+  }
+  if (!username) {
+    ElMessage.warning('请填写数据库用户名')
+    return
+  }
+  dbTesting.value = true
+  try {
+    const data = await testDatabaseConnection({
+      location: dbForm.location,
+      host,
+      port: Number(dbForm.port) || 3306,
+      databaseName: name,
+      username,
+      password: dbForm.password,
+      createIfMissing: Boolean(withCreate),
+    })
+    dbTestResult.value = data
+    if (data.success) {
+      ElMessage.success(withCreate ? '数据库已创建并连接成功' : '连接成功')
+    } else {
+      ElMessage.error(data.message || '连接失败')
+    }
+  } catch (error) {
+    ElMessage.error(getInstallError(error, '测试连接失败'))
+  } finally {
+    dbTesting.value = false
+  }
+}
+
+// ==================== 初始化 / 重置 ====================
 
 const handleInstallDatabase = async () => {
   installingDb.value = true
@@ -182,6 +268,30 @@ const handleInstallDatabase = async () => {
   }
 }
 
+/**
+ * 重置安装状态：装库/收尾失败后的恢复入口。
+ * 清理 install.lock 与 DB 完成标记（仅未完成站点可调），重置后回到第一步重走流程。
+ */
+const handleResetInstall = async () => {
+  resetting.value = true
+  try {
+    const data = await resetInstallState()
+    ElMessage.success(data.message || '安装状态已重置')
+    databaseResult.value = null
+    adminResult.value = null
+    finishResult.value = null
+    dbTestResult.value = null
+    currentStep.value = STEP.CHECKS
+    await refreshStatus(true)
+  } catch (error) {
+    ElMessage.error(getInstallError(error, '重置安装状态失败'))
+  } finally {
+    resetting.value = false
+  }
+}
+
+// ==================== 站点配置 ====================
+
 const handleSaveSiteConfig = async () => {
   savingSite.value = true
   try {
@@ -190,6 +300,8 @@ const handleSaveSiteConfig = async () => {
       guestUploadEnabled: siteForm.guestUploadEnabled,
       maxUploadMb: siteForm.maxUploadMb,
       assetDomain: siteForm.assetDomain.trim(),
+      registrationEmailVerifyRequired: siteForm.registrationEmailVerifyRequired,
+      loginTotpRequired: siteForm.loginTotpRequired,
     })
     ElMessage.success('站点配置已保存')
     currentStep.value = STEP.ADMIN
@@ -355,13 +467,13 @@ const goLogin = async () => {
       </section>
 
       <template v-else>
-        <!-- 步骤 1：环境检测 -->
+        <!-- 步骤 1：环境检测（自检报告） -->
         <section v-show="currentStep === 0" class="install-card">
           <div class="card-head">
             <el-icon class="card-icon"><Monitor /></el-icon>
             <div>
-              <h2>环境检测</h2>
-              <p class="muted">检查数据库、存储目录与运行环境，确认满足安装条件。</p>
+              <h2>环境自检报告</h2>
+              <p class="muted">逐项检查数据库、存储目录、Java 运行时与邮件服务；带「警告」的项不影响安装，可稍后在管理后台处理。</p>
             </div>
           </div>
 
@@ -413,46 +525,112 @@ const goLogin = async () => {
           </div>
         </section>
 
-        <!-- 步骤 2：数据库配置 -->
+        <!-- 步骤 2：数据库配置（位置 + 连接参数 + 测试连接） -->
         <section v-show="currentStep === 1" class="install-card">
           <div class="card-head">
             <el-icon class="card-icon"><Connection /></el-icon>
             <div>
               <h2>数据库配置</h2>
-              <p class="muted">确认数据库连接可用。AstrNest 的数据库连接由部署配置承载，向导内只做确认与引导。</p>
+              <p class="muted">
+                选择数据库位置并填写连接参数，点击「测试连接」即时验证。
+                AstrNest 运行时连接由部署配置（ASTRNEST_DB_URL 等）承载，请保持两者一致。
+              </p>
             </div>
           </div>
 
           <div class="step-body">
-            <div v-if="databaseCheck" class="db-status">
-              <el-icon
-                class="check-icon"
-                :class="databaseCheck.passed && !databaseCheck.warning ? 'ok' : databaseCheck.passed || databaseCheck.warning ? 'warn' : 'fail'"
-                :size="24"
-              >
-                <CircleCheckFilled v-if="databaseCheck.passed && !databaseCheck.warning" />
-                <WarningFilled v-else-if="databaseCheck.warning" />
-                <CircleCloseFilled v-else />
-              </el-icon>
-              <div>
-                <div class="check-name">{{ databaseCheck.name }}</div>
-                <div class="check-detail">{{ databaseCheck.detail }}</div>
+            <el-radio-group :model-value="dbForm.location" class="db-location" @update:model-value="switchDbLocation">
+              <el-radio-button value="local">本机数据库</el-radio-button>
+              <el-radio-button value="remote">远程数据库</el-radio-button>
+            </el-radio-group>
+
+            <el-form label-position="top" class="db-form">
+              <div class="db-grid">
+                <el-form-item label="主机地址">
+                  <el-input
+                    v-model="dbForm.host"
+                    :placeholder="dbForm.location === 'local' ? 'localhost' : '如 192.168.1.10 或 db.example.com'"
+                  />
+                </el-form-item>
+                <el-form-item label="端口">
+                  <el-input-number v-model="dbForm.port" :min="1" :max="65535" :controls="false" class="port-input" />
+                </el-form-item>
+                <el-form-item label="数据库名称">
+                  <el-input v-model="dbForm.databaseName" placeholder="如 astrnest" maxlength="64" />
+                </el-form-item>
+                <el-form-item label="用户名">
+                  <el-input v-model="dbForm.username" placeholder="数据库账号" autocomplete="off" />
+                </el-form-item>
+                <el-form-item label="密码" class="db-password">
+                  <el-input
+                    v-model="dbForm.password"
+                    type="password"
+                    show-password
+                    placeholder="数据库密码（可空）"
+                    autocomplete="off"
+                  />
+                </el-form-item>
               </div>
+            </el-form>
+
+            <div class="actions actions--start">
+              <el-button type="primary" :loading="dbTesting" @click="handleTestConnection(false)">
+                <el-icon class="btn-icon"><Connection /></el-icon>
+                {{ dbTesting ? '正在测试连接…' : '测试连接' }}
+              </el-button>
+              <el-button :icon="Refresh" :loading="loading" @click="refreshStatus(true)">重新检测运行时</el-button>
             </div>
 
-            <el-alert type="info" :closable="false" show-icon title="如何修改数据库连接">
+            <!-- 测试成功 -->
+            <el-alert
+              v-if="dbTestResult?.success"
+              type="success"
+              :closable="false"
+              show-icon
+              title="数据库连接成功"
+            >
               <div class="muted">
-                连接参数通过环境变量或配置文件指定：<code>ASTRNEST_DB_URL</code>、
-                <code>ASTRNEST_DB_USERNAME</code>、<code>ASTRNEST_DB_PASSWORD</code>
-                （docker-compose 部署时写在 <code>.env</code>）。如需更换数据库，请修改后重启后端再继续安装。
-                详见 <a :href="DOC_URL" target="_blank" rel="noreferrer">CONFIG_GUIDE</a>。
+                MySQL 版本：<strong>{{ dbTestResult.mysqlVersion }}</strong>
+                <template v-if="dbTestResult.charsetServer">
+                  ，服务器字符集 <strong>{{ dbTestResult.charsetServer }}</strong>
+                  ，目标库字符集 <strong>{{ dbTestResult.charsetDatabase }}</strong>
+                </template>
+                <template v-if="dbTestResult.databaseCreated">（本次已自动创建数据库）</template>
+              </div>
+              <div v-if="!dbTestResult.matchesRuntime" class="muted db-runtime-warn">
+                <el-icon><WarningFilled /></el-icon>
+                注意：当前后端运行时连接为
+                <code>{{ dbTestResult.runtimeJdbcUrl || '（未知）' }}</code>
+                ，与上方表单不一致。「初始化」将作用于运行时连接；如需安装到其他数据库，请修改
+                ASTRNEST_DB_URL / ASTRNEST_DB_USERNAME / ASTRNEST_DB_PASSWORD 后重启后端再继续。
+              </div>
+            </el-alert>
+
+            <!-- 测试失败：库不存在 → 提供尝试建库 -->
+            <el-alert
+              v-else-if="dbTestResult"
+              type="error"
+              :closable="false"
+              show-icon
+              title="数据库连接失败"
+            >
+              <div class="muted">{{ dbTestResult.message }}</div>
+              <div v-if="dbTestResult.errorCode === 'DB_MISSING'" class="db-create-row">
+                <el-checkbox v-model="dbCreateIfMissing">尝试创建数据库（需要该账号具备建库权限）</el-checkbox>
+                <el-button size="small" type="warning" plain :loading="dbTesting" @click="handleTestConnection(true)">
+                  按此重试并建库
+                </el-button>
               </div>
             </el-alert>
           </div>
 
           <div class="actions">
-            <el-button :icon="Refresh" :loading="loading" @click="refreshStatus(true)">重新检测</el-button>
-            <el-button type="primary" :disabled="!databaseCheck?.passed" @click="goNextFromDatabase">
+            <el-button @click="currentStep = 0">上一步</el-button>
+            <el-button
+              type="primary"
+              :disabled="!databaseCheck?.passed || !dbTestResult?.success"
+              @click="goNextFromDatabase"
+            >
               下一步
               <el-icon class="btn-icon"><ArrowRight /></el-icon>
             </el-button>
@@ -469,12 +647,15 @@ const goLogin = async () => {
             </div>
           </div>
 
-          <div v-if="!databaseResult" class="step-body">
+          <div v-if="installingDb" class="step-body center">
+            <el-icon class="rotating" :size="30"><Loading /></el-icon>
+            <p class="muted">正在执行建表脚本，请稍候（通常数秒内完成）…</p>
+          </div>
+
+          <div v-else-if="!databaseResult" class="step-body">
             <p class="muted">即将执行 <code>backend/db/install-schema.sql</code>：包含用户、媒体、图集、公告等核心表与默认角色。</p>
             <div class="actions">
-              <el-button type="primary" size="large" :loading="installingDb" @click="handleInstallDatabase">
-                {{ installingDb ? '正在安装…' : '开始初始化数据库' }}
-              </el-button>
+              <el-button type="primary" size="large" @click="handleInstallDatabase">开始初始化数据库</el-button>
             </div>
           </div>
 
@@ -494,7 +675,11 @@ const goLogin = async () => {
               </div>
             </el-alert>
             <div class="actions">
-              <el-button :loading="installingDb" @click="handleInstallDatabase">重新执行</el-button>
+              <el-button @click="handleInstallDatabase">重新执行</el-button>
+              <!-- 失败处理：清掉残留的完成标记/锁，从头重走安装 -->
+              <el-button type="warning" plain :loading="resetting" @click="handleResetInstall">
+                重置安装状态
+              </el-button>
               <el-button
                 v-if="databaseResult.success"
                 type="primary"
@@ -521,6 +706,14 @@ const goLogin = async () => {
             <el-form-item label="开放邮箱注册">
               <el-switch v-model="siteForm.registrationEnabled" />
               <span class="form-hint">关闭时仅管理员可创建账号（默认关闭）</span>
+            </el-form-item>
+            <el-form-item label="注册邮箱验证">
+              <el-switch v-model="siteForm.registrationEmailVerifyRequired" />
+              <span class="form-hint">开启后注册需输入邮箱验证码激活；需先在管理后台配置 SMTP（默认关闭）</span>
+            </el-form-item>
+            <el-form-item label="登录二步验证（TOTP）">
+              <el-switch v-model="siteForm.loginTotpRequired" />
+              <span class="form-hint">开启后所有用户登录需绑定并输入动态口令（默认关闭）</span>
             </el-form-item>
             <el-form-item label="允许访客上传">
               <el-switch v-model="siteForm.guestUploadEnabled" />
@@ -550,17 +743,26 @@ const goLogin = async () => {
             <el-icon class="card-icon"><User /></el-icon>
             <div>
               <h2>创建管理员</h2>
-              <p class="muted">这是系统的初始管理员账号（ADMIN 角色，上传配额不限），请妥善保管。</p>
+              <p class="muted">这是系统的初始管理员账号（ADMIN 角色，上传配额不限）。</p>
             </div>
           </div>
 
           <div v-if="!adminResult" class="step-body">
+            <el-alert type="warning" :closable="false" show-icon title="这是最高权限管理员账号">
+              <div class="muted">
+                该账号拥有站点全部权限。凭据仅此一次展示，<strong>请务必妥善保存</strong>：
+                密码使用「生成强密码」后仅明文显示一次，创建成功后系统任何页面都不再回显。
+              </div>
+            </el-alert>
+
             <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="admin-form">
               <el-form-item label="用户名" prop="username">
                 <el-input v-model="form.username" placeholder="3-32 位字母、数字、下划线、点、短横线" maxlength="32" />
               </el-form-item>
-              <el-form-item label="邮箱" prop="email">
-                <el-input v-model="form.email" placeholder="用于找回密码与站内通知" maxlength="180" />
+              <el-form-item label="邮箱（必填）" prop="email">
+                <el-input v-model="form.email" placeholder="用于找回密码与站内通知" maxlength="180">
+                  <template #prefix><el-icon><Message /></el-icon></template>
+                </el-input>
               </el-form-item>
               <el-form-item label="密码" prop="password">
                 <div class="password-field">
@@ -585,7 +787,13 @@ const goLogin = async () => {
                 <div class="muted">请在下方「确认密码」中再次输入相同密码以确认你已保存；创建成功后系统不再回显。</div>
               </div>
               <el-form-item label="确认密码" prop="confirmPassword">
-                <el-input v-model="form.confirmPassword" type="password" show-password placeholder="再次输入相同密码" />
+                <el-input
+                  v-model="form.confirmPassword"
+                  type="password"
+                  show-password
+                  placeholder="再次输入相同密码"
+                  :prefix-icon="Lock"
+                />
               </el-form-item>
             </el-form>
             <div class="actions">
@@ -611,7 +819,7 @@ const goLogin = async () => {
           </div>
         </section>
 
-        <!-- 步骤 6：完成 -->
+        <!-- 步骤 6：完成（汇总页） -->
         <section v-show="currentStep === 5" class="install-card">
           <div class="card-head">
             <el-icon class="card-icon"><SuccessFilled /></el-icon>
@@ -635,6 +843,42 @@ const goLogin = async () => {
                 如需重建请清空数据库并删除锁文件后重新部署。
               </div>
             </el-alert>
+
+            <!-- 完成汇总 -->
+            <div class="summary-grid">
+              <div class="summary-item">
+                <div class="summary-label"><el-icon><Link /></el-icon> 站点地址</div>
+                <div class="summary-value"><code>{{ siteUrl }}</code></div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label"><el-icon><User /></el-icon> 管理员账号</div>
+                <div class="summary-value">
+                  {{ finishSummary?.adminUsername || adminResult?.username || '（见上方记录）' }}
+                  <span v-if="finishSummary?.adminEmail" class="muted">（{{ finishSummary.adminEmail }}）</span>
+                  <div class="muted">密码不显示：请使用安装时保存的密码登录</div>
+                </div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label"><el-icon><Message /></el-icon> 注册邮箱验证</div>
+                <div class="summary-value">
+                  <el-tag :type="finishSummary?.emailVerifyRequired ? 'success' : 'info'" size="small">
+                    {{ finishSummary?.emailVerifyRequired ? '已开启' : '未开启' }}
+                  </el-tag>
+                  <span v-if="finishSummary?.emailVerifyRequired && !finishSummary?.smtpConfigured" class="muted warn-text">
+                    （SMTP 未配置，请在管理后台配置后验证码才可发送）
+                  </span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label"><el-icon><Lock /></el-icon> 登录二步验证（TOTP）</div>
+                <div class="summary-value">
+                  <el-tag :type="finishSummary?.totpRequired ? 'success' : 'info'" size="small">
+                    {{ finishSummary?.totpRequired ? '已开启' : '未开启' }}
+                  </el-tag>
+                </div>
+              </div>
+            </div>
+
             <ul class="check-list">
               <li v-for="item in checks" :key="item.id" class="check-item">
                 <el-icon
@@ -661,10 +905,11 @@ const goLogin = async () => {
 
           <div v-else class="step-body center">
             <el-alert type="error" :closable="false" show-icon title="完成安装失败">
-              <div class="muted">请检查数据库连接后重试。</div>
+              <div class="muted">请检查数据库连接后重试；若状态残留导致无法继续，可重置安装状态后重走向导。</div>
             </el-alert>
             <div class="actions">
               <el-button type="primary" :loading="finishing" @click="goFinish">重试完成安装</el-button>
+              <el-button type="warning" plain :loading="resetting" @click="handleResetInstall">重置安装状态</el-button>
             </div>
           </div>
         </section>
@@ -835,6 +1080,48 @@ const goLogin = async () => {
   padding: 10px 0;
 }
 
+.db-location {
+  margin-bottom: 4px;
+}
+
+.db-form {
+  max-width: 720px;
+}
+
+.db-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+
+.db-grid .db-password {
+  grid-column: span 2;
+}
+
+.port-input {
+  width: 100%;
+}
+
+.db-runtime-warn {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  color: #b45309;
+}
+
+.db-runtime-warn .el-icon {
+  margin-top: 3px;
+}
+
+.db-create-row {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .admin-form {
   max-width: 460px;
 }
@@ -883,6 +1170,40 @@ const goLogin = async () => {
   word-break: break-all;
 }
 
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-item {
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--color-bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.summary-value {
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.warn-text {
+  color: #b45309;
+}
+
 .site-form {
   max-width: 460px;
 }
@@ -907,6 +1228,10 @@ const goLogin = async () => {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+}
+
+.actions--start {
+  justify-content: flex-start;
 }
 
 .btn-icon {
@@ -964,6 +1289,15 @@ code {
 @media (max-width: 640px) {
   .install-card {
     padding: 20px 16px;
+  }
+
+  .db-grid,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .db-grid .db-password {
+    grid-column: span 1;
   }
 
   .actions {

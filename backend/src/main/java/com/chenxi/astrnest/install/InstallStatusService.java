@@ -1,5 +1,7 @@
 package com.chenxi.astrnest.install;
 
+import com.chenxi.astrnest.chenxi.mail.ChenxiMailConfig;
+import com.chenxi.astrnest.chenxi.mail.ChenxiMailConfigService;
 import com.chenxi.astrnest.storage.StorageProperties;
 import com.chenxi.astrnest.storage.StorageStrategy;
 import com.chenxi.astrnest.upload.media.VideoThumbnailProperties;
@@ -48,6 +50,7 @@ public class InstallStatusService {
   private final StorageProperties storageProperties;
   private final VideoThumbnailProperties videoThumbnailProperties;
   private final InstallLockService installLockService;
+  private final ChenxiMailConfigService mailConfigService;
 
   /** 缓存条目：快照与采集时间绑定为一个不可变对象，保证读侧原子可见 */
   private volatile CacheEntry cacheEntry;
@@ -124,7 +127,7 @@ public class InstallStatusService {
         snapshot.installed(), snapshot.schemaState(), isFinished(), isLocked(), buildChecks(snapshot));
   }
 
-  /** 构建环境检测项列表（数据库 / 表结构 / 存储目录 / Java / ffmpeg） */
+  /** 构建环境检测项列表（数据库 / 表结构 / 存储目录 / Java / ffmpeg / SMTP） */
   public List<InstallCheckItem> buildChecks(InstallSnapshot snapshot) {
     List<InstallCheckItem> checks = new ArrayList<>();
     checks.add(databaseCheck(snapshot));
@@ -132,6 +135,7 @@ public class InstallStatusService {
     checks.add(storageCheck());
     checks.add(javaCheck());
     checks.add(ffmpegCheck());
+    checks.add(smtpCheck(snapshot));
     return checks;
   }
 
@@ -298,6 +302,38 @@ public class InstallStatusService {
     return new InstallCheckItem("ffmpeg", "FFmpeg（视频缩略图）", false, true,
         "未检测到可用的 ffmpeg（" + ffmpegPath + "）。仅影响视频缩略图生成，不影响安装、图片上传与站点运行；"
             + "可安装 ffmpeg 或通过 ASTRNEST_VIDEO_THUMBNAIL_FFMPEG 指定完整路径后重启。");
+  }
+
+  /**
+   * SMTP 邮件服务自检（只检测展示，不阻塞安装）：
+   * 注册邮箱验证、密码找回等邮件能力依赖它，未配置时给出管理后台入口提示。
+   * 数据库尚未初始化（业务表不存在）时跳过，避免 JPA 触发 500。
+   */
+  private InstallCheckItem smtpCheck(InstallSnapshot snapshot) {
+    if (InstallStatusService.STATE_NOT_INSTALLED.equals(snapshot.schemaState())) {
+      return new InstallCheckItem("smtp", "SMTP 邮件服务", false, true,
+          "数据库尚未初始化，跳过 SMTP 检测。安装完成后可在管理后台「邮件设置」中配置发件邮箱。");
+    }
+    try {
+      ChenxiMailConfig config = mailConfigService.getOrDefault();
+      boolean enabled = config.isEnabled();
+      boolean filled = StringUtils.hasText(config.getSmtpHost())
+          && StringUtils.hasText(config.getFromEmail())
+          && StringUtils.hasText(config.getSmtpPassword())
+          && !"CHANGE_ME".equals(config.getSmtpPassword())
+          && !"smtp.example.com".equals(config.getSmtpHost());
+      if (enabled && filled) {
+        return new InstallCheckItem("smtp", "SMTP 邮件服务", true, false,
+            "已配置：" + config.getSmtpHost() + "（发件人 " + config.getFromEmail() + "）。"
+                + "注册邮箱验证、密码找回等邮件能力可用。");
+      }
+      return new InstallCheckItem("smtp", "SMTP 邮件服务", false, true,
+          "尚未配置" + (enabled ? "完整" : "或未启用") + "。不影响安装与本站运行，但注册邮箱验证、密码找回等"
+              + "依赖邮件的功能不可用；请在管理后台「邮件设置」中配置 SMTP 后开启。");
+    } catch (Exception exception) {
+      return new InstallCheckItem("smtp", "SMTP 邮件服务", false, true,
+          "暂时无法读取 SMTP 配置（" + rootMessage(exception) + "）。不影响安装，可稍后在管理后台配置。");
+    }
   }
 
   // ==================== 工具 ====================

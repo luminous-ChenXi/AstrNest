@@ -67,6 +67,25 @@ public class InstallLockService {
   }
 
   /**
+   * 删除锁文件（「重置安装状态」入口使用，见 {@link InstallResetService}）。
+   *
+   * @return 文件存在且删除成功时 true；本就不存在或删除失败返回 false（失败仅告警，由调用方兜底提示）
+   */
+  public synchronized boolean clearLock() {
+    Path path = lockFilePath();
+    try {
+      boolean removed = Files.deleteIfExists(path);
+      if (removed) {
+        log.info("install.lock 已删除：{}", path.toAbsolutePath());
+      }
+      return removed;
+    } catch (Exception exception) {
+      log.warn("install.lock 删除失败：{}，原因：{}", path.toAbsolutePath(), exception.getMessage());
+      return false;
+    }
+  }
+
+  /**
    * 锁文件路径：存储根目录（astrnest.storage.local.root，默认 ./storage/upload）的上一级，
    * 即默认 {@code ./storage/install.lock}——与上传目录分离，避免进入公开静态托管范围；
    * 无父目录时兜底到工作目录。

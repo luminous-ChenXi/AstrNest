@@ -47,6 +47,12 @@ public class InstallSiteConfigService {
       String footer = request.customFooterHtml().trim();
       config.setCustomFooterHtml(footer.isEmpty() ? null : footer);
     }
+    if (request.registrationEmailVerifyRequired() != null) {
+      config.setRegistrationEmailVerifyRequired(request.registrationEmailVerifyRequired());
+    }
+    if (request.loginTotpRequired() != null) {
+      config.setLoginTotpRequired(request.loginTotpRequired());
+    }
     config.setUpdatedBy("install-wizard");
     systemConfigRepository.save(config);
     log.info("Install wizard: site config applied (registration={}, guestUpload={}, maxUploadMb={}, assetDomain={})",

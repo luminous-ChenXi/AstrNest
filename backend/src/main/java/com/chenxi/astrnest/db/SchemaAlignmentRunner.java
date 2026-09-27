@@ -37,6 +37,12 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
     ensureColumnExists("upload_records", "last_access_at", "DATETIME NULL AFTER invoke_count");
     ensureColumnExists("system_config", "auto_cleanup_days", "INT NOT NULL DEFAULT 30 AFTER guest_like_enabled");
 
+    // 站长安全开关（默认关闭，存量库补齐；全新库由 install-schema.sql 直接创建）
+    ensureColumnExists("system_config", "registration_email_verify_required",
+        "BIT(1) NOT NULL DEFAULT b'0' AFTER registration_enabled");
+    ensureColumnExists("system_config", "login_totp_required",
+        "BIT(1) NOT NULL DEFAULT b'0' AFTER registration_email_verify_required");
+
     // SSO 影子账号列（chenxi.passport 默认关闭，仅外部身份源登录时写入数据，结构始终补齐）
     ensureColumnExists("users", "sso_sub", "VARCHAR(64) NULL AFTER avatar_url");
     ensureColumnExists("users", "identity_source", "VARCHAR(32) NOT NULL DEFAULT 'local' AFTER sso_sub");

@@ -166,7 +166,10 @@ public class InstallSetupService {
 
   // ==================== 步骤 4：完成安装 ====================
 
-  /** 写入完成标记（install_state.installed_at）；重复执行不覆盖原时间。 */
+  /**
+   * 写入完成标记（install_state.installed_at）；重复执行不覆盖原时间。
+   * 同时采集安装汇总（管理员账号 / 站点开关 / SMTP 状态）随响应返回，供完成页展示。
+   */
   public InstallFinishResponse finish() {
     jdbcTemplate.execute(
         "CREATE TABLE IF NOT EXISTS install_state ("
@@ -179,7 +182,55 @@ public class InstallSetupService {
     LocalDateTime time = installedAt == null ? LocalDateTime.now() : installedAt.toLocalDateTime();
     // 四重防护之 lock 文件：DB 标记之外的独立防重装信号（写入失败不阻断收尾）
     installLockService.writeLock();
-    return new InstallFinishResponse(true, time.format(TIMESTAMP_FORMATTER), "安装完成");
+    return new InstallFinishResponse(true, time.format(TIMESTAMP_FORMATTER), "安装完成", buildSummary());
+  }
+
+  /** 完成页汇总：初始管理员账号摘要 + 站点开关 + SMTP 状态（纯 JDBC + 全兜底，绝不抛异常阻断收尾）。 */
+  private InstallFinishResponse.InstallSummary buildSummary() {
+    String adminUsername = null;
+    String adminEmail = null;
+    try {
+      List<String> row = jdbcTemplate.query(
+          "SELECT u.username, u.email FROM users u "
+              + "JOIN user_roles ur ON ur.user_id = u.id "
+              + "JOIN roles r ON r.id = ur.role_id "
+              + "WHERE r.name = 'ADMIN' ORDER BY u.id ASC LIMIT 1",
+          (rs, num) -> rs.getString(1) + "\n" + rs.getString(2));
+      if (!row.isEmpty()) {
+        String[] parts = row.get(0).split("\n", -1);
+        adminUsername = parts[0];
+        adminEmail = parts.length > 1 ? parts[1] : null;
+      }
+    } catch (Exception exception) {
+      log.debug("Install summary: admin probe failed: {}", exception.getMessage());
+    }
+
+    boolean emailVerifyRequired = false;
+    boolean totpRequired = false;
+    try {
+      List<boolean[]> flags = jdbcTemplate.query(
+          "SELECT registration_email_verify_required, login_totp_required FROM system_config WHERE id = 1",
+          (rs, num) -> new boolean[] {rs.getBoolean(1), rs.getBoolean(2)});
+      if (!flags.isEmpty()) {
+        emailVerifyRequired = flags.get(0)[0];
+        totpRequired = flags.get(0)[1];
+      }
+    } catch (Exception exception) {
+      log.debug("Install summary: switches probe failed: {}", exception.getMessage());
+    }
+
+    boolean smtpConfigured = false;
+    try {
+      Integer count = jdbcTemplate.queryForObject(
+          "SELECT COUNT(*) FROM chenxi_mail_config WHERE id = 1 AND enabled = 1 "
+              + "AND smtp_password IS NOT NULL AND smtp_password <> '' AND smtp_password <> 'CHANGE_ME'",
+          Integer.class);
+      smtpConfigured = count != null && count > 0;
+    } catch (Exception exception) {
+      log.debug("Install summary: smtp probe failed: {}", exception.getMessage());
+    }
+    return new InstallFinishResponse.InstallSummary(
+        adminUsername, adminEmail, emailVerifyRequired, totpRequired, smtpConfigured);
   }
 
   // ==================== 校验（风格与 ChenxiAuthService / RegisterAccountRequest 对齐） ====================
