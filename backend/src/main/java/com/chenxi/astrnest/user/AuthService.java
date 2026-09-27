@@ -122,6 +122,16 @@ public class AuthService {
   }
 
   private LoginResponse issueCompleteResponse(UserAccount user) {
+    // 二步验证换发端点（/api/auth/2fa/**）不携带认证态（匿名令牌不算）：
+    // 组装 profile 前先把当前用户放入 SecurityContext（与 login 端点同口径，角色仍由数据库实时读取）
+    Authentication existing = SecurityContextHolder.getContext().getAuthentication();
+    boolean anonymous = existing == null
+        || !existing.isAuthenticated()
+        || existing instanceof org.springframework.security.authentication.AnonymousAuthenticationToken;
+    if (anonymous) {
+      SecurityContextHolder.getContext().setAuthentication(
+          new UsernamePasswordAuthenticationToken(user.getUsername(), null, List.of()));
+    }
     String token = jwtTokenService.generateToken(user.getId(), user.getUsername());
     // 复用既有装配逻辑：profile 角色从数据库实时读取（SecurityContext 已在登录时设置）
     UserProfileResponse profile = userAccountService.getCurrentProfile();
