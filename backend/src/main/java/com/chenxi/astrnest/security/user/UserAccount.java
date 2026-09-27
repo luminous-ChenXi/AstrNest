@@ -91,6 +91,15 @@ public class UserAccount {
   @Column(nullable = false, updatable = false)
   private Instant createdAt = Instant.now();
 
+  /**
+   * 记录更新时间：应用侧初始化；列定义与 install-schema.sql 对齐（DB 默认值 + ON UPDATE），
+   * 保证「Hibernate 建表（dev ddl-auto=update）」与「安装向导建表」两种初始化顺序下
+   * 原生 SQL INSERT（如安装向导创建管理员）都不会因缺列默认值而失败。
+   */
+  @Column(nullable = false,
+      columnDefinition = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)")
+  private Instant updatedAt = Instant.now();
+
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
       name = "user_roles",
