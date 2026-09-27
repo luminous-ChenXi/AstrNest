@@ -311,6 +311,8 @@ HTTPS/HTTP2 与安全响应头样例见 [CONFIG_GUIDE.md](CONFIG_GUIDE.md) 第 1
 
 **6) 升级**：`git pull` → 重新构建前后端 → 重启后端并覆盖 `dist/` → 如表结构有变更，重复执行 `backend/db/init.sql`（幂等补列，不破坏已有数据）。
 
+> 进阶部署：管理前端也可以打包上传到腾讯云 COS、经 CDN 分发，与后端同域按路径分流——见下文「[管理前端 CDN 部署（COS + CDN）](#管理前端-cdn-部署cos--cdn)」。
+
 ### 从源码到上线：CI/CD 链路
 
 仓库自带两条 GitHub Actions 工作流，理解它们也方便站长在自建环境（Gitea/Jenkins 等）复刻同等的发布校验：
@@ -329,6 +331,146 @@ cd backend && ./mvnw test                 # 等价 backend-test；测试默认�
 cd frontend && npm ci && npm run build    # 等价 frontend-build
 docker compose --env-file .env build      # 等价 docker-build（只构建不启动）
 ```
+
+### 管理前端 CDN 部署（COS + CDN）
+
+**适用性结论**：AstrNest 前端是纯 SPA（Vue 3 + Vite，无 SSR），构建产物只有 `index.html` + 带内容 hash 的 `assets/`，**完全适用「COS 静态托管 + CDN 分发」**。本节给出与「[手动部署](#手动部署java-21--mysql-8--nginx)」互补的进阶路线：管理前端打包上传腾讯云 COS 桶，CDN 与 Java 后端**同域名、按路径分流**。流量不大的站点用上文两条默认路线（Nginx 直服 `dist/`）即可，本节按需选用。
+
+> 本节只是部署方案，不改变仓库默认行为：`frontend/` 源码仅有「路由 base」一处一行级适配点（见第 3 步），其余全部通过构建环境变量与云端配置完成。
+
+#### 1) 总体架构（文字版）
+
+```text
+用户浏览器
+   │  同一域名（如 https://img.example.com）
+   ▼
+腾讯云 CDN（边缘节点，挂 HTTPS 证书）
+   │  按 URL 路径分流
+   ├─ /admin/*   → 回源 COS 桶（管理前端 dist：index.html + assets/，纯静态对象）
+   ├─ /api/*     → 回源源站 Nginx → 127.0.0.1:8081（Java 后端；CDN 不缓存）
+   ├─ /upload/*  → 回源源站 Nginx（图片直链静态直服，可长缓存）
+   └─ 其余路径    → 源站 Nginx（Swagger / actuator 等，同「手动部署」样例）
+```
+
+关键点：**同域不同路径**。`/admin/*` 与 `/api/*` 共用一个域名，浏览器视角完全同源——`VITE_API_BASE_URL` 保持留空（同源相对路径）即可，没有 CORS 问题，登录态（JWT）行为与现在完全一致。
+
+#### 2) 路径分流的两层做法
+
+**做法 A（推荐先跑通）：CDN 只挂一个源站 = 源站 Nginx，分流在 Nginx 完成。**
+
+```nginx
+# 源站 Nginx：CDN 的唯一回源地址（在「手动部署」第 4 步的 server 块中追加）
+server {
+    listen 80;
+    server_name imgbed.example.com;
+    client_max_body_size 100m;
+
+    # /api/* → Java 后端（CDN 侧对 /api/* 配置不缓存）
+    location /api/ {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_request_buffering off;
+    }
+
+    # /upload/* → 图片直链静态直服（同「手动部署」第 4 步样例，此处省略）
+
+    # /admin/* → COS 桶（桶开「静态网站」，走静态网站端点，自带索引/错误文档能力）
+    location ^~ /admin/ {
+        proxy_pass http://astrnest-admin-1250000000.cos-website.ap-guangzhou.myqcloud.com;
+        proxy_set_header Host astrnest-admin-1250000000.cos-website.ap-guangzhou.myqcloud.com;
+        proxy_intercept_errors on;
+        error_page 404 /admin/index.html;    # SPA 路由回退（见第 5 小节）
+    }
+}
+```
+
+**做法 B（进阶）：腾讯云 CDN 控制台「规则引擎」按路径直连不同源站**——`/admin/*` → COS 源站（选 COS 源并开启「回源鉴权」可支持私有读桶），`/api/*` 与其余路径 → 源站 Nginx。配置要点：
+
+- 规则自上而下匹配，`/admin/*`、`/api/*` 必须放在通配兜底规则**之前**；
+- 每条规则的「回源 Host」要与对应源站匹配（COS 源站填桶端点 Host）；
+- 走 COS 回源鉴权（私有读桶）时静态网站端点不可用，SPA 回退改由 CDN 的 404 错误页/错误码处理承担（具体功能以控制台实际可见项为准）。
+
+#### 3) 构建与上传
+
+**base 路径**：`frontend/vite.config.js` 已内置 CDN 支持——`base: process.env.VITE_ASSETS_BASE_URL || '/'`（文件内注释即为此场景而写）。同域子路径方案设为 `/admin/`（**末尾必须带斜杠**），构建后 `index.html` 引用的资源变为 `/admin/assets/[name]-[hash].js`，正好落在 `/admin/*` 分流规则内：
+
+```bash
+cd frontend
+VITE_ASSETS_BASE_URL=/admin/ npm run build
+```
+
+**路由适配（唯一一处一行改动）**：`src/router/index.js` 目前是 `createWebHistory()`（默认 base `/`）。子路径部署时，登录守卫会把未登录访问重定向到 `/`——这个 URL 不在 `/admin/*` 内，会在 CDN 上 404。请改成标准 Vite 写法，让路由 base 跟随构建 base：
+
+```js
+history: createWebHistory(import.meta.env.BASE_URL)
+```
+
+改完后 SPA 内所有跳转（`/login`、`/gallery`、`/admin/*`……）的实际 URL 都带 `/admin` 前缀，全部命中分流规则。API 侧无需任何改动：`VITE_API_BASE_URL` 保持留空，请求仍走同域 `/api/*`。
+
+> 注意：`public/` 目录的文件会原样复制进 `dist/`，若代码里以根绝对路径（如 `/images/...`）引用它们，Vite 的 base **不会**重写这类运行时字符串——要么把引用改为 `import.meta.env.BASE_URL` 拼接，要么为该前缀单独加一条回源 COS 的分流规则。
+
+**上传与发版脚本**（示例用腾讯云 COSCLI `coscli`，括号内附旧版 `coscmd` 等价命令；桶名/地域请替换）：
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+BUCKET=astrnest-admin-1250000000           # 桶名（含 APPID）
+cd frontend
+
+# 1) 构建（base 指向 /admin/）
+VITE_ASSETS_BASE_URL=/admin/ npm run build
+
+# 2) 先同步带 hash 的静态资源（增量，只传新增；旧版本保留在桶里天然支持回滚）
+coscli sync dist/assets/ cos://$BUCKET/admin/assets/
+coscli sync dist/images/ cos://$BUCKET/admin/images/
+
+# 3) 入口 HTML 最后传：新资源全部就位后再覆盖 index.html，即完成原子切换
+coscli cp dist/index.html cos://$BUCKET/admin/index.html     # coscmd: coscmd put dist/index.html admin/index.html
+
+# 4) 刷新 CDN：控制台「缓存刷新 → 目录刷新」填 https://你的域名/admin/
+#    （或调 API：目录刷新 PurgePathsCache / URL 刷新 PurgeUrlsCache）
+```
+
+> 顺序即原子性：assets 先行（新增对象不影响旧页面）→ `index.html` 最后覆盖 → 刷 CDN。回滚 = 把桶内 `admin/index.html` 换回旧内容（旧 assets 仍在桶中，直接可用）。
+
+#### 4) 缓存策略
+
+| 对象 | Cache-Control | 说明 |
+| --- | --- | --- |
+| `admin/index.html`（入口与 SPA 回退页） | `no-cache`（或 `max-age=60`） | 发版立即生效的「开关」，每次都向源校验 |
+| `/admin/assets/*`（文件名带内容 hash） | `public, max-age=31536000, immutable` | 内容不变，缓存一年也不怕 |
+| `/admin/images/*` 等公共静态资源 | `public, max-age=604800` | 低频变更 |
+| `/api/*` | 不缓存（CDN 缓存规则排除该路径） | 接口实时性 |
+| `/upload/*` 图片直链 | `public, max-age=2592000` | 直链内容不可变，CDN 加速收益最大 |
+
+策略可通过 COS 对象元数据（`Cache-Control`）或 CDN「缓存规则」配置，二选一（CDN 侧优先级更高、便于统一调整）。**每次发版都必须刷新 CDN**（至少刷新 `/admin/` 目录），否则边缘节点可能继续返回旧 `index.html`。
+
+#### 5) SPA 路由回退（history 模式 404 问题）
+
+vue-router 是 history 模式，`/admin/dashboard`、`/admin/users` 这类路由没有对应实体对象，直接访问会 404。三种做法三选一：
+
+- **COS 静态网站错误页**：桶开启「静态网站」→ 错误文档设为 `admin/index.html`（走静态网站端点时最省事，做法 A 的 Nginx 样例已顺带生效）；
+- **源站 Nginx**：`proxy_intercept_errors on;` + `error_page 404 /admin/index.html;`（见做法 A 样例）；
+- **腾讯云 CDN**：控制台「高级配置 → 自定义错误页」把 404 指向 `https://同域名/admin/index.html`（或用规则引擎的错误码处理，以控制台实际功能为准）。
+
+#### 6) 安全注意
+
+- **桶权限二选一**：① 私有读 + CDN 回源鉴权（配合做法 B 的 COS 源站鉴权，此时静态网站端点不可用）；② 公有读 + 防盗链（Referer 黑白名单），并保持默认关闭「列举对象」权限（静态网站端点只能按 key 读取具体对象，列不了目录）。**切勿公有读写**。
+- **HTTPS**：CDN 加速域名挂证书（免费证书或自有证书）并开启强制 HTTPS；回源可保持 HTTP 或开启「回源跟随协议」。
+- **同域的安全性质**：管理前端与 `/api` 同域，没有 CORS 配置面；但 JWT 存 localStorage 的 **XSS 窃取面并不因换部署方式而消失**——本方案的收益主要是静态资源供应链完全自主可控，管理端仍建议保持严格 CSP 与最小权限 API Key（见 [SECURITY.md](SECURITY.md)）。
+- Vite 生产构建已自动移除 `console`/`debugger`（`vite.config.js` 的 `drop` 配置），不额外泄露调试信息。
+
+#### 7) 与现有部署章节的关系
+
+- 「五分钟部署（Docker Compose）」「手动部署（Java 21 + MySQL 8 + Nginx）」仍是默认推荐路线（Nginx/容器直服 `dist/`），本节是**可选进阶**，后端与 Nginx 安全配置完全共用；
+- 从本节切回默认路线：`VITE_ASSETS_BASE_URL` 恢复 `/` 重新构建，Nginx `root` 指回 `dist/` 即可；
+- CI/CD 一节的 `frontend-build` 工作流会上传 `dist/` 产物 artifact，可直接作为本节上传 COS 的产物来源。
 
 ### 安装后配置（安全与邮件）
 
