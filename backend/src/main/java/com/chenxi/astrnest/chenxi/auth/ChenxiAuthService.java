@@ -80,6 +80,9 @@ public class ChenxiAuthService {
         normalizedEmail = consumeRegisterLinkToken(linkToken, email);
         verified = true;
       } else {
+        if (!StringUtils.hasText(code)) {
+          throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请输入邮箱验证码");
+        }
         normalizedEmail = normalizeEmail(email);
         consumeVerificationCode(normalizedEmail, ChenxiEmailScene.REGISTER, code);
         verified = true;

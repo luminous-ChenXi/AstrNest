@@ -10,7 +10,8 @@ import jakarta.validation.constraints.Size;
  */
 public record RegisterAccountRequest(
     @Email(message = "邮箱格式不正确") @Size(max = 180) String email,
-    @Size(min = 6, max = 6, message = "验证码为 6 位数字") String code,
+    // 验证码仅在「注册邮箱验证」开启时必填（服务端裁决）；@Size 不约束空串以兼容开关关闭态
+    @Size(max = 6, message = "验证码为 6 位数字") String code,
     @Size(max = 64, message = "链接令牌过长") String linkToken,
     @NotBlank @Size(min = 4, max = 32) String username,
     @NotBlank @Size(min = 8, max = 64) String password,
