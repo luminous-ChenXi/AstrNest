@@ -237,6 +237,8 @@ CREATE TABLE IF NOT EXISTS system_config (
   max_files_per_upload INT NOT NULL DEFAULT 30,
   user_storage_quota_bytes BIGINT NOT NULL DEFAULT 5368709120,
   registration_enabled BIT(1) NOT NULL DEFAULT b'0',
+  registration_email_verify_required BIT(1) NOT NULL DEFAULT b'0',
+  login_totp_required BIT(1) NOT NULL DEFAULT b'0',
   guest_like_enabled BIT(1) NOT NULL DEFAULT b'1',
   guest_upload_enabled BIT(1) NOT NULL DEFAULT b'0',
   auto_cleanup_days INT NOT NULL DEFAULT 30,

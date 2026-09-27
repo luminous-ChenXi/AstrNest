@@ -33,11 +33,33 @@ public class InstallController {
   private final InstallStatusService installStatusService;
   private final InstallSetupService installSetupService;
   private final InstallSiteConfigService installSiteConfigService;
+  private final InstallDatabaseTestService installDatabaseTestService;
+  private final InstallResetService installResetService;
 
   /** 任何时候都可访问（安装完成后也返回 installed/locked:true 供前端判断） */
   @GetMapping("/status")
   public InstallStatusResponse status() {
     return installStatusService.buildStatus();
+  }
+
+  /**
+   * 测试数据库连接（仅安装未锁定时可用）：用表单参数直连目标 MySQL，
+   * 成功回显版本与字符集，失败给出分类原因；库不存在时可附带「尝试创建数据库」。
+   * 与运行时连接完全隔离（一次性短连接），并回显运行时连接串供部署者比对。
+   */
+  @PostMapping("/database/test")
+  public InstallDbTestResponse testDatabase(@Valid @RequestBody InstallDbTestRequest request) {
+    ensureWizardUnlocked();
+    return installDatabaseTestService.test(request);
+  }
+
+  /**
+   * 重置安装状态（装库/收尾失败后的恢复入口）：清理 install.lock 与 DB 完成标记。
+   * 仅「未完成站点」（users 表不存在或没有用户）可调用，已有用户的正常站点一律 403。
+   */
+  @PostMapping("/reset")
+  public InstallResetResponse reset() {
+    return installResetService.reset();
   }
 
   /** 初始化数据库表结构（仅 schemaState != INSTALLED 时允许，幂等） */

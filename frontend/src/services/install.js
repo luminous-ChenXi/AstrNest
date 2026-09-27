@@ -48,3 +48,15 @@ export const finishInstall = async () => {
   const { data } = await installHttp.post('/api/install/finish', {}, { timeout: 30000 })
   return data
 }
+
+/** POST /api/install/database/test → 连接测试结果（版本/字符集/失败原因分类/运行时比对） */
+export const testDatabaseConnection = async (payload) => {
+  const { data } = await installHttp.post('/api/install/database/test', payload, { timeout: 20000 })
+  return data
+}
+
+/** POST /api/install/reset → 重置安装状态（清理 install.lock 与 DB 完成标记，仅未完成站点可调） */
+export const resetInstallState = async () => {
+  const { data } = await installHttp.post('/api/install/reset', {}, { timeout: 20000 })
+  return data
+}
