@@ -139,7 +139,228 @@ astrnest/
   - In production you must set the signing key `astrnest.jwt.secret` (env `ASTRNEST_JWT_SECRET`; use a long random string and keep it out of the repository).
 - **HTTP Basic (kept for compatibility)**: still available for API plugins/scripts (e.g. Typora, PicGo custom uploaders), alongside API Key authentication.
 
-## Quick Start (Development)
+## Quick Start
+
+Whichever route you choose, the first launch ends in the same **visual install wizard** that creates the tables and the initial administrator. Pick one of two paths:
+
+| Route | For whom | Characteristics |
+| --- | --- | --- |
+| **[Five-Minute Deployment (Docker Compose)](#five-minute-deployment-docker-compose)** | Anyone with a server and Docker | Three commands to bring up the full stack (MySQL/backend/frontend), wizard to finish |
+| **[Manual Deployment (Jar + Nginx)](#manual-deployment-java-21--mysql-8--nginx)** | Hosting panels / bare metal / existing MySQL & Nginx | Full control; Nginx serves image links statically (recommended for production) |
+
+> **Docs split**: this section = quick start and deployment routes; **[CONFIG_GUIDE.md](CONFIG_GUIDE.md)** = the full configuration reference (per-variable details, file paths, database initialization, object storage switching, Windows troubleshooting, Nginx/CDN advanced usage). All commands below have been verified against the repository: the Maven Wrapper lives at `backend/mvnw` (`mvnw.cmd` on Windows), Compose services are `mysql` / `backend` / `frontend`, backend port `8081`, frontend container port `80`.
+
+### Five-Minute Deployment (Docker Compose)
+
+**Prerequisites**: a server with 2 vCPU / 4 GB RAM or better; Docker 20.10+ with the compose v2 plugin; ports 80/443 open.
+
+**Step 1: Clone and configure environment variables**
+
+```bash
+git clone https://github.com/luminous-ChenXi/AstrNest.git
+cd AstrNest
+cp .env.example .env
+vi .env
+```
+
+Required edits in `.env` (Compose refuses to start when password variables are missing — a deliberate guard against weak credentials):
+
+| Variable | Description |
+| --- | --- |
+| `MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD` | MySQL root password and application account password |
+| `ASTRNEST_DB_PASSWORD` | Backend JDBC password, **keep it identical to `MYSQL_PASSWORD`** |
+| `ASTRNEST_JWT_SECRET` | Required in production: generate with `openssl rand -base64 64`. Without it the backend generates a temporary key on every restart, **forcing everyone to log in again**. The variable is not explicitly passed through in the compose template, but `env_file` injects the whole `.env` into the container, so defining it there is enough |
+| `PUBLIC_SITE_URL` / `PUBLIC_ASSET_URL` / `BACKEND_API_PUBLIC_URL` | Replace with your domain, e.g. `https://img.example.com` and `https://img.example.com/upload` |
+
+Also worth checking: `ASTRNEST_ADMIN_*` (admin placeholder info), `VITE_SITE_NAME`, `SMTP_*` (can also be configured in the admin panel after installation).
+
+**Step 2: Start the stack**
+
+```bash
+docker compose --env-file .env up -d
+docker compose logs -f backend    # Ready once you see “Started ...”; Ctrl+C to exit
+```
+
+> The first start builds both images locally (pulling Maven/npm dependencies), which can take a few to a dozen-plus minutes; subsequent starts are fast. Containers: `mysql` (3306, bound to 127.0.0.1 only), `backend` (8081, bound to 127.0.0.1 only), `frontend` (80, public).
+
+**Step 3: Open the site and complete the six-step install wizard**
+
+Visit `http://your-server-ip/` (or your domain). Until installation completes, every page redirects to `/install`. The six steps:
+
+1. **Environment Checks**: database connection and version (MySQL >= 8.0 recommended), table structure, local storage writability, Java runtime, FFmpeg (missing is a warning only, affecting video thumbnails). Fix any red blocking item first (usually the database), then hit "Re-check".
+2. **Database Configuration**: choose "local" or "remote" database, fill in host/port/name/user/password and click **"Test Connection"** — success echoes the MySQL version and charset; failure shows a categorized reason, with an optional "try to create the database" checkbox.
+   - Compose deployment: host is `mysql` (the service name), database `astrnest`, user `astrnest`, password = `MYSQL_PASSWORD` from your `.env`.
+   - This step only confirms connectivity and never rewrites the runtime connection (which comes from `.env`); the wizard shows a warning banner if the form differs from the runtime connection.
+3. **Initialize**: one-click table creation (runs the wizard-specific script `backend/db/install-schema.sql`, idempotent). On the Compose route the MySQL container already created the tables via `init.sql` on first start, so this step is skipped automatically; on manual deployments it actually creates them.
+4. **Site Configuration**: everything is optional (defaults apply). Options: open email registration / registration email verification / login two-factor (TOTP) / guest uploads / per-file upload limit / asset acceleration domain. Note that "registration email verification" depends on SMTP readiness — better enabled after installation.
+5. **Create Administrator**: pick a username and a **required email**, set a password — you can use the built-in generator for a 16-character strong password. **The plaintext is shown only once, copy and store it immediately**, then confirm it a second time. This is the single entry point for the initial account.
+6. **Finish**: writes the anti-re-install lock and shows a summary (site URL / admin account / switch states / SMTP readiness), then brings you into the site.
+
+**Step 4: First thing after installation — secure the site in the admin panel**
+
+Log in as the administrator and go to **Admin → Security Settings** (`/admin/security-settings`):
+
+1. **Configure SMTP**: first go to Admin → Mail Settings (`/admin/mail-settings`), fill in SMTP host/port/account/password-sender, turn the "enable" switch on, and **send a test mail** to verify delivery (see "[Post-Install Configuration](#post-install-configuration-security--mail)" below).
+2. **Enable the two webmaster security switches as needed**: **registration email verification** (new sign-ups require an email code) and **login two-factor (TOTP)** (all logins require a dynamic code). The former requires working SMTP first.
+
+**Step 5 (strongly recommended in production): front the stack with a host Nginx for image links**
+
+The `frontend` container only proxies `/api/` — it does **not** serve `/upload/**`, so image direct links would land on the SPA page by default; the backend's 8081 is bound to 127.0.0.1 only. In production, add a host Nginx following the **Nginx sample** in "Manual Deployment" below: serve `/upload/` statically from the mounted `./storage/upload` directory on the host, and proxy pages and `/api/` to the container's port 80.
+
+### Manual Deployment (Java 21 + MySQL 8 + Nginx)
+
+**Requirements**: Java 21, MySQL 8.0+, Node.js 18+ (build time only), Nginx; optional FFmpeg (video thumbnails).
+
+**1) Create the database and grant rights** (as root; or run the bundled `init-admin.py` / `init-admin.sh` / `init-admin-cn.bat` for an interactive walkthrough):
+
+```sql
+CREATE DATABASE IF NOT EXISTS astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE USER IF NOT EXISTS 'astrnest'@'%' IDENTIFIED BY 'your-strong-password';
+GRANT ALL PRIVILEGES ON astrnest.* TO 'astrnest'@'%';
+FLUSH PRIVILEGES;
+```
+
+> When the backend runs on the same host, the connection may be identified as `localhost` (`'%'` does not match localhost); add a matching `'astrnest'@'localhost'` grant. For error 1044/42000 see CONFIG_GUIDE section 4.2.
+
+**2) Build and start the backend**:
+
+```bash
+cd backend
+./mvnw clean package              # Windows: .\mvnw.cmd
+ASTRNEST_DB_URL='jdbc:mysql://127.0.0.1:3306/astrnest?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai' \
+ASTRNEST_DB_USERNAME=astrnest \
+ASTRNEST_DB_PASSWORD='your-strong-password' \
+ASTRNEST_STORAGE_ROOT=/var/lib/astrnest/upload \
+ASTRNEST_JWT_SECRET="$(openssl rand -base64 64)" \
+ASTRNEST_TRUSTED_PROXY=true \
+java -jar target/backend-0.0.1-SNAPSHOT.jar
+```
+
+- For production, manage it with systemd (put the variables in the unit's `Environment=`) and create the writable storage directory first: `mkdir -p /var/lib/astrnest/upload && chown -R astrnest:astrnest /var/lib/astrnest` — without write access the backend fails to start with `AccessDeniedException` (CONFIG_GUIDE 12.2.2).
+- `ASTRNEST_TRUSTED_PROXY=true` only when behind a reverse proxy, so audit logs and rate limiting see real client IPs.
+
+**3) Build the frontend**:
+
+```bash
+cd frontend
+npm ci
+npm run build        # output in dist/
+```
+
+Upload `dist/` to the server (example: `/var/www/astrnest/dist`). `.env.production` defaults to `VITE_API_BASE_URL=` (empty = same-origin proxy), so same-domain deployments need **no changes**; only split-domain deployments need the full API URL.
+
+**4) Nginx sample (copy-paste ready; the `/upload/` block matters most)**
+
+> **Why `/upload/**` should be served statically by Nginx**: image direct links are an image host's hottest traffic. Pointing them at the backend (`:8081/upload/**`) can return 500 on bare-metal deployments and keeps Java busy; the **official mitigation** is to let Nginx serve the storage directory directly — uploads still go through `/api/`, while all reads are handled by Nginx.
+
+```nginx
+server {
+    listen 80;
+    server_name imgbed.example.com;
+
+    # Match the backend's ASTRNEST_MULTIPART_MAX_FILE_SIZE, or large uploads fail with 413 (0 = unlimited)
+    client_max_body_size 100m;
+
+    # ---- Frontend SPA ----
+    root /var/www/astrnest/dist;
+    index index.html;
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # ---- Image direct links: static serving by Nginx (official recommendation) ----
+    # Assuming ASTRNEST_STORAGE_ROOT=/var/lib/astrnest/upload:
+    #   URL /upload/2026/09/x.jpg -> disk /var/lib/astrnest/upload/2026/09/x.jpg
+    # root must be the PARENT directory of the storage root; ^~ keeps other regex locations away
+    # Docker Compose: point root at the storage directory inside your repo clone (e.g. root /opt/AstrNest/storage;)
+    location ^~ /upload/ {
+        root /var/lib/astrnest;
+        expires 30d;
+        add_header Cache-Control "public" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        # Same hardening as backend-served files: CSP sandbox on SVG prevents stored XSS
+        location ~* \.svg$ {
+            add_header Cache-Control "public" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header Content-Security-Policy "sandbox" always;
+        }
+    }
+
+    # ---- Backend API (uploads included: relaxed timeouts for slow large uploads and long-lived/SSE-style responses) ----
+    location /api/ {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_request_buffering off;   # stream through instead of double-buffering large uploads on disk
+    }
+
+    # ---- Optional: Swagger / health check ----
+    location /swagger-ui/     { proxy_pass http://127.0.0.1:8081; }
+    location = /v3/api-docs   { proxy_pass http://127.0.0.1:8081; }
+    location = /actuator/health { proxy_pass http://127.0.0.1:8081; }
+}
+```
+
+For HTTPS/HTTP2 and security headers see CONFIG_GUIDE.md section 13.2; layer them onto the server block above with a 443 listener.
+
+**5) Initialization and the administrator**: with the backend running against an empty database, open the site in a browser → the **six-step wizard** described above appears (here step 3 "Initialize" actually creates the tables; everything else is identical). Alternatively run `mysql -u root -p astrnest < backend/db/init.sql` and create the admin with an `init-admin` script; as a last resort, **the first user to register automatically becomes the administrator** (the init SQL ships no preset admin).
+
+**6) Upgrades**: `git pull` → rebuild both ends → restart the backend and replace `dist/` → if the schema changed, re-run `backend/db/init.sql` (idempotent column additions, never destroys data).
+
+### From Source to Production: the CI/CD Pipeline
+
+The repository ships two GitHub Actions workflows; understanding them helps you replicate the same release checks on self-hosted CI (Gitea, Jenkins, etc.):
+
+| Workflow | Trigger | What it does |
+| --- | --- | --- |
+| `.github/workflows/ci.yml` | push to `main`/`develop`; PRs to `main` | ① `backend-test`: MySQL 8 service + JDK 21 (Temurin), runs `backend/mvnw test`; ② `frontend-build`: Node 18, `npm ci` + `npm run build`, uploads `dist/` as an artifact; ③ `docker-build`: on `main` only, after both pass, smoke-builds the backend and frontend Docker images (**pushes nowhere**) |
+| `.github/workflows/deploy-docs.yml` | push to `main` touching `AstrNest-docs/**`, or manual (`workflow_dispatch`) | Builds the VitePress documentation site (`AstrNest-docs`) and publishes it to GitHub Pages |
+
+**Tag release flow**: the repository currently has **no** tag → Release automation; tags only mark versions, while Releases and artifacts are published manually by the maintainers. If your fork needs automated releases, extend `ci.yml`'s `docker-build` with `docker/build-push-action` to push to your own registry, or add `softprops/action-gh-release` on tag pushes to attach the jar and `dist/`.
+
+**Equivalent checks for self-hosted environments** (run before committing or deploying — same effect as CI):
+
+```bash
+cd backend && ./mvnw test                 # = backend-test; tests default to the in-memory H2 database, no local MySQL needed
+cd frontend && npm ci && npm run build    # = frontend-build
+docker compose --env-file .env build      # = docker-build (build only, no start)
+```
+
+### Post-Install Configuration (Security & Mail)
+
+All of the following happens in the admin panel; do this right after every fresh install.
+
+**SMTP mail service** (Admin → Mail Settings, `/admin/mail-settings`)
+
+| Field | Description |
+| --- | --- |
+| SMTP server / port | e.g. `smtp.example.com`; common ports 465 (SSL) / 587 (TLS) / 25 (no encryption) |
+| SMTP account / password | mailbox account and the provider's app-specific password (not your mailbox login password) |
+| Encryption | `ssl` / `tls` / `none` |
+| Sender email / name | the outgoing identity shown to recipients |
+
+- Save with the "enable" switch on, then use **"Send test mail"** with your own address — only once this works should you enable registration email verification.
+- **Readiness check** (backend semantics): the "enable" switch is on + SMTP host filled (not the `smtp.example.com` placeholder) + sender filled + password filled (not the `CHANGE_ME` placeholder). Missing any of these shows "SMTP not ready" on the Security Settings page and blocks the registration-verification switch.
+- **Intranet no-auth relay / MailPit** (recommended for local testing): set the relay host, e.g. port 1025, encryption "none", and **any non-empty** account/password values (e.g. `mailpit` — relays don't check them), plus a sender address. That satisfies the readiness check and lets the test mail through. Docker users can add an [axllent/mailpit](https://github.com/axllent/mailpit) container and read mail in its web UI.
+
+**Registration email verification switch** (Admin → Security Settings, `/admin/security-settings`)
+
+- When on, new sign-ups must activate with an email verification code; whether self-registration is allowed at all is controlled separately by "open email registration" (off = admin-created accounts only).
+- **Depends on SMTP**: the panel refuses to save the switch while SMTP is not ready; the same-named option in wizard step 4 behaves identically.
+
+**Login two-factor switch (TOTP)** (same page)
+
+- When on, **every user** is asked to bind/verify TOTP at their next login (any standard authenticator: Google Authenticator, Aegis, 1Password...):
+  - Already-bound users: enter the **6-digit code** from the app; if the device is lost, use one of the **8-digit recovery codes** saved at bind time.
+  - Not-yet-bound users (including existing users caught by the new switch): login enters a forced bind flow — scan the QR code (standard otpauth) → confirm with a 6-digit code → the site shows **10 one-time recovery codes, displayed once only; store them safely**.
+- **Authenticator and recovery codes both lost**: an administrator triggers "reset two-factor" for that user in member management (`/admin/users`, `PUT /api/admin/users/{id}/2fa/reset`); the user re-binds at the next login.
+
+### Development Setup (source code)
 
 Here is an example of local development on Ubuntu:
 
@@ -192,64 +413,70 @@ npm run dev
 > - If "403 Forbidden" is displayed, please check if the current user role has permission to access that interface.
 > - If "500 Internal Server Error" is displayed, please check the backend logs to find specific error information.
 
-> **Admin Account Note**: The initialization SQL **no longer ships a preset admin account**. The recommended way is to create the initial administrator through the **Install Wizard** (`/install`, see below) on first deployment; you can also create (or reset) an admin with the bundled `init-admin.py` / `init-admin.sh` / `init-admin.bat` scripts. As a fallback for environments without the wizard, **the first user to register automatically becomes the administrator**.
-
 > If you want to see configuration details directly (environment variables, file paths, initialization scripts, FFmpeg, storage switching, etc.), please jump to `CONFIG_GUIDE.md`.
 
-### Install Wizard (Recommended for Fresh Deployments)
+### Install Wizard
 
-AstrNest ships a **WordPress-style visual install wizard**. After a fresh deployment (empty database), opening the site automatically redirects to `http://your-domain.com/install`, guiding you through four steps:
-
-1. **Environment Checks**: database connection and version (MySQL >= 8.0 recommended), table structure, local storage directory writability, Java runtime, FFmpeg (missing is a warning only). Fatal problems block progression and include troubleshooting hints, with a "Re-check" button.
-2. **Install Database**: one-click execution of the wizard-specific script `backend/db/install-schema.sql` to create tables and seed default roles/config (idempotent; re-running never damages existing data).
-3. **Create Administrator**: set up the initial admin account (ADMIN role, BCrypt-hashed password, unlimited upload quota). This is the single entry point for the initial account.
-4. **Finish**: writes the completion marker and brings you to the site.
-
-Comparison of the two deployment paths:
+AstrNest ships a **WordPress-style visual install wizard**; the six steps (Environment Checks → Database Configuration → Initialize → Site Configuration → Create Administrator → Finish) are described step by step in "Five-Minute Deployment, Step 3" above. How the two deployment routes differ inside the wizard:
 
 | Deployment Path | Database Schema | Initial Administrator |
 | --- | --- | --- |
-| **Docker Compose** (mounts `init.sql` for auto-initialization) | Created automatically by `backend/db/init.sql` on the MySQL container's first start | First registered user becomes ADMIN automatically, or use the `init-admin` script |
-| **Manual / hosting-panel / bare-jar deployment** (init SQL never executed) | Open the site to enter the wizard; step 2 creates all tables (`install-schema.sql`) | Created in wizard step 3 (recommended), or the first registered user becomes ADMIN |
+| **Docker Compose** (mounts `init.sql` for auto-initialization) | Created by `backend/db/init.sql` on the MySQL container's first start; the wizard's "Initialize" step is skipped automatically | Created in wizard step 5 (recommended), or the first registered user becomes ADMIN |
+| **Manual / hosting-panel / bare-jar deployment** (init SQL never executed) | Wizard step 3 creates all tables (`install-schema.sql`, idempotent) | Created in wizard step 5 (recommended), or the first registered user becomes ADMIN |
 
-- Wizard URL: `http://your-domain.com/install` (any entry point works; until installation completes, every page redirects to the wizard).
+- Wizard URL: `http://your-domain.com/install` (until installation completes, every page redirects to the wizard).
 - **Re-visiting `/install` after installation** shows "System already installed" and refuses to re-initialize; the `/api/install` write endpoints always return 403 once installed, preventing replay calls.
+- **Stuck mid-install**: the wizard offers a "reset install state" action (`POST /api/install/reset`), available only for unfinished sites (users table missing or empty). See the FAQ below.
 - Note: the wizard does not write database connection settings — the Spring Boot application must already be able to connect to MySQL (via `ASTRNEST_DB_URL` / `ASTRNEST_DB_USERNAME` / `ASTRNEST_DB_PASSWORD`, etc.) before it can start; the wizard handles **table creation and the initial account**. See CONFIG_GUIDE.md section 4.3 for check-item meanings and troubleshooting.
-
-### Deployment Overview
-- **Docker Compose (Recommended)**: Copy `.env.example` → `.env`, fill in database/domain/SMTP/storage, then execute:
-```bash
-docker compose --env-file .env up -d
-```
-- **Traditional Deployment**: `backend` package `./mvnw clean package && java -jar target/backend-0.0.1-SNAPSHOT.jar`; `frontend` run `npm run build` then hand over `dist/` to Nginx/CDN.
-
-For more detailed environment variables, Nginx reverse proxy, CDN/object storage switching, please see `CONFIG_GUIDE.md`.
 
 ### Production Notes
 - **`ASTRNEST_TRUSTED_PROXY`** (default `false`): set to `true` when the backend runs behind a reverse proxy (Nginx etc.), so the backend trusts and parses `X-Real-IP` / `X-Forwarded-For` and audit logs / rate limiting see the real client IP; config key: `astrnest.security.trusted-proxy`.
-- **`astrnest.jwt.secret`**: JWT signing key; must be explicitly configured in production. Token lifetime is controlled by `chenxi.passport.access-token-days` (default: 30 days of inactivity).
-- **Nginx `client_max_body_size`**: the sample reverse-proxy config already raises the request body limit; keep it in sync with `spring.servlet.multipart.max-file-size`, otherwise large uploads fail with 413.
+- **`astrnest.jwt.secret`**: JWT signing key; must be explicitly configured in production (`ASTRNEST_JWT_SECRET`), otherwise a temporary key is generated on every restart and everyone is logged out. Token lifetime is controlled by `chenxi.passport.access-token-days` (default: 30 days of inactivity).
+- **Image direct links**: in production serve `/upload/**` statically from Nginx (sample above under Manual Deployment) and point "System Config → asset acceleration domain (`asset_domain`)" or the frontend `VITE_PUBLIC_ASSET_BASE` at that domain.
+- **Nginx `client_max_body_size`**: keep it in sync with `spring.servlet.multipart.max-file-size`, otherwise large uploads fail with 413.
 - **Docker Compose port binding**: the database and backend ports in `docker-compose.yml` are bound to `127.0.0.1` only; expose the service through a reverse proxy in production instead of publishing these ports directly.
 - **SSO single sign-on**: see "SSO Single Sign-On (External Identity Provider)" below.
 
 ### SSO Single Sign-On (External Identity Provider, disabled by default)
 
-AstrNest supports unified login through external identity providers using **OAuth 2.1 / OIDC "authorization code + PKCE(S256)"**, compatible with "Chenxi Passport" and any standard OAuth 2.1/OIDC provider (example issuer: `https://passport.example.com`). The feature is **disabled by default** (`astrnest.sso.enabled=false`); when disabled the frontend hides the entry and backend endpoints return explicit errors, with zero impact on existing local login/registration/API keys.
+AstrNest supports unified login through external identity providers using **OAuth 2.1 / OIDC "authorization code + PKCE(S256)"**, compatible with "Chenxi Passport" and any standard OAuth 2.1/OIDC provider (example issuer: `https://passport.example.com`). The feature is **disabled by default** (`chenxi.passport.enabled=false`); when disabled the frontend hides the entry and backend endpoints return explicit errors, with zero impact on existing local login/registration/API keys. See `docs/chenxi-integration.md` for details.
 
-- **Login flow**: the frontend redirects to the provider's authorize endpoint (PKCE) → the provider calls back `/auth/sso/callback` → the code is exchanged for an `access_token` → `POST /api/auth/sso/exchange` introspects the token against the issuer (`{issuer}/oauth2/introspect`) and issues a local JWT identical to a local login response.
+- **Login flow**: the frontend redirects to the provider's authorize endpoint (PKCE) → the provider calls back `/auth/sso/callback` → the frontend submits `code + codeVerifier` to `POST /api/auth/sso/exchange` (**server-side exchange**: the backend performs the PKCE token swap, the browser never touches the provider's token) → the backend introspects the result against the issuer (`{issuer}/oauth2/introspect`) and issues a local JWT identical to a local login response.
 - **Shadow account**: the first SSO login creates a shadow account (`identity_source=passport`, linked via `sso_sub`); nickname/avatar/email are synced from the identity provider on each login and are **read-only** locally (profile and password changes are rejected).
 - **Register the callback URL on the provider side**: `https://<your-domain>/auth/sso/callback`.
 
 | Config key | Env variable | Default | Description |
 | --- | --- | --- | --- |
-| `astrnest.sso.enabled` | `ASTRNEST_SSO_ENABLED` | `false` | Enable SSO login |
-| `astrnest.sso.issuer` | `ASTRNEST_SSO_ISSUER` | empty | Issuer base URL, e.g. `https://passport.example.com` |
-| `astrnest.sso.client-id` | `ASTRNEST_SSO_CLIENT_ID` | empty | Public client id registered at the provider |
-| `astrnest.sso.redirect-uri` | `ASTRNEST_SSO_REDIRECT_URI` | empty | Callback URL, must match the provider registration exactly |
-| `astrnest.sso.scopes` | — (yml only) | `openid, profile, email` | Requested scopes |
-| `astrnest.sso.introspect-timeout-seconds` / `userinfo-timeout-seconds` | — (yml only) | `5` | Introspection / userinfo request timeout (seconds) |
+| `chenxi.passport.enabled` | `CHENXI_PASSPORT_ENABLED` | `false` | Enable SSO login |
+| `chenxi.passport.issuer` | `CHENXI_PASSPORT_ISSUER` | empty | Issuer base URL, e.g. `https://passport.example.com` |
+| `chenxi.passport.client-id` | `CHENXI_PASSPORT_CLIENT_ID` | empty | Public client id registered at the provider |
+| `chenxi.passport.redirect-uri` | `CHENXI_PASSPORT_REDIRECT_URI` | empty | Callback URL, must match the provider registration exactly |
+| `chenxi.passport.scopes` | `CHENXI_PASSPORT_SCOPES` | `openid,profile` | Requested scopes |
+| `chenxi.passport.access-token-days` | `CHENXI_PASSPORT_ACCESS_TOKEN_DAYS` | `30` | Local token inactivity lifetime (sliding refresh) |
 
-## Problem Solving
+## FAQ
+
+### Install wizard (won't install / locked / want a reinstall)
+
+- **Wizard won't open, keeps saying "cannot connect to server"**: the backend isn't running. Check the backend logs first — when the database is unreachable Spring Boot cannot start and there is no wizard at all. The wizard requires "app started, database empty".
+- **Stuck mid-install, want to start over**: the wizard page offers a **"reset install state"** action (`POST /api/install/reset`) that clears `install.lock` and the database completion marker and returns to step one; available only for unfinished sites (users table missing or empty).
+- **Already installed, want a reinstall**: two steps — ① empty the database (drop and recreate, or truncate all business tables); ② delete the anti-re-install lock `install.lock` (in the parent directory of the storage root, `/storage/install.lock` by default; with Docker Compose the file lives inside the backend container, so `docker compose down` followed by `up -d` removes it — keep or drop the `mysql_data` volume as you see fit). Restart and reopen `/install`.
+- **Visiting `/install` after installation**: shows "System already installed" and refuses to re-initialize; the `/api/install` write endpoints always return 403.
+
+### Image direct links return 404 or 500
+
+- **Direct link returns 500 (bare metal / hosting panel running the jar, link hits `:8081/upload/**`)**: the official mitigation is to serve `/upload/**` statically from **Nginx** (see the `location ^~ /upload/` sample under Manual Deployment above), moving read traffic off the backend. Note that `root` must point at the **parent** directory of `ASTRNEST_STORAGE_ROOT` (`root + /upload/...` forms the full disk path) and Nginx needs read permission there.
+- **Direct link 404 or returns a web page (Docker Compose, link hits port 80)**: the `frontend` container's Nginx only proxies `/api/` and does **not** serve `/upload/**`. Fix it the same way — host Nginx serving the mounted `./storage/upload` directory — or point "System Config → asset acceleration domain (`asset_domain`)" and the frontend `VITE_PUBLIC_ASSET_BASE` at a domain/CDN that actually serves the files.
+- **Checklist**: the file really exists under `ASTRNEST_STORAGE_ROOT/{yyyy}/{MM}/`; the link domain matches `asset_domain` / `VITE_PUBLIC_ASSET_BASE`; on Compose, verify `ls ./storage/upload` shows the files on the host.
+
+### Verification emails never arrive
+
+1. First click **"Send test mail"** in Admin → Mail Settings: if that fails, SMTP itself is broken — verify server/port/encryption/app-password (the app password is not your mailbox login password) and check the backend logs for mail/SMTP errors.
+2. The verification switch is on but no codes are sent: check Admin → Security Settings for **SMTP not ready** — the "enable" switch may be off, or host/sender/password still hold the `smtp.example.com` / `CHANGE_ME` placeholders.
+3. Intranet / local environments: cloud providers often block port 25 and public SMTP may be throttled; switch to 465/587 or use an intranet relay / MailPit (see Post-Install Configuration).
+4. Test mail arrives but codes don't: check the spam folder and the recipient address spelling; codes expire, request a new one.
+
+### Other common issues
 
 | Problem | Suggested Solution |
 | --- | --- |

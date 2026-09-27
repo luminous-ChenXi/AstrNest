@@ -1,5 +1,7 @@
 面向运维/开发的落地说明：列出必须填的环境变量、文件路径、初始化脚本与部署要点。建议按顺序完成，最后再启动 Docker Compose 或本地进程。
 
+> **与 README 的分工**：README「快速开始」= 部署路线快速上手（五分钟部署 / 手动部署与 Nginx 样例 / CI-CD 链路说明 / 安装后安全配置 / 部署 FAQ）；**本文 = 全量配置参考**（环境变量逐项、文件路径、数据库初始化、对象存储、排障速查）。快速上手看 README，深挖配置看本文。
+
 <img src="./templates/2364x1773.png" width = "400" height = "300" alt="AstrNest" align=right />
 <div align="center">
 
@@ -25,7 +27,7 @@ WordPress的安装流程（存在安全隐患）：
 | 项目 | 必填内容 | 修改位置 |
 | --- | --- | --- |
 | 数据库 | 主机、端口、库名、账号、密码 | `.env` / `backend/src/main/resources/application.yml` / `docker-compose.yml` (`mysql`/`backend`) / `backend/db/init.sql` |
-| 管理员 | 用户名、初始密码、昵称、邮箱 | `.env` + `backend/db/init.sql` (`INSERT INTO users ...`) |
+| 管理员 | 用户名、初始密码、昵称、邮箱 | 可视化安装向导（推荐）或根目录 `init-admin` 脚本；初始化 SQL **不预置**管理员，未走向导时首个注册用户自动成为 ADMIN |
 | 上传路径 | 本地磁盘目录、对外访问前缀 | `.env` (`ASTRNEST_STORAGE_ROOT`/`ASTRNEST_STORAGE_PUBLIC`)，必要时 Nginx 反代 `/upload/**` |
 | 站点域名 | 站点主页、图片直链、API 域名 | `.env` (`PUBLIC_SITE_URL`/`PUBLIC_ASSET_URL`/`BACKEND_API_PUBLIC_URL`/`ASTRNEST_ASSET_DOMAIN`)，后台“系统配置”里的 `asset_domain` |
 | 腾讯云 AI 审核 | SecretId/SecretKey、Region、Bucket、场景、阈值 | 后台「系统配置 > AI 智能审核」或 `.env` 中的 `ASTRNEST_AI_*` 兜底 |
@@ -222,12 +224,14 @@ SHOW TABLES;
 
 #### 4.3 可视化安装向导（WordPress 式，全新部署推荐）
 
-如果不习惯命令行建库导 SQL，可以在**后端已启动、数据库已连通但尚未建表**的状态下，直接打开站点：`http://your-domain.com/install`。未安装时访问任意页面都会被自动引导到向导，向导共四步：
+如果不习惯命令行建库导 SQL，可以在**后端已启动、数据库已连通但尚未建表**的状态下，直接打开站点：`http://your-domain.com/install`。未安装时访问任意页面都会被自动引导到向导。向导共**六步**（逐步操作说明与 Compose/手动两条路线的差异见 README「五分钟部署 · 第 3 步」）：
 
 1. **环境检测**（`GET /api/install/status`）
-2. **安装数据库**（`POST /api/install/database`，执行 `backend/db/install-schema.sql`）
-3. **创建管理员**（`POST /api/install/admin`，系统唯一初始账号入口）
-4. **完成**（`POST /api/install/finish`，写入 `install_state` 完成标记）
+2. **数据库配置**（`POST /api/install/database/test`）：选择本机/远程数据库，填写连接参数并**测试连接**，失败可勾选「尝试创建数据库」重试；只做连接确认，不回写运行时连接串
+3. **初始化**（`POST /api/install/database`，执行 `backend/db/install-schema.sql`；表结构已就绪时自动跳过）
+4. **站点配置**（`POST /api/install/site-config`，全部可跳过：开放邮箱注册 / 注册邮箱验证 / 登录二步验证 TOTP / 访客上传 / 单文件上限 / 资源加速域名）
+5. **创建管理员**（`POST /api/install/admin`，系统唯一初始账号入口；邮箱必填，内置强密码生成器明文仅展示一次）
+6. **完成**（`POST /api/install/finish`，写入 `install_state` 完成标记 + `install.lock` 防重装锁，并展示汇总）
 
 "是否已安装"的判定只有一条：**users 表存在且用户数 > 0**。因此安装完成后再次访问 `/install` 会显示"系统已安装"，且 `/api/install` 的全部写接口一律返回 403；未安装时其余 `/api/**` 会被守卫过滤器拦为 503（JSON：code `50301`），`/api/system/public-config` 则返回仅含 `installed:false` 的最小响应。
 
@@ -251,9 +255,10 @@ SHOW TABLES;
 **常见问题**：
 
 - **向导打不开 / 一直"无法连接服务器"**：后端没起来。先看后端日志——数据库连不上时 Spring Boot 无法启动，向导页面也就无从谈起。向导的前提是"应用已启动、库为空"。
-- **"开始安装数据库"报错**：多数是应用账号权限不足（需要 `CREATE TABLE / VIEW` 权限），按 4.2 节补授权；部分失败项会在摘要中列出，修复后可重新执行（幂等）。
-- **装完想重来**：向导没有"卸载"。清空数据库（删库或清空全部业务表）并重启后端后，会重新进入未安装状态。
-- **开发模式（`ddl-auto: update`）下表结构已被 Hibernate 自动创建**：向导第 2 步会自动跳过，直接进入创建管理员；生产 `ddl-auto: validate` 模式则必须先有表结构（docker 路径由 init.sql、手动路径由向导负责）。
+- **"开始初始化数据库"报错**：多数是应用账号权限不足（需要 `CREATE TABLE / VIEW` 权限），按 4.2 节补授权；部分失败项会在摘要中列出，修复后可重新执行（幂等）。
+- **装到一半想重走流程**：向导提供「重置安装状态」入口（`POST /api/install/reset`），清理 `install.lock` 与数据库完成标记后回到第一步；仅「未完成站点」（users 表不存在或没有用户）可调用，已有用户的正常站点一律 403。
+- **装完想重来（重装）**：两步——① 清空数据库（删库或清空全部业务表）；② 删除防重装锁 `install.lock`（位于 `ASTRNEST_STORAGE_ROOT` 的**父目录**，默认 `/storage/install.lock`；Docker Compose 场景该文件在 backend 容器文件系统内，`docker compose down` 后重新 `up -d` 重建容器即随之清除，`mysql_data` 卷是否保留按需决定）。重启后重新打开 `/install`。
+- **开发模式（`ddl-auto: update`）下表结构已被 Hibernate 自动创建**：向导「初始化」步会自动跳过，直接进入后续步骤；生产 `ddl-auto: validate` 模式则必须先有表结构（docker 路径由 init.sql、手动路径由向导负责）。
 
 ### 5. 前端环境文件
 - `frontend/.env.development`、`.env.production` 或命令行注入：
@@ -265,7 +270,23 @@ VITE_SITE_NAME=AstrNest
 
 ### 6. 存储与直链
 - 本地存储默认写入 `${ASTRNEST_STORAGE_ROOT}/{yyyy}/{MM}/文件`，对外路径 `${ASTRNEST_STORAGE_PUBLIC}/{yyyy}/{MM}/...`
-- 反向代理示例（Nginx）：
+- **生产推荐：Nginx 静态直服 `/upload/**`**（读取流量不经过 Java；裸机直跑让直链打后端 `:8081/upload/**` 可能返回 500，此为官方规避方案）。设 `ASTRNEST_STORAGE_ROOT=/var/lib/astrnest/upload` 时：
+```nginx
+# root 填存储根目录的【父目录】：URL /upload/x -> 磁盘 /var/lib/astrnest/upload/x
+location ^~ /upload/ {
+    root /var/lib/astrnest;
+    expires 30d;
+    add_header Cache-Control "public" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    # SVG 加 CSP sandbox，与后端直出口径一致（防存储型 XSS）
+    location ~* \.svg$ {
+        add_header Cache-Control "public" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Content-Security-Policy "sandbox" always;
+    }
+}
+```
+- 兜底反代（无静态目录权限时才用，直链流量仍进后端）：
 ```nginx
 location /upload/ {
     proxy_set_header Host $host;
@@ -298,8 +319,26 @@ location /upload/ {
 - 解决方案 B：如果你暂时不需要视频封面，设置环境变量 `ASTRNEST_VIDEO_THUMBNAIL_ENABLED=false`。
 
 ### 9. 邮件设置
-- 启动后：后台「设置 > 邮件服务」填 SMTP 主机/端口/账号/授权码/发件人。
-- 若希望脚本写入真实值：编辑 `backend/db/init.sql` 中 `INSERT INTO chenxi_mail_config` 段。
+- 启动后：后台「邮件服务」（`/admin/mail-settings`，接口 `GET/PUT /api/admin/chenxi/mail-config`）填 SMTP 主机/端口/账号/授权码/加密方式（`ssl`/`tls`/`none`）/发件人，并打开「启用」开关。
+- **发送测试邮件**：配置页提供「发送测试邮件」（`POST /api/admin/chenxi/mail-config/test`），填自己的邮箱验证链路通畅——这是开启「注册邮箱验证」前的必做检查。
+- **SMTP 就绪判定**（管理端「安全设置」页的只读状态）：「启用」开关打开 + SMTP 主机已填（非 `smtp.example.com` 占位）+ 发件人已填 + 授权码已填（非 `CHANGE_ME` 占位）。四者缺一即视为未就绪，「注册邮箱验证」开关无法开启。
+- **内网无鉴权中继 / MailPit**：主机填中继地址、端口如 1025、加密方式选「不加密」、账号与授权码填任意非空值（中继不校验），发件人照填即可满足就绪判定。Docker 部署可加 `axllent/mailpit` 容器，用其 Web 界面直接查收测试信。
+- 若希望脚本写入真实值：编辑 `backend/db/init.sql` 中 `INSERT IGNORE INTO chenxi_mail_config` 段。
+
+### 9.1 站长安全开关（注册邮箱验证 + 登录二步验证）
+
+管理端「安全设置」（`/admin/security-settings`，接口 `GET/PUT /api/admin/security-settings`，仅 ADMIN）提供两个站点级开关，持久化在 `system_config` 表，无对应环境变量（安装向导第 4 步可作初始设置，装后在后台随时调整）：
+
+| 开关 | 配置键 | 默认 | 行为 |
+| --- | --- | --- | --- |
+| 注册邮箱验证 | `registration.email_verify_required`（列 `registration_email_verify_required`） | `false` | 开启后新用户注册需输入邮箱验证码激活；**依赖 SMTP 就绪**，未就绪时前端拒绝保存 |
+| 登录二步验证（TOTP） | `login.totp_required`（列 `login_totp_required`） | `false` | 开启后所有用户下次登录强制绑定/验证 TOTP（RFC 6238，标准验证器 App 通用） |
+
+**TOTP 流程要点**：
+
+- 已绑定用户登录时输入验证器上的 **6 位动态码**；验证器丢失可改用绑定时保存的 **8 位还原码**。
+- 未绑定用户（含被强制开启的存量用户）登录时进入强制绑定：扫描 `otpauth://` 二维码 → 输入 6 位码确认（`POST /api/auth/2fa/setup/confirm`）→ 展示 **10 个一次性还原码，仅此一次**；下次登录换发验证走 `POST /api/auth/2fa/verify`（短期过渡令牌 purpose=2fa，5 分钟）。
+- **管理员重置**：成员管理对该用户执行「重置二步验证」（`PUT /api/admin/users/{id}/2fa/reset`），清除绑定后该用户下次登录重新走绑定流程。
 
 ### 10. Docker Compose 部署
 1) `cp .env.example .env` 并填好所有占位。
@@ -479,16 +518,28 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
-    # 上传直链透传后端（若使用本地存储）
-    location /upload/ {
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_pass http://127.0.0.1:8081/upload/;
-        expires 7d;
-        add_header Cache-Control "public";
+    # 上传直链：优先静态直服（官方推荐，读取不进 Java；root 填存储根目录的父目录）
+    # 设 ASTRNEST_STORAGE_ROOT=/var/lib/astrnest/upload 时：
+    location ^~ /upload/ {
+        root /var/lib/astrnest;
+        expires 30d;
+        add_header Cache-Control "public" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        # Docker Compose 场景把 root 改为宿主机挂载目录所在路径，如 root /opt/AstrNest/storage;
+        location ~* \.svg$ {
+            add_header Cache-Control "public" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header Content-Security-Policy "sandbox" always;
+        }
     }
+    # 若无法静态直服，退化为反代后端（直链流量仍进 Java，裸机直跑场景可能 500）：
+    # location /upload/ {
+    #     proxy_set_header Host $host;
+    #     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    #     proxy_pass http://127.0.0.1:8081/upload/;
+    # }
 
-    # 后端 API
+    # 后端 API（大上传/长连接场景建议放宽超时：proxy_read_timeout 300s; proxy_request_buffering off;）
     location /api/ {
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

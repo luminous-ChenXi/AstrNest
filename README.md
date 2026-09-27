@@ -27,7 +27,7 @@
   简体中文 · <a href="./README_EN.md">English</a>
 </p>
 <p align="center">
-  <a href="#quick-start">快速开始</a> · 
+  <a href="#quick-start--快速开始">快速开始</a> · 
   <a href="https://luminouschenxi.com">博客</a> · 
   <a href="#tech-stack">技术栈</a> · 
   <a href="#acknowledgments">致谢</a> ·   
@@ -138,9 +138,230 @@ astrnest/
   - 生产环境必须配置签名密钥 `astrnest.jwt.secret`（环境变量 `ASTRNEST_JWT_SECRET`，请使用随机长字符串并妥善保管，勿提交仓库）。
 - **HTTP Basic（兼容保留）**：仍可用于 API 插件/脚本调用（如 Typora、PicGo 等自定义上传插件），与 API Key 认证并行支持。
 
-## Quick Start | 快速开始（开发）
+## Quick Start | 快速开始
 
-这里以Ubuntu本地开发为例：
+无论哪条路线，装完都会进入同一个**可视化安装向导**完成建表与初始管理员创建。按你的场景二选一：
+
+| 路线 | 适合谁 | 特点 |
+| --- | --- | --- |
+| **[五分钟部署（Docker Compose）](#五分钟部署docker-compose)** | 有台服务器、装了 Docker 的站长 | 三条命令起全套（MySQL/后端/前端），向导收尾 |
+| **[手动部署（Jar + Nginx）](#手动部署java-21--mysql-8--nginx)** | 宝塔 / 裸机 / 已有 MySQL 与 Nginx 的站长 | 全程掌控，Nginx 静态直服图片直链（生产推荐） |
+
+> **文档分工**：本节 = 快速上手与部署路线；**[CONFIG_GUIDE.md](CONFIG_GUIDE.md)** = 全量配置参考（环境变量逐项、文件路径、数据库初始化、对象存储切换、Windows 专项排障、Nginx/CDN 进阶）。下文所有命令均已与仓库实际内容核对：Maven Wrapper 位于 `backend/mvnw`（Windows 用 `mvnw.cmd`），Compose 服务名为 `mysql` / `backend` / `frontend`，后端端口 `8081`、前端容器端口 `80`。
+
+### 五分钟部署（Docker Compose）
+
+**准备**：一台 2C4G 起步的服务器；安装 Docker 20.10+ 与 compose v2 插件；防火墙放行 80/443。
+
+**第 1 步：克隆仓库并配置环境变量**
+
+```bash
+git clone https://github.com/luminous-ChenXi/AstrNest.git
+cd AstrNest
+cp .env.example .env
+vi .env
+```
+
+`.env` 必改项（密码类变量缺失时 `docker compose` 会直接报错拒绝启动，防止带着弱口令上线）：
+
+| 变量 | 说明 |
+| --- | --- |
+| `MYSQL_ROOT_PASSWORD` / `MYSQL_PASSWORD` | MySQL root 密码与应用账号密码 |
+| `ASTRNEST_DB_PASSWORD` | 后端连库密码，**保持与 `MYSQL_PASSWORD` 一致** |
+| `ASTRNEST_JWT_SECRET` | 生产必须：用 `openssl rand -base64 64` 生成随机长字符串。未配置时后端每次重启生成临时密钥，**重启后所有人需重新登录**。该变量不在 compose 模板显式透传之列，但 `env_file` 会把 `.env` 全量注入容器，直接写入 `.env` 即可生效 |
+| `PUBLIC_SITE_URL` / `PUBLIC_ASSET_URL` / `BACKEND_API_PUBLIC_URL` | 换成你的域名，如 `https://img.example.com` 与 `https://img.example.com/upload` |
+
+建议顺手核对：`ASTRNEST_ADMIN_*`（管理员占位信息）、`VITE_SITE_NAME`、`SMTP_*`（也可装完后在管理后台填）。
+
+**第 2 步：启动全套服务**
+
+```bash
+docker compose --env-file .env up -d
+docker compose logs -f backend    # 看到 “Started ...” 即就绪，Ctrl+C 退出
+```
+
+> 首次启动会在本机构建前后端镜像（拉取 Maven/npm 依赖），可能需要几分钟到十几分钟，之后很快。容器分工：`mysql`（3306，仅绑 127.0.0.1）、`backend`（8081，仅绑 127.0.0.1）、`frontend`（80，对外）。
+
+**第 3 步：浏览器打开站点，走完六步安装向导**
+
+访问 `http://服务器IP/`（或你的域名），未安装时任意页面都会自动跳转到 `/install`。六步流程：
+
+1. **环境检测**：自动检查数据库连接与版本（推荐 MySQL >= 8.0）、数据表结构、本地存储目录可写性、Java 运行时、FFmpeg（缺失仅警告，只影响视频缩略图）。红色致命项需先修复（通常是数据库连不上），可点「重新检测」。
+2. **数据库配置**：选择「本机数据库」或「远程数据库」，填写主机/端口/库名/账号/密码后点**「测试连接」**——成功回显 MySQL 版本与字符集，失败给出分类原因，可勾选「尝试创建数据库」后重试。
+   - Compose 部署：主机填 `mysql`（容器服务名），库名 `astrnest`、账号 `astrnest`、密码即 `.env` 里的 `MYSQL_PASSWORD`。
+   - 这一步只做连接确认，不回写运行时连接串（运行时连库以 `.env` 为准）；若表单与运行时连接串不一致，向导会黄条提醒。
+3. **初始化**：一键建表（执行向导专用脚本 `backend/db/install-schema.sql`，幂等，重复执行不破坏已有数据）。Compose 路线的 MySQL 容器首启已由 `init.sql` 建好表，此步自动跳过；手动路线则在此真正建表。
+4. **站点配置**：可全部跳过（保持系统默认）。可选项：开放邮箱注册 / 注册邮箱验证 / 登录二步验证（TOTP）/ 允许访客上传 / 单文件上传上限 / 资源加速域名。注意「注册邮箱验证」依赖 SMTP 就绪，建议装完后再开。
+5. **创建管理员**：填写用户名与**必填邮箱**，设置密码——可用内置生成器生成 16 位强密码，**明文只在此一次性展示，请立即复制保存**，并按要求二次输入确认。这是系统的唯一初始账号入口。
+6. **完成**：写入防重装锁并展示汇总（站点地址 / 管理员账号 / 开关状态 / SMTP 是否就绪），随后进入站点。
+
+**第 4 步：装完第一件事——进管理端配好安全项**
+
+用管理员登录后，到 **管理端 → 安全设置**（`/admin/security-settings`）：
+
+1. **配置 SMTP**：先到 管理端 → 邮件设置（`/admin/mail-settings`）填好 SMTP 主机/端口/账号/授权码/发件人，打开「启用」开关，并**发送测试邮件**确认收得到（详见下文「[安装后配置](#安装后配置安全与邮件)」）。
+2. **按需打开两个站长安全开关**：**注册邮箱验证**（新注册需邮箱验证码激活）与**登录二步验证（TOTP）**（全员登录需动态码）。前者必须先配好 SMTP。
+
+**第 5 步（生产强烈建议）：最外层架宿主 Nginx 处理图片直链**
+
+Compose 的 `frontend` 容器只反代 `/api/`，**不托管 `/upload/**`**，直链图片默认会落到 SPA 页面；`backend` 的 8081 又只绑 127.0.0.1 不对外。生产环境请按下面「手动部署」的 **Nginx 样例**加一层宿主 Nginx：`/upload/` 静态直服宿主机 `./storage/upload` 挂载目录，页面与 `/api/` 反代到容器 80 端口。
+
+### 手动部署（Java 21 + MySQL 8 + Nginx）
+
+**环境要求**：Java 21、MySQL 8.0+、Node.js 18+（仅构建前端用）、Nginx；可选 FFmpeg（视频缩略图）。
+
+**1) 建库与授权**（root 执行；或直接运行仓库根目录的 `init-admin.py` / `init-admin.sh` / `init-admin-cn.bat` 交互式完成建库+管理员）：
+
+```sql
+CREATE DATABASE IF NOT EXISTS astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE USER IF NOT EXISTS 'astrnest'@'%' IDENTIFIED BY '你的强密码';
+GRANT ALL PRIVILEGES ON astrnest.* TO 'astrnest'@'%';
+FLUSH PRIVILEGES;
+```
+
+> 后端与 MySQL 同机时连接可能被识别为 `localhost`（`'%'` 不含 localhost），需再补 `'astrnest'@'localhost'` 同样授权；报错 1044/42000 的完整排查见 CONFIG_GUIDE 4.2 节。
+
+**2) 构建并启动后端**：
+
+```bash
+cd backend
+./mvnw clean package              # Windows 用 .\mvnw.cmd
+ASTRNEST_DB_URL='jdbc:mysql://127.0.0.1:3306/astrnest?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai' \
+ASTRNEST_DB_USERNAME=astrnest \
+ASTRNEST_DB_PASSWORD='你的强密码' \
+ASTRNEST_STORAGE_ROOT=/var/lib/astrnest/upload \
+ASTRNEST_JWT_SECRET="$(openssl rand -base64 64)" \
+ASTRNEST_TRUSTED_PROXY=true \
+java -jar target/backend-0.0.1-SNAPSHOT.jar
+```
+
+- 生产建议用 systemd 托管（上述变量写进 unit 的 `Environment=`），并提前建好可写存储目录：`mkdir -p /var/lib/astrnest/upload && chown -R astrnest:astrnest /var/lib/astrnest`——进程对存储目录无写权限会报 `AccessDeniedException` 起不来（CONFIG_GUIDE 12.2.2）。
+- `ASTRNEST_TRUSTED_PROXY=true` 仅在 Nginx 反代之后开启，后端才能记录真实客户端 IP（限流/审计依赖它）。
+
+**3) 构建前端**：
+
+```bash
+cd frontend
+npm ci
+npm run build        # 产物在 dist/
+```
+
+把 `dist/` 上传到服务器（示例 `/var/www/astrnest/dist`）。`.env.production` 默认 `VITE_API_BASE_URL=`（空 = 同源反代），前后端同域名部署**无需改动**；分域名部署才改成 API 完整地址。
+
+**4) Nginx 样例（可直接复制；重点看 `/upload/` 静态直服）**
+
+> **为什么 `/upload/**` 要交给 Nginx 静态直服**：图片直链是图床最高频的流量。让直链打到后端（`:8081/upload/**`）在裸机直跑场景下可能返回 500，且长期占用 Java 进程资源；**官方规避方案**就是让 Nginx 直接服务存储目录——上传仍走 `/api/`，读取全部由 Nginx 承担。
+
+```nginx
+server {
+    listen 80;
+    server_name imgbed.example.com;
+
+    # 与后端 ASTRNEST_MULTIPART_MAX_FILE_SIZE 匹配，否则大图上传被 Nginx 拦成 413（设 0 为不限制）
+    client_max_body_size 100m;
+
+    # ---- 前端 SPA ----
+    root /var/www/astrnest/dist;
+    index index.html;
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # ---- 图片直链：Nginx 静态直服（官方推荐）----
+    # 约定 ASTRNEST_STORAGE_ROOT=/var/lib/astrnest/upload 时：
+    #   URL /upload/2026/09/x.jpg -> 磁盘 /var/lib/astrnest/upload/2026/09/x.jpg
+    # 注意 root 填存储根目录的【父目录】；^~ 防止被下方其他正则 location 抢走
+    # Docker Compose 场景：root 改为宿主机仓库下的 storage 目录（如 root /opt/AstrNest/storage;）
+    location ^~ /upload/ {
+        root /var/lib/astrnest;
+        expires 30d;
+        add_header Cache-Control "public" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        # SVG 与后端直出同口径：追加 CSP sandbox 防存储型 XSS
+        location ~* \.svg$ {
+            add_header Cache-Control "public" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header Content-Security-Policy "sandbox" always;
+        }
+    }
+
+    # ---- 后端 API（上传也走这里：放宽超时，兼容慢速大上传与长连接/SSE 类响应）----
+    location /api/ {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_request_buffering off;   # 边收边转发，避免大文件在 Nginx 落盘双份
+    }
+
+    # ---- 可选：Swagger / 健康检查 ----
+    location /swagger-ui/     { proxy_pass http://127.0.0.1:8081; }
+    location = /v3/api-docs   { proxy_pass http://127.0.0.1:8081; }
+    location = /actuator/health { proxy_pass http://127.0.0.1:8081; }
+}
+```
+
+HTTPS/HTTP2 与安全响应头样例见 [CONFIG_GUIDE.md](CONFIG_GUIDE.md) 第 13.2 节，在上述 server 块基础上叠加 443 监听即可。
+
+**5) 初始化与管理员**：后端起来后（空库）浏览器打开站点 → 自动进入上文**六步安装向导**（本路线第 3 步「初始化」会真正建表，其余步骤相同）。不习惯向导也可以 `mysql -u root -p astrnest < backend/db/init.sql` 建表后用 `init-admin` 脚本创建管理员；兜底：**第一个完成注册的用户自动成为管理员**（初始化 SQL 不再预置任何管理员）。
+
+**6) 升级**：`git pull` → 重新构建前后端 → 重启后端并覆盖 `dist/` → 如表结构有变更，重复执行 `backend/db/init.sql`（幂等补列，不破坏已有数据）。
+
+### 从源码到上线：CI/CD 链路
+
+仓库自带两条 GitHub Actions 工作流，理解它们也方便站长在自建环境（Gitea/Jenkins 等）复刻同等的发布校验：
+
+| 工作流 | 触发时机 | 干什么 |
+| --- | --- | --- |
+| `.github/workflows/ci.yml` | push 到 `main`/`develop`；PR 到 `main` | ① `backend-test`：起 MySQL 8 service + JDK 21（Temurin），跑 `backend/mvnw test`；② `frontend-build`：Node 18，`npm ci` + `npm run build` 并上传 `dist/` 产物；③ `docker-build`：仅 `main` 分支、前两项通过后，冒烟构建前后端 Docker 镜像（**不推送**任何 registry） |
+| `.github/workflows/deploy-docs.yml` | `AstrNest-docs/**` 变更 push 到 `main`，或手动触发（workflow_dispatch） | VitePress 构建文档站（`AstrNest-docs`）并发布到 GitHub Pages |
+
+**tag 发版流程**：仓库目前**没有** tag → Release 的自动工作流；打 tag 仅作版本标记，Release 与产物上传由维护者手动完成。若你 fork 后需要自动发版，可在 `ci.yml` 的 `docker-build` 基础上加 `docker/build-push-action` 推送到自己的镜像仓库，或用 `softprops/action-gh-release` 在 tag push 时附上 jar 与 `dist/`。
+
+**站长自建环境的等价校验**（提交代码前或部署前跑一遍，与 CI 同效果）：
+
+```bash
+cd backend && ./mvnw test                 # 等价 backend-test；测试默认走 H2 内存库，本地无需装 MySQL
+cd frontend && npm ci && npm run build    # 等价 frontend-build
+docker compose --env-file .env build      # 等价 docker-build（只构建不启动）
+```
+
+### 安装后配置（安全与邮件）
+
+以下操作都在管理后台完成，每次新装站点建议先做这一节。
+
+**SMTP 邮件服务**（管理端 → 邮件设置，`/admin/mail-settings`）
+
+| 字段 | 说明 |
+| --- | --- |
+| SMTP 服务器 / 端口 | 如 `smtp.example.com`；常用端口 465（SSL）/ 587（TLS）/ 25（不加密） |
+| SMTP 账号 / 授权码 | 邮箱账号与服务商授权码（授权码 ≠ 邮箱登录密码） |
+| 加密方式 | `ssl` / `tls` / `none` |
+| 发件人邮箱 / 名称 | 对外展示的发件身份 |
+
+- 填好后打开「启用」开关保存，再点**「发送测试邮件」**填自己的邮箱验证能收到——这一步通了，再去开「注册邮箱验证」。
+- **SMTP 就绪判定**（后端口径）：「启用」开关打开 + SMTP 服务器已填（非 `smtp.example.com` 占位）+ 发件人已填 + 授权码已填（非 `CHANGE_ME` 占位）。缺任何一项，管理端安全设置页就显示未就绪，「注册邮箱验证」开关无法开启。
+- **内网无鉴权中继 / MailPit**（本地或内网调试推荐）：主机填中继地址、端口如 1025、加密方式选「不加密」、账号与授权码**随便填非空值**（如 `mailpit`，中继不校验），发件人照填——即可满足就绪判定并打通测试邮件。Docker 用户可加一个 [axllent/mailpit](https://github.com/axllent/mailpit) 容器，用它的 Web 界面直接看信。
+
+**注册邮箱验证开关**（管理端 → 安全设置，`/admin/security-settings`）
+
+- 开启后，新用户注册需输入邮箱验证码激活；是否允许自注册由「开放邮箱注册」另行控制（关闭时仅管理员可建号）。
+- **依赖 SMTP**：SMTP 未就绪时前端拒绝保存该开关；安装向导第 4 步的同名开关同理。
+
+**登录二步验证开关（TOTP）**（同一页面）
+
+- 开启后**所有用户**下次登录都会被要求绑定/验证 TOTP（Google Authenticator、Aegis、1Password 等任何标准验证器）：
+  - 已绑定用户：输入验证器上的 **6 位动态码**；验证器丢失可改用绑定时保存的 **8 位还原码**。
+  - 未绑定用户（含被强制开启的存量用户）：登录时进入强制绑定流程——扫描二维码（标准 otpauth 协议）→ 输入 6 位码确认 → 系统展示 **10 个一次性还原码，仅此一次，务必保存**。
+- **用户验证器与还原码全丢了**：管理员在成员管理（`/admin/users`）对该用户执行「重置二步验证」（`PUT /api/admin/users/{id}/2fa/reset`），该用户下次登录重新走绑定流程。
+
+### 开发环境搭建（源码调试）
+
+这里以 Ubuntu 本地开发为例：
 
 1) 克隆与依赖
 ```bash
@@ -191,43 +412,27 @@ npm run dev
 > - 如果显示“403 Forbidden”，请检查当前用户角色是否有访问该接口的权限。
 > - 如果显示“500 Internal Server Error”，请检查后端日志，查找具体错误信息。
 
-> **管理员账号说明**：初始化 SQL **不再预置管理员账号**。推荐通过**安装向导**（`/install`，见下文）在首次部署时创建初始管理员；也可以使用仓库自带的 `init-admin.py` / `init-admin.sh` / `init-admin.bat` 脚本创建（或重置）管理员；作为无向导环境的兜底，**第一个完成注册的用户会自动成为管理员**。
-
 > 如果你想直接看配置细节（环境变量、文件路径、初始化脚本、FFmpeg、存储切换等），请跳转 `CONFIG_GUIDE.md`。
 
-### 安装向导 | Install Wizard（全新部署推荐）
+### 安装向导 | Install Wizard
 
-AstrNest 内置了类似 WordPress 的**可视化安装向导**。全新部署（数据库为空库）后打开站点，会自动跳转到 `http://your-domain.com/install`，引导你完成四步初始化：
-
-1. **环境检测**：自动检查数据库连接与版本（推荐 MySQL >= 8.0）、数据表结构、本地存储目录可写性、Java 运行时、FFmpeg（缺失仅警告）。有致命问题时给出排查提示，可点击"重新检测"。
-2. **安装数据库**：一键执行向导专用脚本 `backend/db/install-schema.sql` 建表并写入默认角色/配置（幂等，重复执行不破坏已有数据）。
-3. **创建管理员**：设置初始管理员账号（ADMIN 角色、BCrypt 加密密码、不限上传配额），这是系统的唯一初始账号入口。
-4. **完成**：写入安装完成标记并进入站点。
-
-两种部署路径对比：
+AstrNest 内置类似 WordPress 的**可视化安装向导**，六步流程（环境检测 → 数据库配置 → 初始化 → 站点配置 → 创建管理员 → 完成）的逐步说明见上文「五分钟部署 · 第 3 步」。两种部署路径在向导中的差异：
 
 | 部署路径 | 数据库表结构 | 初始管理员 |
 | --- | --- | --- |
-| **Docker Compose**（挂载 `init.sql` 自动初始化） | 由 `backend/db/init.sql` 在 MySQL 容器首次启动时自动创建 | 首个注册用户自动成为 ADMIN，或用 `init-admin` 脚本创建 |
-| **手动 / 宝塔 / 裸 Jar 部署**（未跑过初始化 SQL） | 打开站点进入向导，第 2 步一键建表（`install-schema.sql`） | 向导第 3 步创建（推荐），或首个注册用户自动 ADMIN |
+| **Docker Compose**（挂载 `init.sql` 自动初始化） | 由 `backend/db/init.sql` 在 MySQL 容器首次启动时自动创建，向导「初始化」步自动跳过 | 向导第 5 步创建（推荐），或首个注册用户自动 ADMIN |
+| **手动 / 宝塔 / 裸 Jar 部署**（未跑过初始化 SQL） | 向导第 3 步一键建表（`install-schema.sql`，幂等） | 向导第 5 步创建（推荐），或首个注册用户自动 ADMIN |
 
-- 向导地址：`http://your-domain.com/install`（前后端任一入口均可，未安装时访问任意页面都会被引导到向导）。
-- **安装后再次访问 `/install`**：会显示"系统已安装"并拒绝重新初始化；`/api/install` 的写接口在安装完成后一律返回 403，防止重放调用。
+- 向导地址：`http://your-domain.com/install`（未安装时访问任意页面都会被引导到向导）。
+- **安装后再次访问 `/install`**：显示「系统已安装」并拒绝重新初始化；`/api/install` 的写接口在安装完成后一律返回 403，防止重放调用。
+- **装到一半卡住**：向导提供「重置安装状态」入口（`POST /api/install/reset`），仅「未完成站点」（users 表不存在或没有用户）可调用；更多安装类 FAQ 见下文。
 - 注意：向导不负责写数据库连接参数——Spring Boot 应用必须先能连上 MySQL（通过 `ASTRNEST_DB_URL` / `ASTRNEST_DB_USERNAME` / `ASTRNEST_DB_PASSWORD` 等配置）才能启动，向导负责的是**建表与初始账号**。检测项含义与失败排查见 `CONFIG_GUIDE.md` 第 4.3 节。
-
-### 部署概览
-- **Docker Compose（推荐）**：复制 `.env.example` → `.env`，填好数据库/域名/SMTP/存储，再执行：
-```bash
-docker compose --env-file .env up -d
-```
-- **传统部署**：`backend` 打包 `./mvnw clean package && java -jar target/backend-0.0.1-SNAPSHOT.jar`；`frontend` 运行 `npm run build` 后将 `dist/` 交给 Nginx/CDN。
-
-更详细的环境变量、Nginx 反代、CDN/对象存储切换请查看 `CONFIG_GUIDE.md`。
 
 ### 生产配置要点 | Production Notes
 - **`ASTRNEST_TRUSTED_PROXY`**（默认 `false`）：当后端部署在 Nginx 等反向代理之后时设为 `true`，后端才会信任并解析 `X-Real-IP` / `X-Forwarded-For`，日志审计与限流才能拿到真实客户端 IP；对应配置键 `astrnest.security.trusted-proxy`。
-- **`astrnest.jwt.secret`**：JWT 签名密钥，生产必须显式配置；Token 有效期由 `chenxi.passport.access-token-days` 控制（默认 30 天不活动过期）。
-- **Nginx `client_max_body_size`**：示例反代配置已放开请求体限制，需与后端 `spring.servlet.multipart.max-file-size` 保持匹配，否则大图上传会被 Nginx 拦截（413）。
+- **`astrnest.jwt.secret`**：JWT 签名密钥，生产必须显式配置（`ASTRNEST_JWT_SECRET`），否则每次重启生成临时密钥、所有人被强制下线；Token 有效期由 `chenxi.passport.access-token-days` 控制（默认 30 天不活动过期）。
+- **图片直链**：生产让 Nginx 静态直服 `/upload/**`（样例见上文手动部署），并把「系统配置 → 资源加速域名（`asset_domain`）」或前端 `VITE_PUBLIC_ASSET_BASE` 指向该域名。
+- **Nginx `client_max_body_size`**：需与后端 `spring.servlet.multipart.max-file-size` 保持匹配，否则大图上传会被 Nginx 拦截（413）。
 - **Docker Compose 端口绑定**：`docker-compose.yml` 中数据库与后端端口默认仅绑定 `127.0.0.1`，生产建议通过 Nginx 反代对外提供服务，不要将数据库/后端端口直接暴露公网。
 - **SSO 单点登录**：详见下方「SSO 单点登录（外部身份源）」。
 
@@ -248,7 +453,29 @@ AstrNest 支持通过 **OAuth 2.1 / OIDC「授权码 + PKCE(S256)」** 对接外
 | `chenxi.passport.scopes` | `CHENXI_PASSPORT_SCOPES` | `openid,profile` | 授权 scope |
 | `chenxi.passport.access-token-days` | `CHENXI_PASSPORT_ACCESS_TOKEN_DAYS` | `30` | 本地令牌不活动过期天数（滑动刷新） |
 
-## Problem Solving | 问题解决
+## FAQ | 常见问题
+
+### 安装向导问题（装不上 / 锁死 / 想重装）
+
+- **向导打不开、一直「无法连接服务器」**：后端没起来。先看后端日志——数据库连不上时 Spring Boot 无法启动，向导页面无从谈起。向导的前提是「应用已启动、库为空」。
+- **装到一半卡住，想重走流程**：向导页面提供**「重置安装状态」**入口（`POST /api/install/reset`），清理 `install.lock` 与数据库完成标记后可回到第一步；仅「未完成站点」（users 表不存在或没有用户）可调用。
+- **已装完想重装**：两步——① 清空数据库（删库重建，或清空全部业务表）；② 删除防重装锁 `install.lock`（位于存储根目录的父目录，默认 `/storage/install.lock`；Docker Compose 场景该文件在 backend 容器内，`docker compose down` 后重新 `up -d` 重建容器即随之清除，`mysql_data` 数据卷是否保留按需决定）。重启后重新打开 `/install`。
+- **装完再访问 `/install`**：显示「系统已安装」并拒绝重新初始化；`/api/install` 写接口一律 403，防止重放调用。
+
+### 图片直链 404 或 500
+
+- **直链返回 500（裸机 / 宝塔直跑 jar，直链打到 `:8081/upload/**`）**：官方规避方案是让 **Nginx 静态直服 `/upload/**`**（样例见上文「手动部署 · Nginx 样例」的 `location ^~ /upload/`），把读取流量从后端挪到 Nginx。注意 `root` 指向的是 `ASTRNEST_STORAGE_ROOT` 的**父目录**（`root + /upload/...` 拼出完整磁盘路径），且 Nginx 进程对该目录有读权限。
+- **直链 404 或返回网页（Docker Compose，直链打到 80 端口）**：`frontend` 容器的 Nginx 只反代 `/api/`，**不托管 `/upload/**`**。解决方案同上——宿主 Nginx 直服宿主机 `./storage/upload` 挂载目录；或把后台「系统配置 → 资源加速域名（`asset_domain`）」与前端 `VITE_PUBLIC_ASSET_BASE` 指向真正能服务文件的域名 / CDN。
+- **自查清单**：文件确实存在于 `ASTRNEST_STORAGE_ROOT/{yyyy}/{MM}/` 下；直链域名与 `asset_domain` / `VITE_PUBLIC_ASSET_BASE` 一致；`docker compose` 场景确认宿主机挂载目录里能看到文件（`ls ./storage/upload`）。
+
+### 邮箱验证收不到信
+
+1. 先在管理端「邮件设置」点**「发送测试邮件」**：收不到说明 SMTP 本身不通——核对服务器/端口/加密方式/授权码（授权码 ≠ 邮箱登录密码），并查看后端日志中 mail / SMTP 相关异常。
+2. 「注册邮箱验证」开关开着但发不出验证码：到管理端「安全设置」看 SMTP 是否显示**未就绪**——检查「启用」开关是否打开、主机/发件人/授权码是否仍是 `smtp.example.com` / `CHANGE_ME` 占位值。
+3. 内网 / 本地环境：云厂商常封 25 端口，公网 SMTP 也可能被拦截；改用 465/587，或用内网中继 / MailPit（见「安装后配置」）。
+4. 测试邮件能收到、验证码收不到：查垃圾箱；确认注册邮箱拼写无误；验证码有时效，过期请重发。
+
+### 其他常见问题
 
 | 问题 | 处理建议 |
 | --- | --- |
@@ -350,7 +577,7 @@ curl -X POST "http://localhost:8081/api/uploads" \
 ## Issue Reporting | 问题报告
 
 如遇问题，请：
-1. 查看 [常见问题](#常见问题)
+1. 查看 [常见问题](#faq--常见问题)
 2. 搜索 [GitHub Issues](https://github.com/your-repo/astrnest/issues)
 3. 创建新的 Issue（同时欢迎你能够提供宝贵建议！）
 4. 查看[联系方式](#contact)
