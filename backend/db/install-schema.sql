@@ -498,7 +498,7 @@ SELECT 2, 'USER', '普通用户' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = 'USER');
 
 -- 默认系统配置：仅在首次初始化插入；重复执行不覆盖任何已保存的配置。
--- 注意：显式列出 ai_moderation_enabled / ai_labeling_enabled——
+-- 注意：显式列出 ai_moderation_enabled / ai_labeling_enabled / registration_email_verify_required / login_totp_required——
 -- 当表结构由 Hibernate（ddl-auto=update）先行创建时这些列是 NOT NULL 且无 DEFAULT，缺列会整条 INSERT 失败。
 INSERT INTO system_config (
     id,
@@ -510,6 +510,8 @@ INSERT INTO system_config (
     max_files_per_upload,
     user_storage_quota_bytes,
     registration_enabled,
+    registration_email_verify_required,
+    login_totp_required,
     guest_like_enabled,
     guest_upload_enabled,
     auto_cleanup_days,
@@ -532,6 +534,8 @@ SELECT
     5000,
     30,
     5368709120,
+    b'0',
+    b'0',
     b'0',
     b'1',
     b'0',
