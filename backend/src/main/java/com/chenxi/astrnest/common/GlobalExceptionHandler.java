@@ -5,6 +5,8 @@ import com.chenxi.astrnest.security.apikey.exception.ApiKeyQuotaExceededExceptio
 import com.chenxi.astrnest.storage.StorageObjectNotFoundException;
 import com.chenxi.astrnest.storage.StorageWriteException;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,8 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
@@ -131,7 +135,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiErrorResponse> handleOther(Exception ex) {
-    ex.printStackTrace();
+    log.error("未处理异常: {}", ex.getMessage(), ex);
     return buildResponse("服务器内部错误: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
   }
 

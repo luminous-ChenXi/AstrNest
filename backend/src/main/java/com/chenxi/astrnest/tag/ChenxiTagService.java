@@ -21,6 +21,7 @@ public class ChenxiTagService {
 
   private static final int DEFAULT_SEARCH_LIMIT = 20;
   private static final int MAX_TAG_LENGTH = 20;
+  private static final int MAX_DESCRIPTION_LENGTH = 255;
   private static final Pattern UNSAFE_CONTENT_PATTERN = Pattern.compile(
       "(<|>|\"|'|`|;|\\b(script|javascript:|onerror|onload)\\b)",
       Pattern.CASE_INSENSITIVE
@@ -49,7 +50,7 @@ public class ChenxiTagService {
     String sanitized = sanitizeNameStrict(name);
     ChenxiTag tag = new ChenxiTag();
     tag.setName(sanitized);
-    tag.setDescription(StringUtils.hasText(description) ? description.trim() : null);
+    tag.setDescription(sanitizeDescription(description));
     ChenxiTag saved = chenxiTagRepository.save(tag);
     return toResponse(saved);
   }
@@ -103,6 +104,27 @@ public class ChenxiTagService {
       return null;
     }
     return new ChenxiTagResponse(tag.getId(), tag.getName(), tag.getSlug(), tag.getDescription());
+  }
+
+  /**
+   * 标签描述清洗：与名称/搜索关键词共用 UNSAFE_CONTENT_PATTERN，命中脚本类内容
+   * （标签、事件属性、javascript: 协议等）一律拒绝入库，防止描述被渲染时形成存储型 XSS。
+   */
+  private String sanitizeDescription(String value) {
+    if (!StringUtils.hasText(value)) {
+      return null;
+    }
+    String normalized = value.trim();
+    if (!StringUtils.hasText(normalized)) {
+      return null;
+    }
+    if (normalized.length() > MAX_DESCRIPTION_LENGTH) {
+      throw new IllegalArgumentException("标签描述长度不能超过 " + MAX_DESCRIPTION_LENGTH + " 个字符");
+    }
+    if (UNSAFE_CONTENT_PATTERN.matcher(normalized).find()) {
+      throw new IllegalArgumentException("标签描述包含非法字符");
+    }
+    return normalized;
   }
 
   private String sanitizeKeyword(String value) {
