@@ -71,7 +71,8 @@ public class ChenxiAuthController {
   public Map<String, String> register(@Valid @RequestBody RegisterAccountRequest request, HttpServletRequest httpRequest) {
     String ip = clientIpResolver.resolve(httpRequest);
     authProtectionService.ensureRegisterAllowed(request.username(), ip);
-    authService.registerUser(request.email(), request.code(), request.username(), request.displayName(), request.password());
+    authService.registerUser(request.email(), request.code(), request.linkToken(),
+        request.username(), request.displayName(), request.password());
     authProtectionService.recordLoginSuccess(request.username(), ip);
     return Map.of("message", "注册成功，快去登录吧");
   }

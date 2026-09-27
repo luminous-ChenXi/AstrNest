@@ -33,6 +33,8 @@ public class SystemPublicConfigController {
         config.videoChunkUploadEnabled(),
         config.videoChunkSizeMb(),
         config.guestUploadEnabled(),
+        config.registrationEnabled(),
+        config.emailVerifyRequired(),
         true
     );
   }

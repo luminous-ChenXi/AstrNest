@@ -13,6 +13,8 @@ spring:
       resolve-lazily: true
 
 astrnest:
+  # 站点对外基础地址（注册验证链接等邮件内容拼装用；未配置时邮件只带验证码不带链接）
+  public-base-url: ${PUBLIC_SITE_URL:}
   security:
     # 是否信任反向代理头（X-Real-IP / X-Forwarded-For）：默认 false，直接取 remoteAddr，
     # 防止客户端伪造请求头绕过限流与配额；部署在可信 nginx 等代理之后时置为 true

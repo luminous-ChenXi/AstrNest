@@ -2,15 +2,17 @@
 <script setup>
 import { ElMessage, ElSteps, ElStep, ElForm, ElFormItem, ElInput, ElButton } from 'element-plus'
 import { User, Message as MailIcon, Lock } from '@element-plus/icons-vue'
-import { computed, reactive, ref, watch } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { debounce } from 'lodash-es'
 import ChenxiCaptchaInput from '../../components/chenxi/ChenxiCaptchaInput.vue'
 import { requestRegisterCode, registerChenxiAccount, checkEmailAvailability } from '../../services/chenxi'
+import { getSystemConfig } from '../../services/system'
 import { useChenxiEmailCode } from '../../composables/useChenxiEmailCode'
 import http from '../../services/http'
 
 const MAX_PARALLAX_OFFSET = 36
+const route = useRoute()
 const parallaxOffset = ref({ x: 0, y: 0 })
 const backgroundTransformStyle = computed(() => ({
   transform: `translate3d(${parallaxOffset.value.x}px, ${parallaxOffset.value.y}px, 0) scale(1.02)`,
@@ -39,6 +41,16 @@ const router = useRouter()
 const formRef = ref()
 const submitting = ref(false)
 const emailAvailable = ref(true)
+
+// 站点开关（来自 /api/system/public-config）：
+//   registrationEnabled=false → 注册页整体提示关闭；
+//   emailVerifyRequired=true  → 两步流（图形验证 + 邮箱验证码）；
+//   false（默认）             → 单步注册（用户名 + 密码，邮箱选填），注册即激活。
+const configLoading = ref(true)
+const registrationEnabled = ref(true)
+const verifyRequired = ref(false)
+// 邮件「点链接验证」落地：/register?email=..&linkToken=..，免输验证码直接建号
+const linkToken = ref('')
 
 const form = reactive({
   email: '',
@@ -187,6 +199,31 @@ const handlePrevStep = () => {
   currentStep.value = 0
 }
 
+// 读取公开站点配置，决定注册模式；邮件链接落地时免验证码
+onMounted(async () => {
+  linkToken.value = typeof route.query.linkToken === 'string' ? route.query.linkToken : ''
+  if (linkToken.value && typeof route.query.email === 'string') {
+    form.email = route.query.email
+  }
+  try {
+    const { data } = await getSystemConfig()
+    registrationEnabled.value = data?.installed ? data?.registrationEnabled !== false : registrationEnabled.value
+    verifyRequired.value = Boolean(data?.emailVerifyRequired)
+  } catch (error) {
+    // 配置不可得时按默认关闭态处理（后端会在提交时兜底校验）
+    verifyRequired.value = false
+  } finally {
+    configLoading.value = false
+  }
+  if (!registrationEnabled.value) return
+  // 单步模式或链接验证落地：直接进入账户信息步
+  if (!verifyRequired.value || linkToken.value) {
+    currentStep.value = 1
+  }
+})
+
+const singleMode = computed(() => !verifyRequired.value || Boolean(linkToken.value))
+
 const handleSubmit = async () => {
   if (currentStep.value === 0) {
     await handleNextStep()
@@ -201,6 +238,7 @@ const handleSubmit = async () => {
     await registerChenxiAccount({
       email: form.email,
       code: form.code,
+      linkToken: linkToken.value,
       username: form.username,
       password: form.password,
       displayName: form.displayName,
@@ -234,8 +272,23 @@ const handleSubmit = async () => {
         <h1>创建您的账户</h1>
       </header>
 
-      <ElSteps :active="currentStep" finish-status="success" align-center class="register-steps">
+      <el-alert
+        v-if="!configLoading && !registrationEnabled"
+        class="closed-alert"
+        type="warning"
+        :closable="false"
+        show-icon
+        title="当前站点已关闭开放注册"
+      >
+        <p class="muted">如需账号，请联系站点管理员开通。您可以<a href="/" @click.prevent="router.push('/')">返回首页</a>使用已有账号登录。</p>
+      </el-alert>
+
+      <template v-if="!configLoading && registrationEnabled">
+      <ElSteps v-if="!singleMode" :active="currentStep" finish-status="success" align-center class="register-steps">
         <ElStep title="邮箱验证" />
+        <ElStep title="设置账户" />
+      </ElSteps>
+      <ElSteps v-else :active="0" finish-status="success" align-center class="register-steps">
         <ElStep title="设置账户" />
       </ElSteps>
 
@@ -294,9 +347,15 @@ const handleSubmit = async () => {
             class="form-stage"
           >
             <div class="stage-header">
-              <p class="stage-label">STEP 2</p>
+              <p class="stage-label">STEP 1</p>
               <h2>设置账户信息</h2>
-              <p>配置用户名、昵称与密码，正式启用 AstrNest 账户。</p>
+              <p v-if="linkToken" class="stage-desc">
+                邮箱验证链接已生效，请确认邮箱并设置账户信息，提交后账号立即激活。
+              </p>
+              <p v-else-if="!verifyRequired" class="stage-desc">
+                填写用户名与密码即可完成注册；邮箱选填，用于找回密码与站内通知。
+              </p>
+              <p v-else class="stage-desc">配置用户名、昵称与密码，正式启用 AstrNest 账户。</p>
             </div>
             <div class="form-grid two-cols">
               <ElFormItem label="用户名" prop="username">
@@ -305,6 +364,19 @@ const handleSubmit = async () => {
               <ElFormItem label="显示昵称">
                 <ElInput v-model="form.displayName" placeholder="可选，默认为用户名" />
               </ElFormItem>
+              <ElFormItem
+                v-if="!verifyRequired || linkToken"
+                label="邮箱"
+                :class="{ 'full-width': true }"
+              >
+                <ElInput
+                  v-model="form.email"
+                  :prefix-icon="MailIcon"
+                  :disabled="Boolean(linkToken)"
+                  :placeholder="linkToken ? '来自验证链接' : '选填，用于找回密码'"
+                  autocomplete="email"
+                />
+              </ElFormItem>
               <ElFormItem label="登录密码" prop="password" class="full-width">
                 <ElInput v-model="form.password" :prefix-icon="Lock" show-password placeholder="至少 8 位" />
               </ElFormItem>
@@ -312,8 +384,8 @@ const handleSubmit = async () => {
           </section>
         </Transition>
 
-        <div class="panel-actions">   
-          <template v-if="currentStep === 0">
+        <div class="panel-actions">
+          <template v-if="currentStep === 0 && !singleMode">
             <ElButton
               type="primary"
               class="btn-primary-pink btn-full"
@@ -327,7 +399,7 @@ const handleSubmit = async () => {
           </template>
           <template v-else>
             <div class="action-row">
-              <ElButton text class="ghost-btn" @click="handlePrevStep">返回邮箱验证</ElButton>
+              <ElButton v-if="!singleMode" text class="ghost-btn" @click="handlePrevStep">返回邮箱验证</ElButton>
               <ElButton
                 type="primary"
                 class="btn-primary-pink"
@@ -344,6 +416,7 @@ const handleSubmit = async () => {
           </p>
         </div>
       </ElForm>
+      </template>
     </div>
   </div>
 </template>
@@ -446,6 +519,27 @@ const handleSubmit = async () => {
 .register-steps {
   margin-top: 1.25rem;
   margin-bottom: 1.5rem;
+}
+
+.closed-alert {
+  margin-top: 1.25rem;
+  border-radius: 16px;
+}
+
+.closed-alert .muted {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.closed-alert a {
+  color: var(--color-brand-primary);
+}
+
+.stage-desc {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
 }
 
 .register-steps :deep(.el-step__title) {

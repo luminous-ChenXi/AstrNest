@@ -206,6 +206,12 @@ const router = createRouter({
           meta: { label: '邮件设置' },
         },
         {
+          path: 'security-settings',
+          name: 'admin-security-settings',
+          component: () => import('../views/admin/AdminSecuritySettingsView.vue'),
+          meta: { label: '注册与登录安全' },
+        },
+        {
           path: 'integration',
           name: 'admin-integration',
           component: () => import('../views/IntegrationView.vue'),

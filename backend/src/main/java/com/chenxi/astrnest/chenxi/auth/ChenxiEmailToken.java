@@ -55,4 +55,11 @@ public class ChenxiEmailToken {
 
   @Column(name = "captcha_token", length = 64)
   private String captchaToken;
+
+  /**
+   * 注册验证链接令牌（仅 REGISTER 场景生成）：邮件同时携带 6 位验证码与本令牌的落地链接，
+   * 用户可「输码」或「点链接」完成验证；30 分钟有效，与 code 同生共死（消费即焚）。
+   */
+  @Column(name = "link_token", length = 64)
+  private String linkToken;
 }

@@ -1,5 +1,6 @@
 package com.chenxi.astrnest.system;
 
+import com.chenxi.astrnest.chenxi.mail.ChenxiMailConfigService;
 import com.chenxi.astrnest.security.user.UserAccountRepository;
 import com.chenxi.astrnest.system.dto.PublicSystemConfigResponse;
 import com.chenxi.astrnest.system.dto.SystemConfigResponse;
@@ -33,6 +34,7 @@ public class SystemConfigService {
   private final UserAccountRepository userAccountRepository;
   private final UploadRecordRepository uploadRecordRepository;
   private final Environment environment;
+  private final ChenxiMailConfigService chenxiMailConfigService;
 
   public SystemConfigResponse getCurrentConfig() {
     return toResponse(loadConfig());
@@ -50,6 +52,8 @@ public class SystemConfigService {
         config.isVideoChunkUploadEnabled(),
         config.getVideoChunkSizeMb(),
         config.isGuestUploadEnabled(),
+        config.isRegistrationEnabled(),
+        config.isRegistrationEmailVerifyRequired(),
         true
     );
   }
@@ -66,6 +70,12 @@ public class SystemConfigService {
     config.setMaxFilesPerUpload(request.maxFilesPerUpload());
     config.setUserStorageQuotaBytes(request.userStorageQuotaGb() * BYTES_PER_GB);
     config.setRegistrationEnabled(Boolean.TRUE.equals(request.registrationEnabled()));
+    if (request.emailVerifyRequired() != null) {
+      config.setRegistrationEmailVerifyRequired(request.emailVerifyRequired());
+    }
+    if (request.totpRequired() != null) {
+      config.setLoginTotpRequired(request.totpRequired());
+    }
     config.setGuestLikeEnabled(request.guestLikeEnabled() == null ? config.isGuestLikeEnabled() : request.guestLikeEnabled());
     config.setGuestUploadEnabled(request.guestUploadEnabled() == null ? config.isGuestUploadEnabled() : request.guestUploadEnabled());
     config.setAutoCleanupDays(request.autoCleanupDays());
@@ -130,6 +140,45 @@ public class SystemConfigService {
 
   public boolean isRegistrationEnabled() {
     return loadConfig().isRegistrationEnabled();
+  }
+
+  /** 注册是否必须邮箱验证（registration.email_verify_required）。 */
+  public boolean isEmailVerifyRequired() {
+    return loadConfig().isRegistrationEmailVerifyRequired();
+  }
+
+  /** 登录是否强制 TOTP 二步验证（login.totp_required）。 */
+  public boolean isTotpRequired() {
+    return loadConfig().isLoginTotpRequired();
+  }
+
+  /** 管理端「注册与登录安全」页保存：仅更新两个站长开关（null 表示不修改）。 */
+  @Transactional
+  public void updateSecuritySwitches(Boolean emailVerifyRequired, Boolean totpRequired) {
+    SystemConfig config = loadConfig();
+    if (emailVerifyRequired != null) {
+      config.setRegistrationEmailVerifyRequired(emailVerifyRequired);
+    }
+    if (totpRequired != null) {
+      config.setLoginTotpRequired(totpRequired);
+    }
+    config.setUpdatedBy("admin-security-settings");
+    systemConfigRepository.save(config);
+  }
+
+  /** SMTP 是否已配置并启用（决定邮箱验证等邮件能力是否可用）。 */
+  public boolean isSmtpConfigured() {
+    try {
+      var mailConfig = chenxiMailConfigService.getOrDefault();
+      return mailConfig.isEnabled()
+          && StringUtils.hasText(mailConfig.getSmtpHost())
+          && StringUtils.hasText(mailConfig.getFromEmail())
+          && StringUtils.hasText(mailConfig.getSmtpPassword())
+          && !"CHANGE_ME".equals(mailConfig.getSmtpPassword())
+          && !"smtp.example.com".equals(mailConfig.getSmtpHost());
+    } catch (Exception exception) {
+      return false;
+    }
   }
 
   public boolean isGuestLikeEnabled() {
@@ -225,6 +274,9 @@ public class SystemConfigService {
         defaultInt(config.getAiModerationBlockConfidence(), 90),
         defaultInt(config.getAiModerationReviewConfidence(), 60),
         defaultInt(config.getAiLabelMinConfidence(), 60),
+        config.isRegistrationEmailVerifyRequired(),
+        config.isLoginTotpRequired(),
+        isSmtpConfigured(),
         config.getUpdatedAt(),
         config.getUpdatedBy()
     );

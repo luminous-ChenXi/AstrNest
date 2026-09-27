@@ -75,6 +75,13 @@ public class UserAccount {
   @Column(nullable = false)
   private boolean active = true;
 
+  /**
+   * 邮箱是否已验证（registration.email_verify_required=true 时注册须完成验证码校验才置位）。
+   * 注册路径必须显式赋值；存量库由 SchemaAlignmentRunner 以已验证（历史流程本就强制验证码）补列。
+   */
+  @Column(name = "email_verified", nullable = false)
+  private boolean emailVerified = false;
+
   @Column(name = "daily_upload_limit")
   private Integer dailyUploadLimit = 100;
 

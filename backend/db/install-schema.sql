@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_ip VARCHAR(64) NULL,
   last_login_at DATETIME(6) NULL,
   active BIT(1) NOT NULL DEFAULT b'1',
+  email_verified BIT(1) NOT NULL DEFAULT b'0',
   daily_upload_limit INT NULL,
   storage_quota_mb BIGINT NULL,
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -326,7 +327,23 @@ CREATE TABLE IF NOT EXISTS chenxi_email_token (
   attempts INT NOT NULL DEFAULT 0,
   resend_available_at DATETIME(6) NOT NULL,
   captcha_token VARCHAR(64) NULL,
+  link_token VARCHAR(64) NULL,
   KEY idx_chenxi_email_scene (email, scene)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+-- ---------------------------------------------------------------------------
+-- 用户 TOTP（登录二步验证）绑定：一个用户至多一条；还原码仅存 BCrypt 哈希
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_totp (
+  user_id BIGINT NOT NULL PRIMARY KEY,
+  secret VARCHAR(64) NOT NULL,
+  confirmed BIT(1) NOT NULL DEFAULT b'0',
+  recovery_hashes TEXT NULL,
+  last_used_counter BIGINT NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  confirmed_at DATETIME(6) NULL,
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  CONSTRAINT fk_user_totp_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS chenxi_captcha_ticket (

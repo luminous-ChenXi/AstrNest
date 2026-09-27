@@ -86,6 +86,10 @@ public record UpdateSystemConfigRequest(
 
     @Min(value = 0, message = "AI 标签置信度至少为 0")
     @Max(value = 100, message = "AI 标签置信度不可超过 100")
-    Integer aiLabelMinConfidence
+    Integer aiLabelMinConfidence,
+
+    Boolean emailVerifyRequired,
+
+    Boolean totpRequired
 ) {
 }
