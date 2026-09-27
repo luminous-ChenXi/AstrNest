@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -121,6 +122,11 @@ public class GlobalExceptionHandler {
       status = HttpStatus.INTERNAL_SERVER_ERROR;
     }
     return buildResponse(ex.getReason(), status);
+  }
+
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ResponseEntity<ApiErrorResponse> handleNoResourceFound(NoResourceFoundException ex) {
+    return buildResponse("资源不存在", HttpStatus.NOT_FOUND);
   }
 
   @ExceptionHandler(Exception.class)
