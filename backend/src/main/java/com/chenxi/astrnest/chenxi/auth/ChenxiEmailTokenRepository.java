@@ -11,4 +11,6 @@ public interface ChenxiEmailTokenRepository extends JpaRepository<ChenxiEmailTok
   Optional<ChenxiEmailToken> findTopByEmailAndSceneAndConsumedFalseOrderByCreatedAtDesc(String email, ChenxiEmailScene scene);
 
   long countByEmailAndSceneAndCreatedAtAfter(String email, ChenxiEmailScene scene, Instant after);
+
+  Optional<ChenxiEmailToken> findTopByLinkTokenAndConsumedFalseOrderByCreatedAtDesc(String linkToken);
 }

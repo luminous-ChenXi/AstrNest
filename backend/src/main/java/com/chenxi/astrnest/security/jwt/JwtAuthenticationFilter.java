@@ -53,6 +53,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       String token = header.substring(BEARER_PREFIX.length()).trim();
       if (StringUtils.hasText(token)) {
         jwtTokenService.parseToken(token).ifPresent(claims -> {
+          // 二步验证过渡令牌（purpose=2fa）只能用于 /api/auth/2fa/** 挑战端点，
+          // 绝不能建立 API 认证——这里直接拒绝，由授权规则返回 401/403
+          if (jwtTokenService.isTwoFactorPendingToken(claims)) {
+            return;
+          }
           if (tryAuthenticate(claims, request)) {
             slideRefresh(claims, response);
           }

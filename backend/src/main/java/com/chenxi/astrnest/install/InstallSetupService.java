@@ -148,9 +148,9 @@ public class InstallSetupService {
 
       try {
         jdbcTemplate.update(
-            "INSERT INTO users (username, password, nickname, email, active, daily_upload_limit, "
+            "INSERT INTO users (username, password, nickname, email, active, email_verified, daily_upload_limit, "
                 + "storage_quota_mb, identity_source, created_at) "
-                + "VALUES (?, ?, ?, ?, 1, NULL, NULL, 'local', CURRENT_TIMESTAMP)",
+                + "VALUES (?, ?, ?, ?, 1, 1, NULL, NULL, 'local', CURRENT_TIMESTAMP)",
             finalUsername, passwordEncoder.encode(password), finalDisplayName, finalEmail);
       } catch (DuplicateKeyException exception) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "用户名或邮箱已存在");

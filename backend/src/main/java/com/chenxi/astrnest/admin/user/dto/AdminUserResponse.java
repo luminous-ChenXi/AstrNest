@@ -17,5 +17,6 @@ public record AdminUserResponse(
     long storageBytes,
     long likeCount,
     Integer dailyUploadLimit,
-    Long storageQuotaMb
+    Long storageQuotaMb,
+    boolean totpBound
 ) {}

@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Home, LogOut, User, ChevronLeft, ChevronRight, Activity, LayoutDashboard, Image, Users, Settings, Database, Megaphone, Mail, Shield, Link2 } from 'lucide-vue-next'
+import { Home, LogOut, User, ChevronLeft, ChevronRight, Activity, LayoutDashboard, Image, Users, Settings, Database, Megaphone, Mail, Shield, Link2, KeyRound } from 'lucide-vue-next'
 import { useUiStore } from '../stores/ui'
 import { useAuthStore } from '../stores/auth'
 import { usePendingChangesStore } from '../stores/pendingChanges'
@@ -16,6 +16,7 @@ const navigation = [
   { name: 'admin-storage', label: '存储策略', icon: Database },
   { name: 'admin-announcements', label: '公告管理', icon: Megaphone },
   { name: 'admin-mail-settings', label: '邮件设置', icon: Mail },
+  { name: 'admin-security-settings', label: '注册与登录安全', icon: KeyRound },
   { name: 'admin-security', label: '权限与安全', icon: Shield },
   { name: 'admin-integration', label: '集成与 API', icon: Link2 },
 ]

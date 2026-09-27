@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -29,7 +30,19 @@ public class ChenxiMailService {
 
   private final ChenxiMailConfigService mailConfigService;
 
+  /** 站点对外基础地址（PUBLIC_SITE_URL）：用于拼注册验证链接；未配置时邮件只带验证码 */
+  @Value("${astrnest.public-base-url:}")
+  private String publicBaseUrl;
+
   public void sendVerificationMail(String targetEmail, String code, ChenxiEmailScene scene) {
+    sendVerificationMail(targetEmail, code, scene, null);
+  }
+
+  /**
+   * 发送验证码邮件。注册场景可附带链接令牌：邮件同时给出 6 位验证码与
+   * 「点链接完成验证」入口（与验证码等效，二选一），令牌 30 分钟有效。
+   */
+  public void sendVerificationMail(String targetEmail, String code, ChenxiEmailScene scene, String linkToken) {
     String recipient = Objects.requireNonNull(targetEmail, "目标邮箱不能为空");
     String verificationCode = Objects.requireNonNull(code, "验证码不能为空");
     ChenxiEmailScene mailScene = Objects.requireNonNull(scene, "邮件场景不能为空");
@@ -45,7 +58,8 @@ public class ChenxiMailService {
           Objects.requireNonNull(senderIdentity.name(), "发件人名称不能为空")
       );
       String subject = prefix(mailScene) + "验证码：" + verificationCode;
-      String body = buildHtmlBody(senderIdentity.name(), verificationCode, mailScene);
+      String body = buildHtmlBody(senderIdentity.name(), verificationCode, mailScene,
+          mailScene == ChenxiEmailScene.REGISTER ? buildRegisterLink(targetEmail, linkToken) : null);
       helper.setSubject(subject);
       helper.setText(Objects.requireNonNull(body), true);
       sender.send(message);
@@ -164,7 +178,35 @@ public class ChenxiMailService {
     };
   }
 
-  private String buildHtmlBody(String senderName, String code, ChenxiEmailScene scene) {
+  /** 拼注册验证链接：{public-base-url}/register?email=..&linkToken=..；未配置基础地址或令牌为空时返回 null。 */
+  private String buildRegisterLink(String targetEmail, String linkToken) {
+    if (!StringUtils.hasText(publicBaseUrl) || !StringUtils.hasText(linkToken)) {
+      return null;
+    }
+    String base = publicBaseUrl.trim();
+    while (base.endsWith("/")) {
+      base = base.substring(0, base.length() - 1);
+    }
+    return base + "/register?email=" + urlEncode(targetEmail) + "&linkToken=" + linkToken;
+  }
+
+  private String urlEncode(String value) {
+    try {
+      return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
+    } catch (Exception exception) {
+      return value;
+    }
+  }
+
+  private String buildHtmlBody(String senderName, String code, ChenxiEmailScene scene, String registerLink) {
+    String validityHint = scene == ChenxiEmailScene.REGISTER
+        ? "验证码 30 分钟内有效，请勿泄露给他人"
+        : "验证码 5 分钟内有效，请勿泄露给他人";
+    String linkBlock = registerLink == null ? ""
+        : "<div style=\"margin:18px 0 0;padding:14px 18px;border-radius:14px;background:rgba(253,187,45,0.08);border:1px solid rgba(253,187,45,0.35);\">"
+            + "<p style=\"margin:0 0 8px;font-size:13px;color:#e2e8f0;\">也可以点击下方链接直接完成邮箱验证（与验证码等效，二选一）：</p>"
+            + "<a href=\"" + registerLink + "\" style=\"font-size:13px;color:#fdbb2d;word-break:break-all;\">" + registerLink + "</a>"
+            + "</div>";
     return "<div style=\"font-family:Inter,\u601D\u6E90 Hei,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;background:#0f172a;color:#f8fafc;border-radius:20px;\">"
         + "<h2 style=\"margin-top:0;color:#fdbb2d;letter-spacing:2px;\">CHENXI AUTH" + "</h2>"
         + "<p style=\"font-size:15px;line-height:1.7;color:#e2e8f0;\">"
@@ -174,8 +216,9 @@ public class ChenxiMailService {
         + "<div style=\"font-size:32px;font-weight:600;letter-spacing:6px;color:#f8fafc;text-align:center;\">"
         + code
         + "</div>"
-        + "<p style=\"margin:12px 0 0;text-align:center;font-size:13px;color:#94a3b8;\">验证码 5 分钟内有效，请勿泄露给他人</p>"
+        + "<p style=\"margin:12px 0 0;text-align:center;font-size:13px;color:#94a3b8;\">" + validityHint + "</p>"
         + "</div>"
+        + linkBlock
         + "<p style=\"font-size:13px;color:#94a3b8;\">如果这不是您本人操作，请忽略本邮件；重复触发可能导致账号被保护性锁定。</p>"
         + "<p style=\"font-size:12px;color:#64748b;margin-top:32px;\">辰汐安全平台 · This email was sent by "
         + "<strong>" + senderName + "</strong></p>"

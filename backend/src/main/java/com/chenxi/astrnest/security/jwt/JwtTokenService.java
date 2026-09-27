@@ -35,8 +35,13 @@ public class JwtTokenService {
   private static final Logger log = LoggerFactory.getLogger(JwtTokenService.class);
 
   static final String CLAIM_UID = "uid";
+  /** 令牌用途标记：purpose=2fa 表示「密码已通过、等待二步验证」的过渡令牌，不可用于访问 API */
+  public static final String CLAIM_PURPOSE = "purpose";
+  public static final String PURPOSE_TWO_FACTOR = "2fa";
   private static final int MIN_SECRET_CHARS = 32;
   private static final long DEFAULT_TTL_DAYS = 30L;
+  /** 二步验证过渡令牌有效期：5 分钟内必须完成动态码校验 */
+  private static final Duration TWO_FACTOR_PENDING_TTL = Duration.ofMinutes(5);
 
   private final SecretKey secretKey;
   private final Duration ttl;
@@ -67,6 +72,34 @@ public class JwtTokenService {
         .expiration(Date.from(now.plus(ttl)))
         .signWith(secretKey)
         .compact();
+  }
+
+  /**
+   * 签发「二步验证过渡令牌」：密码校验通过但尚未通过 TOTP 时发给前端，
+   * 仅可用于 /api/auth/2fa/** 完成挑战（服务端校验 purpose），绝不能作为访问令牌
+   * （{@link JwtAuthenticationFilter} 对带 purpose 的令牌一律拒绝建立认证）。
+   */
+  public String generateTwoFactorPendingToken(Long userId, String username) {
+    Instant now = Instant.now();
+    return Jwts.builder()
+        .subject(username)
+        .claim(CLAIM_UID, userId)
+        .claim(CLAIM_PURPOSE, PURPOSE_TWO_FACTOR)
+        .issuedAt(Date.from(now))
+        .expiration(Date.from(now.plus(TWO_FACTOR_PENDING_TTL)))
+        .signWith(secretKey)
+        .compact();
+  }
+
+  /** 解析二步验证过渡令牌：签名/有效期/purpose 任一不符即返回 empty。 */
+  public Optional<Claims> parseTwoFactorPendingToken(String token) {
+    return parseToken(token)
+        .filter(claims -> PURPOSE_TWO_FACTOR.equals(claims.get(CLAIM_PURPOSE, String.class)));
+  }
+
+  /** 是否为二步验证过渡令牌（过滤器据此拒绝其建立 API 认证）。 */
+  public boolean isTwoFactorPendingToken(Claims claims) {
+    return PURPOSE_TWO_FACTOR.equals(claims.get(CLAIM_PURPOSE, String.class));
   }
 
   /** 校验签名与有效期，返回 claims；无效/过期返回 empty，调用方据此不设置认证。 */

@@ -103,7 +103,7 @@ public class SsoIdentityService {
     String token = jwtTokenService.generateToken(user.getId(), user.getUsername());
     UserProfileResponse profile = userAccountService.getCurrentProfile();
     log.info("SSO 登录成功：userId={}, username={}, source={}", user.getId(), user.getUsername(), user.getIdentitySource());
-    return new LoginResponse(token, profile, "Bearer", jwtTokenService.ttlSeconds());
+    return LoginResponse.complete(token, profile, "Bearer", jwtTokenService.ttlSeconds());
   }
 
   /** 按 sso_sub 查找影子账号；不存在则建档（唯一约束冲突时回读并发兜底）。 */

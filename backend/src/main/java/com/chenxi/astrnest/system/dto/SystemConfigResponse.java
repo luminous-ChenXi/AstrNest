@@ -29,6 +29,9 @@ public record SystemConfigResponse(
     int aiModerationBlockConfidence,
     int aiModerationReviewConfidence,
     int aiLabelMinConfidence,
+    boolean emailVerifyRequired,
+    boolean totpRequired,
+    boolean smtpConfigured,
     Instant updatedAt,
     String updatedBy
 ) {

@@ -48,6 +48,16 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
     ensureColumnExists("users", "identity_source", "VARCHAR(32) NOT NULL DEFAULT 'local' AFTER sso_sub");
     ensureIndexExists("users", "uk_users_sso_sub", "ALTER TABLE users ADD UNIQUE KEY uk_users_sso_sub (sso_sub)");
 
+    // 注册邮箱验证（registration.email_verify_required 开关的落地字段）：
+    // 存量用户按「已验证」补齐——历史注册流程本身强制邮箱验证码
+    ensureColumnExists("users", "email_verified", "BIT(1) NOT NULL DEFAULT b'1' AFTER active");
+
+    // 注册验证链接令牌（注册邮件「点链接验证」入口，与验证码同生共死）
+    ensureColumnExists("chenxi_email_token", "link_token", "VARCHAR(64) NULL AFTER captcha_token");
+
+    // 用户 TOTP（登录二步验证）绑定表（login.totp_required 开关的落地存储）
+    ensureUserTotpTable();
+
     // 安装向导完成标记表（install 包使用；全新库由 install-schema.sql 创建，旧库在此补齐）
     ensureInstallStateTable();
   }
@@ -82,6 +92,35 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
       log.info("Created missing table install_state");
     } catch (Exception exception) {
       log.warn("Failed to ensure install_state table: {}", exception.getMessage());
+    }
+  }
+
+  /**
+   * 按现有模式条件创建 user_totp 表（表不存在才建，失败仅告警不阻断启动）。
+   */
+  private void ensureUserTotpTable() {
+    try {
+      Boolean exists = jdbcTemplate.queryForObject(
+          "SELECT COUNT(*) > 0 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_totp'",
+          Boolean.class
+      );
+      if (Boolean.TRUE.equals(exists)) {
+        return;
+      }
+      jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS user_totp ("
+          + "user_id BIGINT NOT NULL PRIMARY KEY, "
+          + "secret VARCHAR(64) NOT NULL, "
+          + "confirmed BIT(1) NOT NULL DEFAULT b'0', "
+          + "recovery_hashes TEXT NULL, "
+          + "last_used_counter BIGINT NULL, "
+          + "created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), "
+          + "confirmed_at DATETIME(6) NULL, "
+          + "updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), "
+          + "CONSTRAINT fk_user_totp_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+          + ") ENGINE = InnoDB DEFAULT CHARSET = utf8mb4");
+      log.info("Created missing table user_totp");
+    } catch (Exception exception) {
+      log.warn("Failed to ensure user_totp table: {}", exception.getMessage());
     }
   }
 

@@ -10,6 +10,10 @@ public record PublicSystemConfigResponse(
     Boolean videoChunkUploadEnabled,
     Integer videoChunkSizeMb,
     Boolean guestUploadEnabled,
+    /** 是否开放邮箱注册（注册页据此提示） */
+    Boolean registrationEnabled,
+    /** 注册是否必须邮箱验证（注册页据此决定「验证码两步流」或「直接注册」） */
+    Boolean emailVerifyRequired,
     /** 是否已完成安装（false 时其余字段为 null，schema 未安装时不允许触碰 system_config 表） */
     boolean installed
 ) {
@@ -19,6 +23,6 @@ public record PublicSystemConfigResponse(
    * 前端靠 installed=false 直接进入安装向导。
    */
   public static PublicSystemConfigResponse uninstalled() {
-    return new PublicSystemConfigResponse(null, null, null, null, null, null, null, null, null, false);
+    return new PublicSystemConfigResponse(null, null, null, null, null, null, null, null, null, null, null, false);
   }
 }

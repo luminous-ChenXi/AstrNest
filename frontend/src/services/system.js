@@ -16,3 +16,8 @@ export const fetchSystemInsights = async () => {
   const { data } = await http.get('/api/admin/system-config/insights')
   return data
 }
+
+/** 管理端「注册与登录安全」设置：两开关 + SMTP 就绪状态（仅 ADMIN） */
+export const fetchSecuritySettings = () => http.get('/api/admin/security-settings')
+
+export const updateSecuritySettings = (payload) => http.put('/api/admin/security-settings', payload)

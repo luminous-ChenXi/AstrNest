@@ -59,6 +59,9 @@ public class SecurityConfig {
                 "/v3/api-docs/**"
             ).permitAll()
             .requestMatchers("/api/auth/login").permitAll()
+            // TOTP 二步验证挑战/绑定确认：凭登录时下发的 5 分钟过渡令牌调用（purpose=2fa，
+            // 该令牌被 JwtAuthenticationFilter 拒绝建立 API 认证，仅可走这两个端点）
+            .requestMatchers("/api/auth/2fa/**").permitAll()
             .requestMatchers("/api/auth/chenxi/**").permitAll()
             // 安装向导：匿名可探测状态/执行安装。安全性由 InstallGuardFilter（未安装时拦截其余 /api/**）
             // 与 InstallController（防重装锁命中后写端点一律 403）双重守卫，这里仅负责放行。

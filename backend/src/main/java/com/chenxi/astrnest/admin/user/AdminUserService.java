@@ -3,6 +3,7 @@ package com.chenxi.astrnest.admin.user;
 import com.chenxi.astrnest.admin.user.dto.AdminUserResponse;
 import com.chenxi.astrnest.admin.user.dto.UpdateUserLimitsRequest;
 import com.chenxi.astrnest.admin.user.dto.UpdateUserRoleRequest;
+import com.chenxi.astrnest.security.totp.TotpAccountService;
 import com.chenxi.astrnest.security.user.UserAccount;
 import com.chenxi.astrnest.security.user.UserAccountRepository;
 import com.chenxi.astrnest.security.user.UserRole;
@@ -39,6 +40,7 @@ public class AdminUserService {
   private final UserRoleRepository userRoleRepository;
   private final UploadRecordRepository uploadRecordRepository;
   private final UploadLikeRepository uploadLikeRepository;
+  private final TotpAccountService totpAccountService;
 
   @Transactional
   public AdminUserResponse updateLimits(Long userId, UpdateUserLimitsRequest request) {
@@ -46,7 +48,7 @@ public class AdminUserService {
     user.setDailyUploadLimit(normalizeInteger(request.dailyUploadLimit()));
     user.setStorageQuotaMb(normalizeLong(request.storageQuotaMb()));
     userAccountRepository.save(user);
-    return toResponse(user, usageFor(userId));
+    return toResponse(user, usageFor(userId), totpAccountService.isBound(user.getId()));
   }
 
   @Transactional
@@ -58,7 +60,7 @@ public class AdminUserService {
         .orElseThrow(() -> new IllegalArgumentException("角色 " + normalizedRole + " 不存在"));
     user.setRoles(new HashSet<>(Set.of(role)));
     userAccountRepository.save(user);
-    return toResponse(user, usageFor(userId));
+    return toResponse(user, usageFor(userId), totpAccountService.isBound(user.getId()));
   }
 
   @Transactional
@@ -79,9 +81,11 @@ public class AdminUserService {
   @Transactional(readOnly = true)
   public List<AdminUserResponse> listUsers() {
     List<UserAccount> users = userAccountRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
-    Map<Long, UserUsageAggregate> usageMap = usageMap(users.stream().map(UserAccount::getId).toList());
+    List<Long> userIds = users.stream().map(UserAccount::getId).toList();
+    Map<Long, UserUsageAggregate> usageMap = usageMap(userIds);
+    Set<Long> totpBoundIds = Set.copyOf(totpAccountService.filterBoundUserIds(userIds));
     return users.stream()
-        .map(user -> toResponse(user, usageMap.get(user.getId())))
+        .map(user -> toResponse(user, usageMap.get(user.getId()), totpBoundIds.contains(user.getId())))
         .toList();
   }
 
@@ -156,7 +160,7 @@ public class AdminUserService {
     return result;
   }
 
-  private AdminUserResponse toResponse(UserAccount user, UserUsageAggregate usage) {
+  private AdminUserResponse toResponse(UserAccount user, UserUsageAggregate usage, boolean totpBound) {
     UserUsageAggregate safeUsage = Optional.ofNullable(usage)
         .orElse(new UserUsageAggregate(user.getId(), 0, 0, 0));
     Set<String> roles = user.getRoles().stream()
@@ -176,7 +180,8 @@ public class AdminUserService {
         safeUsage.storageBytes(),
         safeUsage.likeCount(),
         user.getDailyUploadLimit(),
-        user.getStorageQuotaMb()
+        user.getStorageQuotaMb(),
+        totpBound
     );
   }
 

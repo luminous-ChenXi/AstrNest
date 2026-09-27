@@ -3,7 +3,8 @@ import { ElMessage } from 'element-plus'
 import { Lock, User, Close } from '@element-plus/icons-vue'
 import { reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { login } from '../../services/auth'
+import QRCode from 'qrcode'
+import { login, verifyTwoFactor, confirmTwoFactorSetup } from '../../services/auth'
 import { buildAuthorizeUrl, createPkce, fetchSsoConfig, randomToken, SSO_SESSION_KEYS } from '../../services/sso'
 import { useAuthStore } from '../../stores/auth'
 
@@ -32,6 +33,21 @@ const form = reactive({
   username: '',
   password: '',
 })
+
+// 登录阶段机：credentials → 密码登录；totp-challenge → 已绑定用户输码；totp-setup → 强制绑定（扫码）
+const stage = ref('credentials')
+const twoFactor = reactive({
+  tempToken: '',
+  otpauthUri: '',
+  secret: '',
+  username: '',
+})
+const totpCode = ref('')
+const totpSubmitting = ref(false)
+const qrDataUrl = ref('')
+// 一次性还原码（仅绑定成功后展示一次）
+const recoveryCodes = ref([])
+const recoveryCopied = ref(false)
 
 const rules = {
   username: [{ required: true, message: '请输入用户名或邮箱', trigger: 'blur' }],
@@ -90,22 +106,122 @@ const handleSsoLogin = async () => {
   }
 }
 
+const completeLogin = (data, successText = '登录成功！') => {
+  auth.setSession(data.token, data.profile)
+  toast('success', successText)
+  emit('login-success')
+  handleClose()
+}
+
 const handleSubmit = () => {
   formRef.value?.validate(async (valid) => {
     if (!valid) return
     submitting.value = true
     try {
       const { data } = await login({ username: form.username.trim(), password: form.password })
-      auth.setSession(data.token, data.profile)
-      toast('success', '登录成功！')
-      emit('login-success')
-      handleClose()
+      if (data?.mode === 'TOTP_CHALLENGE' && data.twoFactor?.tempToken) {
+        // 已绑定用户：进入动态码挑战
+        Object.assign(twoFactor, {
+          tempToken: data.twoFactor.tempToken,
+          otpauthUri: '',
+          secret: '',
+          username: data.twoFactor.username || form.username,
+        })
+        totpCode.value = ''
+        stage.value = 'totp-challenge'
+        return
+      }
+      if (data?.mode === 'TOTP_SETUP' && data.twoFactor?.tempToken) {
+        // 强制绑定：渲染二维码
+        Object.assign(twoFactor, {
+          tempToken: data.twoFactor.tempToken,
+          otpauthUri: data.twoFactor.otpauthUri || '',
+          secret: data.twoFactor.secret || '',
+          username: data.twoFactor.username || form.username,
+        })
+        totpCode.value = ''
+        qrDataUrl.value = twoFactor.otpauthUri
+          ? await QRCode.toDataURL(twoFactor.otpauthUri, { width: 200, margin: 1 })
+          : ''
+        stage.value = 'totp-setup'
+        return
+      }
+      completeLogin(data)
     } catch (error) {
       toast('error', error.response?.data?.message || '登录失败，请检查凭证')
     } finally {
       submitting.value = false
     }
   })
+}
+
+/** 二步验证挑战：6 位动态码（或 8 位还原码）换正式 JWT */
+const handleTotpVerify = async () => {
+  if (!totpCode.value.trim()) {
+    toast('warning', '请输入 6 位动态验证码或 8 位还原码')
+    return
+  }
+  totpSubmitting.value = true
+  try {
+    const { data } = await verifyTwoFactor({
+      tempToken: twoFactor.tempToken,
+      code: totpCode.value.trim(),
+    })
+    completeLogin(data)
+  } catch (error) {
+    toast('error', error.response?.data?.message || '验证失败，请重试')
+  } finally {
+    totpSubmitting.value = false
+  }
+}
+
+/** 强制绑定确认：绑定落库 + 一次性还原码展示 */
+const handleTotpSetupConfirm = async () => {
+  if (!/^\d{6}$/.test(totpCode.value.trim())) {
+    toast('warning', '请输入验证器上的 6 位动态码')
+    return
+  }
+  totpSubmitting.value = true
+  try {
+    const { data } = await confirmTwoFactorSetup({
+      tempToken: twoFactor.tempToken,
+      code: totpCode.value.trim(),
+    })
+    recoveryCodes.value = Array.isArray(data?.recoveryCodes) ? data.recoveryCodes : []
+    recoveryCopied.value = false
+    pendingSession.value = data
+    stage.value = 'recovery-codes'
+  } catch (error) {
+    toast('error', error.response?.data?.message || '绑定失败，请重试')
+  } finally {
+    totpSubmitting.value = false
+  }
+}
+
+// 绑定成功后暂存的会话：用户确认已保存还原码后再真正登录
+const pendingSession = ref(null)
+
+const copyRecoveryCodes = async () => {
+  try {
+    await navigator.clipboard.writeText(recoveryCodes.value.join(String.fromCharCode(10)))
+    recoveryCopied.value = true
+    toast('success', '还原码已复制')
+  } catch (error) {
+    toast('warning', '复制失败，请手动抄录')
+  }
+}
+
+const finishRecoveryStep = () => {
+  if (pendingSession.value) {
+    completeLogin(pendingSession.value, '二步验证绑定完成，已登录！')
+    pendingSession.value = null
+  }
+}
+
+const backToCredentials = () => {
+  stage.value = 'credentials'
+  totpCode.value = ''
+  qrDataUrl.value = ''
 }
 
 // ESC 键关闭
@@ -119,9 +235,14 @@ const handleKeydown = (e) => {
 watch(() => props.visible, (newVal, oldVal) => {
   if (newVal) {
     document.addEventListener('keydown', handleKeydown)
-    // 重置表单
+    // 重置表单与二步验证阶段
     form.username = ''
     form.password = ''
+    stage.value = 'credentials'
+    totpCode.value = ''
+    qrDataUrl.value = ''
+    recoveryCodes.value = []
+    pendingSession.value = null
     submitting.value = false
     // 懒加载 SSO 配置，决定是否展示 SSO 登录入口
     ensureSsoConfig()
@@ -164,11 +285,15 @@ watch(() => props.visible, (newVal, oldVal) => {
             <!-- 右侧：登录表单 -->
             <div class="modal-form">
               <header class="form-header">
-                <p class="form-eyebrow">欢迎回来</p>
-                <h1 class="form-title">登录账号</h1>
+                <p class="form-eyebrow">{{ stage === 'credentials' ? '欢迎回来' : '二步验证' }}</p>
+                <h1 class="form-title">
+                  {{ stage === 'credentials' ? '登录账号' : stage === 'recovery-codes' ? '保存还原码' : '动态口令' }}
+                </h1>
               </header>
 
+              <!-- 阶段一：用户名密码（含密码通过后的 2FA 分流触发） -->
               <ElForm
+                v-if="stage === 'credentials'"
                 ref="formRef"
                 :model="form"
                 :rules="rules"
@@ -235,6 +360,94 @@ watch(() => props.visible, (newVal, oldVal) => {
                   </a>
                 </div>
               </ElForm>
+
+              <!-- 阶段二：二步验证挑战（已绑定用户：输动态码或还原码） -->
+              <ElForm
+                v-else-if="stage === 'totp-challenge'"
+                label-position="top"
+                size="large"
+                class="login-form"
+                @submit.prevent
+              >
+                <p class="twofa-hint">
+                  账号 <strong>{{ twoFactor.username }}</strong> 已开启二步验证，请输入验证器上的 6 位动态码；
+                  丢失验证器时可改用 8 位还原码。
+                </p>
+                <ElFormItem label="动态验证码">
+                  <ElInput
+                    v-model="totpCode"
+                    placeholder="6 位动态码或 8 位还原码"
+                    maxlength="8"
+                    :prefix-icon="Lock"
+                    @keyup.enter="handleTotpVerify"
+                  />
+                </ElFormItem>
+                <ElButton
+                  type="primary"
+                  class="btn-login"
+                  size="large"
+                  :loading="totpSubmitting"
+                  @click="handleTotpVerify"
+                >
+                  验证并登录
+                </ElButton>
+                <ElButton text size="large" class="btn-back" @click="backToCredentials">返回重新登录</ElButton>
+              </ElForm>
+
+              <!-- 阶段三：强制绑定（扫码 + 确认） -->
+              <ElForm
+                v-else-if="stage === 'totp-setup'"
+                label-position="top"
+                size="large"
+                class="login-form"
+                @submit.prevent
+              >
+                <p class="twofa-hint">
+                  本站已开启强制二步验证。请使用 Google Authenticator 等验证器扫描二维码，
+                  然后输入 6 位动态码完成绑定。无法扫码时可手工录入密钥：
+                </p>
+                <div class="qr-box">
+                  <img v-if="qrDataUrl" :src="qrDataUrl" alt="TOTP 二维码" class="qr-img" />
+                  <div v-else class="qr-fallback">二维码生成失败，请手工录入密钥</div>
+                </div>
+                <code class="secret-value">{{ twoFactor.secret }}</code>
+                <ElFormItem label="动态验证码" class="confirm-code">
+                  <ElInput
+                    v-model="totpCode"
+                    placeholder="输入 6 位动态码确认绑定"
+                    maxlength="6"
+                    :prefix-icon="Lock"
+                    @keyup.enter="handleTotpSetupConfirm"
+                  />
+                </ElFormItem>
+                <ElButton
+                  type="primary"
+                  class="btn-login"
+                  size="large"
+                  :loading="totpSubmitting"
+                  @click="handleTotpSetupConfirm"
+                >
+                  确认绑定
+                </ElButton>
+                <ElButton text size="large" class="btn-back" @click="backToCredentials">返回重新登录</ElButton>
+              </ElForm>
+
+              <!-- 阶段四：一次性还原码展示 -->
+              <div v-else class="login-form recovery-box">
+                <p class="twofa-hint">
+                  绑定成功！以下是 <strong>10 个一次性还原码</strong>，用于丢失验证器时登录。
+                  <strong>仅此一次展示</strong>，请立即复制或抄录并妥善保存。
+                </p>
+                <div class="recovery-grid">
+                  <code v-for="code in recoveryCodes" :key="code" class="recovery-code">{{ code }}</code>
+                </div>
+                <div class="recovery-actions">
+                  <el-button size="large" @click="copyRecoveryCodes">
+                    {{ recoveryCopied ? '已复制' : '复制全部' }}
+                  </el-button>
+                  <el-button type="primary" size="large" @click="finishRecoveryStep">我已保存，进入站点</el-button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -244,6 +457,86 @@ watch(() => props.visible, (newVal, oldVal) => {
 </template>
 
 <style scoped>
+/* 二步验证相关 */
+.twofa-hint {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-secondary, #64748b);
+}
+
+.qr-box {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-soft, #e8ecf2);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.qr-img {
+  width: 200px;
+  height: 200px;
+}
+
+.qr-fallback {
+  display: flex;
+  align-items: center;
+  height: 200px;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 13px;
+}
+
+.secret-value {
+  display: block;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-bg-secondary, #f5f7fa);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  letter-spacing: 1px;
+  word-break: break-all;
+  user-select: all;
+}
+
+.confirm-code {
+  margin-top: 4px;
+}
+
+.btn-back {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.recovery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.recovery-code {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--color-bg-secondary, #f5f7fa);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.recovery-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.recovery-actions .el-button {
+  flex: 1;
+}
+
 /* 遮罩层 - 亚克力质感 */
 .login-modal-overlay {
   position: fixed;
