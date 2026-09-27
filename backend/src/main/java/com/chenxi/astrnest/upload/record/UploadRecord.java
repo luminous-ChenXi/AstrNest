@@ -139,6 +139,14 @@ public class UploadRecord {
   @Column(nullable = false, updatable = false)
   private Instant uploadedAt = Instant.now();
 
+  /**
+   * 记录更新时间：应用侧初始化；列定义与 install-schema.sql 对齐（DB 默认值 + ON UPDATE），
+   * 保证 Hibernate 建表与安装向导建表两种初始化顺序下结构一致。
+   */
+  @Column(nullable = false,
+      columnDefinition = "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)")
+  private Instant updatedAt = Instant.now();
+
   @Column(name = "width")
   private Integer width;
 

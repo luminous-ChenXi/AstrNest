@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS users (
   daily_upload_limit INT NULL,
   storage_quota_mb BIGINT NULL,
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   UNIQUE KEY uq_users_username (username),
   UNIQUE KEY uq_users_email (email),
   UNIQUE KEY uk_users_sso_sub (sso_sub)
@@ -58,6 +59,8 @@ CREATE TABLE IF NOT EXISTS roles (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(64) NOT NULL,
   description VARCHAR(255) NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   UNIQUE KEY uq_roles_name (name)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
@@ -88,6 +91,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
   last_request_date DATE NULL,
   last_used_at DATETIME(6) NULL,
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   UNIQUE KEY uq_api_keys_public_id (public_id),
   KEY idx_api_keys_owner (owner_id),
   CONSTRAINT fk_api_keys_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL
@@ -137,8 +141,7 @@ CREATE TABLE IF NOT EXISTS album_access_logs (
   user_agent VARCHAR(512) NULL,
   referer VARCHAR(512) NULL,
   accessed_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  KEY idx_album_access_logs_album_id (album_id),
-  KEY idx_album_access_logs_accessed_at (accessed_at),
+  KEY idx_album_access_logs_album_time (album_id, accessed_at),
   CONSTRAINT fk_album_access_logs_album FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
@@ -179,6 +182,7 @@ CREATE TABLE IF NOT EXISTS upload_records (
   invoke_count BIGINT NOT NULL DEFAULT 0,
   last_access_at DATETIME(6) NULL,
   uploaded_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   CONSTRAINT fk_upload_record_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_upload_record_api_key FOREIGN KEY (api_key_id) REFERENCES api_keys(id) ON DELETE SET NULL,
   CONSTRAINT fk_upload_record_album FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE SET NULL,
@@ -186,7 +190,10 @@ CREATE TABLE IF NOT EXISTS upload_records (
   KEY idx_upload_records_user (user_id),
   KEY idx_upload_records_api_key (api_key_id),
   KEY idx_upload_records_album (album_id),
-  KEY idx_upload_records_album_public (album_id, is_public, is_violation)
+  KEY idx_upload_records_album_public (album_id, is_public, is_violation),
+  KEY idx_upload_records_uploaded_at (uploaded_at),
+  KEY idx_upload_records_public_time (is_public, is_violation, uploaded_at),
+  KEY idx_upload_records_media_type (media_type)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS upload_likes (
@@ -201,13 +208,14 @@ CREATE TABLE IF NOT EXISTS upload_likes (
   CONSTRAINT fk_upload_like_record FOREIGN KEY (upload_id) REFERENCES upload_records(id) ON DELETE CASCADE,
   CONSTRAINT fk_upload_like_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE KEY uq_upload_like_user (upload_id, user_id),
-  UNIQUE KEY uq_upload_like_guest (upload_id, guest_token)
+  UNIQUE KEY uq_upload_like_guest (upload_id, guest_token),
+  KEY idx_upload_likes_user_time (user_id, liked_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS tags (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(120) NOT NULL,
-  slug VARCHAR(180) NULL,
+  slug VARCHAR(180) NOT NULL,
   description VARCHAR(255) NULL,
   media_count INT NOT NULL DEFAULT 0,
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -265,7 +273,8 @@ CREATE TABLE IF NOT EXISTS content_policy (
   nsfw_detection_enabled BIT(1) NOT NULL DEFAULT b'1',
   violence_detection_enabled BIT(1) NOT NULL DEFAULT b'1',
   manual_review_threshold INT NOT NULL DEFAULT 3,
-  webhook_url VARCHAR(255) NULL
+  webhook_url VARCHAR(255) NULL,
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 -- 安装向导完成标记（写操作见 com.chenxi.astrnest.install.InstallSetupService#finish）
@@ -284,7 +293,7 @@ CREATE TABLE IF NOT EXISTS user_login_events (
   location VARCHAR(180) NULL,
   user_agent VARCHAR(255) NULL,
   occurred_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  KEY idx_user_login_events_user (user_id),
+  KEY idx_user_login_events_user_time (user_id, occurred_at),
   CONSTRAINT fk_user_login_events_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
@@ -328,7 +337,8 @@ CREATE TABLE IF NOT EXISTS chenxi_email_token (
   resend_available_at DATETIME(6) NOT NULL,
   captcha_token VARCHAR(64) NULL,
   link_token VARCHAR(64) NULL,
-  KEY idx_chenxi_email_scene (email, scene)
+  KEY idx_chenxi_email_scene (email, scene),
+  KEY idx_chenxi_email_token_expires (expires_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 -- ---------------------------------------------------------------------------
@@ -359,7 +369,8 @@ CREATE TABLE IF NOT EXISTS chenxi_captcha_ticket (
   verification_token_expires DATETIME(6) NOT NULL,
   cert_consumed BIT(1) NOT NULL DEFAULT b'0',
   verified_at DATETIME(6) NULL,
-  KEY idx_chenxi_captcha_token (verification_token)
+  KEY idx_chenxi_captcha_token (verification_token),
+  KEY idx_chenxi_captcha_ticket_expires (expires_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS auth_lock_states (
@@ -388,7 +399,8 @@ CREATE TABLE IF NOT EXISTS security_logs (
   message VARCHAR(512) NULL,
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   KEY idx_security_logs_type (event_type),
-  KEY idx_security_logs_created (created_at)
+  KEY idx_security_logs_created (created_at),
+  KEY idx_security_logs_username_created (username, created_at)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 -- ---------------------------------------------------------------------------
@@ -432,7 +444,8 @@ CREATE TABLE IF NOT EXISTS announcements (
   CONSTRAINT fk_announcements_author_user FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
--- 用户互动表（历史遗留，无对应 JPA 实体；保留以兼容 init.sql 安装的外部依赖）
+-- 【已废弃】用户互动表（历史遗留，无对应 JPA 实体；保留以兼容 init.sql 安装的外部依赖）。
+-- 计划下版本 DROP TABLE，请勿在新代码中引用。
 CREATE TABLE IF NOT EXISTS interactions (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
@@ -450,7 +463,8 @@ CREATE TABLE IF NOT EXISTS interactions (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 -- ---------------------------------------------------------------------------
--- 兼容视图（列以本脚本实际创建的表为准）
+-- 【已废弃】兼容视图（列以本脚本实际创建的表为准）。计划下版本 DROP VIEW，
+-- 请勿在新代码中引用（应用侧已无任何实体/查询依赖）。
 -- ---------------------------------------------------------------------------
 DROP VIEW IF EXISTS media;
 CREATE VIEW media AS

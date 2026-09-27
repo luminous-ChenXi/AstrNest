@@ -31,7 +31,7 @@ public class ChenxiTag {
   @Column(nullable = false, length = 120, unique = true)
   private String name;
 
-  @Column(length = 180, unique = true)
+  @Column(length = 180, unique = true, nullable = false)
   private String slug;
 
   @Column(length = 255)

@@ -1,12 +1,20 @@
 package com.chenxi.astrnest.db;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.DatabaseMetaData;
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.util.DigestUtils;
 
 @Slf4j
 @Component
@@ -58,8 +66,153 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
     // 用户 TOTP（登录二步验证）绑定表（login.totp_required 开关的落地存储）
     ensureUserTotpTable();
 
+    alignAuditColumns();
+    alignQueryIndexes();
+    alignTagSlugNotNull();
+
     // 安装向导完成标记表（install 包使用；全新库由 install-schema.sql 创建，旧库在此补齐）
     ensureInstallStateTable();
+  }
+
+  /**
+   * 审计字段补齐（与 install-schema.sql 同步；存量库由 Hibernate validate 启动失败前兜底）：
+   * users/upload_records/roles/api_keys/content_policy 的 updated_at 等列。
+   * 全部为「缺列才补」，DATETIME(6) + DEFAULT/ON UPDATE CURRENT_TIMESTAMP(6) 风格。
+   */
+  private void alignAuditColumns() {
+    ensureColumnExists("users", "updated_at",
+        "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) AFTER created_at");
+    ensureColumnExists("upload_records", "updated_at",
+        "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) AFTER uploaded_at");
+    ensureColumnExists("roles", "created_at",
+        "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) AFTER description");
+    ensureColumnExists("roles", "updated_at",
+        "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) AFTER created_at");
+    ensureColumnExists("api_keys", "updated_at",
+        "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) AFTER created_at");
+    ensureColumnExists("content_policy", "updated_at",
+        "DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) AFTER webhook_url");
+  }
+
+  /**
+   * 查询索引补齐/整合（与 install-schema.sql 同步）：
+   * 高频查询路径补复合索引；遗留单列索引由等价复合索引（左前缀覆盖 FK）取代后删除；
+   * 反面教材 idx_upload_records_width/height（低基数、无查询引用）直接删除。
+   */
+  private void alignQueryIndexes() {
+    ensureIndexExists("upload_records", "idx_upload_records_uploaded_at",
+        "ALTER TABLE upload_records ADD INDEX idx_upload_records_uploaded_at (uploaded_at)");
+    ensureIndexExists("upload_records", "idx_upload_records_public_time",
+        "ALTER TABLE upload_records ADD INDEX idx_upload_records_public_time (is_public, is_violation, uploaded_at)");
+    ensureIndexExists("upload_records", "idx_upload_records_media_type",
+        "ALTER TABLE upload_records ADD INDEX idx_upload_records_media_type (media_type)");
+    ensureIndexExists("upload_likes", "idx_upload_likes_user_time",
+        "ALTER TABLE upload_likes ADD INDEX idx_upload_likes_user_time (user_id, liked_at)");
+    ensureIndexExists("chenxi_email_token", "idx_chenxi_email_token_expires",
+        "ALTER TABLE chenxi_email_token ADD INDEX idx_chenxi_email_token_expires (expires_at)");
+    ensureIndexExists("chenxi_captcha_ticket", "idx_chenxi_captcha_ticket_expires",
+        "ALTER TABLE chenxi_captcha_ticket ADD INDEX idx_chenxi_captcha_ticket_expires (expires_at)");
+    ensureIndexExists("security_logs", "idx_security_logs_username_created",
+        "ALTER TABLE security_logs ADD INDEX idx_security_logs_username_created (username, created_at)");
+
+    // 单列 → 复合整合：先建复合（左前缀满足 FK 索引要求），成功后删除旧单列索引
+    ensureIndexExists("album_access_logs", "idx_album_access_logs_album_time",
+        "ALTER TABLE album_access_logs ADD INDEX idx_album_access_logs_album_time (album_id, accessed_at)");
+    dropIndexIfExists("album_access_logs", "idx_album_access_logs_album_id");
+    dropIndexIfExists("album_access_logs", "idx_album_access_logs_accessed_at");
+    ensureIndexExists("user_login_events", "idx_user_login_events_user_time",
+        "ALTER TABLE user_login_events ADD INDEX idx_user_login_events_user_time (user_id, occurred_at)");
+    dropIndexIfExists("user_login_events", "idx_user_login_events_user");
+
+    // 反面教材：width/height 单列索引无查询引用且低基数，只增写入开销
+    dropIndexIfExists("upload_records", "idx_upload_records_width");
+    dropIndexIfExists("upload_records", "idx_upload_records_height");
+  }
+
+  /**
+   * tags.slug 收紧为 NOT NULL：先按实体同款算法（小写连字符，非 ASCII 回退 md5 前缀）
+   * 一次性回填存量空 slug（含查重后缀），成功后 MODIFY 收紧。回填/收紧失败仅告警不阻断。
+   */
+  private void alignTagSlugNotNull() {
+    if (!columnExists("tags", "slug")) {
+      return;
+    }
+    if (!backfillTagSlugs()) {
+      log.warn("Skipping tags.slug NOT NULL tighten: slug backfill incomplete");
+      return;
+    }
+    String nullable = jdbcTemplate.queryForObject(
+        "SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tags' AND COLUMN_NAME = 'slug'",
+        String.class
+    );
+    if ("NO".equalsIgnoreCase(nullable)) {
+      return;
+    }
+    try {
+      jdbcTemplate.execute("ALTER TABLE tags MODIFY COLUMN slug VARCHAR(180) NOT NULL");
+      log.info("Aligned tags.slug to NOT NULL");
+    } catch (Exception exception) {
+      log.warn("Failed to tighten tags.slug to NOT NULL: {}", exception.getMessage());
+    }
+  }
+
+  /** 存量空 slug 回填；返回是否已无空 slug。 */
+  private boolean backfillTagSlugs() {
+    try {
+      boolean hasEmpty = jdbcTemplate.queryForObject(
+          "SELECT COUNT(*) > 0 FROM tags WHERE slug IS NULL OR slug = ''", Boolean.class);
+      if (!Boolean.TRUE.equals(hasEmpty)) {
+        return true;
+      }
+      Set<String> usedSlugs = new HashSet<>();
+      jdbcTemplate.query("SELECT slug FROM tags WHERE slug IS NOT NULL AND slug <> ''",
+          rs -> {
+            usedSlugs.add(rs.getString(1).toLowerCase(Locale.ROOT));
+          });
+      List<TagRow> rows = new ArrayList<>();
+      jdbcTemplate.query("SELECT id, name FROM tags WHERE slug IS NULL OR slug = ''", rs -> {
+        rows.add(new TagRow(rs.getLong(1), rs.getString(2)));
+      });
+      for (TagRow row : rows) {
+        String slug = generateTagSlug(row.name());
+        String candidate = slug;
+        int suffix = 2;
+        while (candidate == null || !usedSlugs.add(candidate.toLowerCase(java.util.Locale.ROOT))) {
+          candidate = slug + "-" + suffix++;
+        }
+        jdbcTemplate.update("UPDATE tags SET slug = ? WHERE id = ?", candidate, row.id());
+        log.info("Backfilled tags.slug for id={} name={}: {}", row.id(), row.name(), candidate);
+      }
+      Boolean remaining = jdbcTemplate.queryForObject(
+          "SELECT COUNT(*) > 0 FROM tags WHERE slug IS NULL OR slug = ''", Boolean.class);
+      return !Boolean.TRUE.equals(remaining);
+    } catch (Exception exception) {
+      log.warn("Failed to backfill tags.slug: {}", exception.getMessage());
+      return false;
+    }
+  }
+
+  /** 与 ChenxiTag#generateSlug 同款算法，保证应用后续生成的 slug 与回填口径一致。 */
+  private String generateTagSlug(String source) {
+    if (source == null || source.isBlank()) {
+      return null;
+    }
+    String ascii = Normalizer.normalize(source, Normalizer.Form.NFD)
+        .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+        .toLowerCase(Locale.ROOT)
+        .replaceAll("[^a-z0-9]+", "-")
+        .replaceAll("-+", "-")
+        .replaceAll("^-|-$", "");
+    if (!ascii.isBlank()) {
+      return ascii;
+    }
+    String hash = DigestUtils.md5DigestAsHex(
+        source.trim().toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));
+    return "tag-" + hash.substring(0, Math.min(12, hash.length()));
+  }
+
+  /** slug 回填行载体（id + 原始名称）。 */
+  private record TagRow(Long id, String name) {
   }
 
   /** 数据源是否为 MySQL（H2 内嵌库等环境跳过 MySQL 专用对齐）。探测失败按 MySQL 处理，维持原行为。 */
@@ -230,6 +383,25 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
       log.info("Added missing index {}.{}", tableName, indexName);
     } catch (Exception exception) {
       log.warn("Failed to add index {}.{}: {}", tableName, indexName, exception.getMessage());
+    }
+  }
+
+  /** 删除遗留/反面教材索引（不存在则静默跳过，失败仅告警不阻断启动）。 */
+  private void dropIndexIfExists(String tableName, String indexName) {
+    Boolean exists = jdbcTemplate.queryForObject(
+        "SELECT COUNT(*) > 0 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?",
+        Boolean.class,
+        tableName,
+        indexName
+    );
+    if (!Boolean.TRUE.equals(exists)) {
+      return;
+    }
+    try {
+      jdbcTemplate.execute("ALTER TABLE " + tableName + " DROP INDEX " + indexName);
+      log.info("Dropped legacy index {}.{}", tableName, indexName);
+    } catch (Exception exception) {
+      log.warn("Failed to drop index {}.{}: {}", tableName, indexName, exception.getMessage());
     }
   }
 }
