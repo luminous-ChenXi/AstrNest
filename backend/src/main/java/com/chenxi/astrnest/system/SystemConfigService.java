@@ -166,16 +166,25 @@ public class SystemConfigService {
     systemConfigRepository.save(config);
   }
 
-  /** SMTP 是否已配置并启用（决定邮箱验证等邮件能力是否可用）。 */
+  /**
+   * SMTP 是否已配置并启用（决定邮箱验证等邮件能力是否可用）。
+   *
+   * <p>host + from 均非空即视为已配置，兼容无鉴权 SMTP（MailPit/内网中继）场景：
+   * 密码仅在同时配置了 smtpUsername 时才必填，CHANGE_ME 占位符不视为真实密码。</p>
+   */
   public boolean isSmtpConfigured() {
     try {
       var mailConfig = chenxiMailConfigService.getOrDefault();
-      return mailConfig.isEnabled()
-          && StringUtils.hasText(mailConfig.getSmtpHost())
-          && StringUtils.hasText(mailConfig.getFromEmail())
-          && StringUtils.hasText(mailConfig.getSmtpPassword())
-          && !"CHANGE_ME".equals(mailConfig.getSmtpPassword())
-          && !"smtp.example.com".equals(mailConfig.getSmtpHost());
+      if (!mailConfig.isEnabled()
+          || !StringUtils.hasText(mailConfig.getSmtpHost())
+          || !StringUtils.hasText(mailConfig.getFromEmail())
+          || "smtp.example.com".equals(mailConfig.getSmtpHost())) {
+        return false;
+      }
+      boolean usernameConfigured = StringUtils.hasText(mailConfig.getSmtpUsername());
+      boolean passwordValid = StringUtils.hasText(mailConfig.getSmtpPassword())
+          && !"CHANGE_ME".equals(mailConfig.getSmtpPassword());
+      return !usernameConfigured || passwordValid;
     } catch (Exception exception) {
       return false;
     }

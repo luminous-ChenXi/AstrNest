@@ -69,10 +69,10 @@ public class AdminUploadService {
 
   @Transactional
   public void deleteRecord(long id) {
-    if (!uploadRecordRepository.existsById(id)) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "图片记录不存在");
-    }
-    uploadRecordRepository.deleteById(id);
+    UploadRecord record = uploadRecordRepository.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "图片记录不存在"));
+    // 复用用户端删除路径：先删存储物理文件，再删数据库记录，避免留下仍可直链访问的孤儿文件
+    uploadRecordService.deleteRecord(record);
   }
 
   private Specification<UploadRecord> buildSpecification(String search, Boolean violation, Boolean publicAccessible,
