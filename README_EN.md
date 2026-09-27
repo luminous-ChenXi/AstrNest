@@ -312,6 +312,8 @@ For HTTPS/HTTP2 and security headers see CONFIG_GUIDE.md section 13.2; layer the
 
 **6) Upgrades**: `git pull` → rebuild both ends → restart the backend and replace `dist/` → if the schema changed, re-run `backend/db/init.sql` (idempotent column additions, never destroys data).
 
+> Advanced deployment: the admin frontend can also be uploaded to a Tencent Cloud COS bucket and served through CDN, path-split on the same domain as the backend — see "[Admin Frontend CDN Deployment (COS + CDN)](#admin-frontend-cdn-deployment-cos--cdn)" below.
+
 ### From Source to Production: the CI/CD Pipeline
 
 The repository ships two GitHub Actions workflows; understanding them helps you replicate the same release checks on self-hosted CI (Gitea, Jenkins, etc.):
@@ -330,6 +332,147 @@ cd backend && ./mvnw test                 # = backend-test; tests default to the
 cd frontend && npm ci && npm run build    # = frontend-build
 docker compose --env-file .env build      # = docker-build (build only, no start)
 ```
+
+### Admin Frontend CDN Deployment (COS + CDN)
+
+**Applicability**: the AstrNest frontend is a pure SPA (Vue 3 + Vite, no SSR); the build output is just `index.html` plus content-hashed `assets/`, so it is **fully compatible with "COS static hosting + CDN delivery"**. This section describes an advanced route that complements "[Manual Deployment](#manual-deploymentjava-21--mysql-8--nginx)": package the admin frontend, upload it to a Tencent Cloud COS bucket, and let the CDN serve it on the **same domain as the Java backend, split by URL path**. Low-traffic sites should stick to the two default routes above (Nginx serving `dist/` directly); use this section as needed.
+
+> This section is a deployment recipe only — it changes no default behavior in the repo: the single code touchpoint is a one-line router-base adaptation (see Step 3); everything else is done via build-time env vars and cloud console configuration.
+
+#### 1) Overall Architecture (text version)
+
+```text
+User browser
+   │  single domain (e.g. https://img.example.com)
+   ▼
+Tencent Cloud CDN (edge nodes, HTTPS certificate attached)
+   │  split by URL path
+   ├─ /admin/*   → origin-pull to the COS bucket (admin frontend dist: index.html + assets/, pure static objects)
+   ├─ /api/*     → origin-pull to source Nginx → 127.0.0.1:8081 (Java backend; CDN must not cache)
+   ├─ /upload/*  → origin-pull to source Nginx (image direct links served statically, long cache OK)
+   └─ everything else → source Nginx (Swagger / actuator etc., same as the Manual Deployment sample)
+```
+
+Key point: **same domain, different paths**. `/admin/*` and `/api/*` share one domain, so from the browser's perspective everything is same-origin — keep `VITE_API_BASE_URL` empty (relative paths), there is no CORS concern, and JWT-based login behaves exactly as today.
+
+#### 2) Two Ways to Split Paths
+
+**Option A (recommended to start): the CDN has a single origin = the source Nginx; splitting happens in Nginx.**
+
+```nginx
+# Source Nginx: the only origin address the CDN pulls from (append to the Manual Deployment step-4 server block)
+server {
+    listen 80;
+    server_name imgbed.example.com;
+    client_max_body_size 100m;
+
+    # /api/* → Java backend (configure "no cache" for /api/* on the CDN side)
+    location /api/ {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_request_buffering off;
+    }
+
+    # /upload/* → image direct links served statically (same as Manual Deployment step 4, omitted here)
+
+    # /admin/* → COS bucket (enable "Static Website" on the bucket and use the static website endpoint,
+    #             which brings index/error-document capabilities)
+    location ^~ /admin/ {
+        proxy_pass http://astrnest-admin-1250000000.cos-website.ap-guangzhou.myqcloud.com;
+        proxy_set_header Host astrnest-admin-1250000000.cos-website.ap-guangzhou.myqcloud.com;
+        proxy_intercept_errors on;
+        error_page 404 /admin/index.html;    # SPA route fallback (see subsection 5)
+    }
+}
+```
+
+**Option B (advanced): use the Tencent Cloud CDN console "Rule Engine" to route different paths to different origins** — `/admin/*` → the COS origin (pick a COS origin and enable "origin authentication" to support a private bucket), `/api/*` and everything else → the source Nginx. Key points:
+
+- Rules match top-down; `/admin/*` and `/api/*` must come **before** the catch-all rule;
+- Each rule's "origin Host" must match its origin (for a COS origin, use the bucket endpoint host);
+- With COS origin authentication (private bucket) the static website endpoint is unavailable, so the SPA fallback must be handled by the CDN's 404 error page / error-code handling (subject to what your console actually shows).
+
+#### 3) Build and Upload
+
+**Base path**: `frontend/vite.config.js` already ships CDN support — `base: process.env.VITE_ASSETS_BASE_URL || '/'` (the in-file comments exist exactly for this scenario). For the same-domain sub-path scheme set it to `/admin/` (**trailing slash required**); after the build, `index.html` references `/admin/assets/[name]-[hash].js`, which lands inside the `/admin/*` split rule:
+
+```bash
+cd frontend
+VITE_ASSETS_BASE_URL=/admin/ npm run build
+```
+
+**Router adaptation (the only one-line code change)**: `src/router/index.js` currently uses `createWebHistory()` (default base `/`). Under a sub-path deployment the login guard redirects unauthenticated visits to `/` — a URL outside `/admin/*`, which would 404 on the CDN. Switch to the standard Vite idiom so the router base follows the build base:
+
+```js
+history: createWebHistory(import.meta.env.BASE_URL)
+```
+
+After this, every in-app navigation (`/login`, `/gallery`, `/admin/*`, …) produces URLs prefixed with `/admin` and all hit the split rule. No API change is needed: keep `VITE_API_BASE_URL` empty so requests still go to same-origin `/api/*`.
+
+> Note: files under `public/` are copied verbatim into `dist/`. If code references them with root-absolute paths (e.g. `/images/...`), Vite's base does **not** rewrite such runtime strings — either build the reference with `import.meta.env.BASE_URL`, or add a dedicated path rule that origin-pulls that prefix from COS.
+
+**Upload and release script** (uses Tencent COSCLI `coscli`; the legacy `coscmd` equivalent is noted inline; replace bucket/region):
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+BUCKET=astrnest-admin-1250000000           # bucket name (including APPID)
+cd frontend
+
+# 1) Build (base points to /admin/)
+VITE_ASSETS_BASE_URL=/admin/ npm run build
+
+# 2) Sync hashed static assets first (incremental; old versions stay in the bucket for instant rollback)
+coscli sync dist/assets/ cos://$BUCKET/admin/assets/
+coscli sync dist/images/ cos://$BUCKET/admin/images/
+
+# 3) Upload the entry HTML last: once all new assets are in place, overwriting index.html completes the atomic switch
+coscli cp dist/index.html cos://$BUCKET/admin/index.html     # coscmd: coscmd put dist/index.html admin/index.html
+
+# 4) Purge the CDN: console "Cache Purge → Directory Purge" with https://your-domain/admin/
+#    (or call the API: directory purge PurgePathsCache / URL purge PurgeUrlsCache)
+```
+
+> The order is the atomicity: assets first (new objects never break the old page) → `index.html` overwritten last → purge the CDN. Rollback = restore the previous `admin/index.html` in the bucket (old assets are still there and directly usable).
+
+#### 4) Caching Policy
+
+| Object | Cache-Control | Notes |
+| --- | --- | --- |
+| `admin/index.html` (entry and SPA fallback page) | `no-cache` (or `max-age=60`) | The "switch" that makes releases take effect immediately; always revalidated |
+| `/admin/assets/*` (content-hashed filenames) | `public, max-age=31536000, immutable` | Immutable; a year of caching is safe |
+| `/admin/images/*` and other public static assets | `public, max-age=604800` | Rarely change |
+| `/api/*` | no cache (exclude the path in CDN cache rules) | API freshness |
+| `/upload/*` image direct links | `public, max-age=2592000` | Direct-link content is immutable; biggest CDN win |
+
+Configure the policy either via COS object metadata (`Cache-Control`) or CDN "cache rules" — pick one (CDN-side rules take precedence and are easier to tune centrally). **Every release must purge the CDN** (at least the `/admin/` directory), otherwise edge nodes may keep serving a stale `index.html`.
+
+#### 5) SPA Route Fallback (404 under history mode)
+
+vue-router runs in history mode; routes such as `/admin/dashboard` and `/admin/users` have no physical object behind them, so hitting them directly returns 404. Use any one of:
+
+- **COS static website error document**: enable "Static Website" on the bucket → set the error document to `admin/index.html` (simplest when using the static website endpoint; Option A's Nginx sample already benefits automatically);
+- **Source Nginx**: `proxy_intercept_errors on;` + `error_page 404 /admin/index.html;` (see Option A);
+- **Tencent Cloud CDN**: console "Advanced Configuration → Custom Error Pages" mapping 404 to `https://same-domain/admin/index.html` (or rule-engine error-code handling, subject to console availability).
+
+#### 6) Security Notes
+
+- **Bucket permission, pick one**: (a) private read + CDN origin authentication (pairs with Option B's COS origin authentication; the static website endpoint is unavailable in this case); (b) public read + hotlink protection (Referer allow/deny list), keeping "list objects" disabled (the static website endpoint only serves objects by key and cannot list a directory). **Never public read-write**.
+- **HTTPS**: attach a certificate to the CDN acceleration domain (free or your own) and enable forced HTTPS; origin pulls may stay HTTP or enable "protocol follow".
+- **Same-domain security properties**: the admin frontend shares the domain with `/api`, so there is no CORS surface; however, the **XSS exposure of a localStorage JWT does not disappear** because of this deployment style — the real benefit is a fully self-controlled static asset supply chain. Keep a strict CSP and least-privilege API keys (see [SECURITY.md](SECURITY.md)).
+- The Vite production build already strips `console`/`debugger` (`drop` in `vite.config.js`), so no extra debug leakage.
+
+#### 7) Relation to the Existing Deployment Sections
+
+- "Five-Minute Deployment (Docker Compose)" and "Manual Deployment (Java 21 + MySQL 8 + Nginx)" remain the default recommended routes (Nginx/container serving `dist/` directly); this section is an **optional advanced** path, and the backend and Nginx security configuration is fully shared;
+- To switch back to the default route: rebuild with `VITE_ASSETS_BASE_URL=/` and point the Nginx `root` back at `dist/`;
+- The CI/CD section's `frontend-build` workflow uploads the `dist/` artifact, which can feed this section's COS upload directly.
 
 ### Post-Install Configuration (Security & Mail)
 
