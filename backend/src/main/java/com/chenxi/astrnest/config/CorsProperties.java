@@ -10,14 +10,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "astrnest.cors")
 public class CorsProperties {
 
-  private List<String> allowedOrigins = List.of(
-      "http://localhost:5175",
-      "http://127.0.0.1:5175",
-      "http://192.168.1.100:5175",
-      "http://192.168.1.200:5175",
-      "https://luminouschenxi.net",
-      "https://www.luminouschenxi.net"
-  );
+  // 默认不放行任何跨域来源（安全默认）：部署时必须显式配置 astrnest.cors.allowed-origins，
+  // 例如 https://your-domain.com。内网开发源也请通过本地配置自行添加。
+  private List<String> allowedOrigins = List.of();
 
   private List<String> allowedMethods = List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
 

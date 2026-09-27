@@ -20,6 +20,7 @@
 
 # 运行时存储与上传内容
 /storage/
+/backend/storage/
 
 # 日志文件
 logs/
