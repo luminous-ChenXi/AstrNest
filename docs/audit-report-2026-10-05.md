@@ -1,12 +1,17 @@
 # AstrNest 全链路审计报告（第二轮调查）
 
 > **修复状态（随修复更新）**：
-> - 批次一（P0 全部 + 快赢项）：✅ 已修复，commit `e2e092a`
-> - 批次二（认证加固 P0-6/P1-2~P1-6/P1-19/P1-20）：✅ 已修复，commit `e83200c`
-> - 批次三（部分）：✅ invokeCount 原子自增、随机图 N+1、访客上传复活、embed 违规拦截（随下一提交）；
->   ⏳ 待做：Featured 下沉 DB、公告 @Version、jsoup 服务端清洗、云存储 SVG 头部署要求、删除对账
-> - 批次四（CI/CD/工程化）与批次五（测试补齐）：⏳ 未开始
-
+> - 批次一（P0 全部 + 快赢项）：✅ 已修复
+> - 批次二（认证加固 P0-6/P1-2~P1-6/P1-19/P1-20）：✅ 已修复
+> - 批次三（全部）：✅ invokeCount 原子自增、随机图 N+1、访客上传复活、embed 违规拦截、
+>   thumbnailUrl 双前缀、Featured 下沉 DB、公告 @Version、jsoup 服务端清洗（P1-11）——完成
+> - 批次四（CI/CD/工程化）：✅ P1-14 测试配置矛盾修复（CI 红叉）、前端 lint flat config 迁移进 CI、
+>   Release 工作流（v* tag → jar/dist/扩展 + GHCR 镜像）、Node 22、缓存与 permissions、删死工作流——完成
+> - 批次五（测试补齐·首轮）：✅ AuthFlowIntegrationTest 5 例（注册角色/唯一性/P0-2/P0-6 回归）+
+>   安装探针 H2 兼容修复，后端 44 测试全绿
+> - 未尽事项：Schema 四通道 → Flyway（P2-24）、init-admin 脚本族废弃（P1-17）、
+>   文档站分发与端口订正（P1-15 文档侧）、SVG CSP 云存储部署要求（P1-12 文档侧）、
+>   EXIF 隐私剥离（P3）、CI 修绿后在 ruleset 勾选 Require status checks
 > 审计日期：2026-10-05
 > 审计对象：`main` 分支 `d7edcd0`（Spring Boot 3.4.13 / Java 21 / MySQL，后端 287 个 Java 文件；Vue 3.5 + Vite 前端 55 个文件；浏览器扩展）
 > 审计方式：5 路并行代码走查（认证 / 上传存储 / 内容与统计 / CI-CD / 安全横切面）+ 本机构建测试实测 + 全部 P0 结论人工逐条复核源码

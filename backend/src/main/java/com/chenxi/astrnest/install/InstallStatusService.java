@@ -145,11 +145,21 @@ public class InstallStatusService {
     String dbVersion = null;
     String dbError = null;
     try {
-      dbVersion = jdbcTemplate.queryForObject("SELECT VERSION()", String.class);
+      // 可达性探测用全方言通用语句：VERSION() 是 MySQL 函数，H2 没有（测试内存库会误判为不可达）
+      jdbcTemplate.queryForObject("SELECT 1", Integer.class);
+      try {
+        dbVersion = jdbcTemplate.queryForObject("SELECT VERSION()", String.class);
+      } catch (Exception mysqlOnly) {
+        try {
+          dbVersion = "H2 " + jdbcTemplate.queryForObject("SELECT H2VERSION()", String.class);
+        } catch (Exception ignored) {
+          dbVersion = null;
+        }
+      }
     } catch (Exception exception) {
       dbError = rootMessage(exception);
     }
-    if (dbVersion == null) {
+    if (dbError != null) {
       // 数据库不可达：不抛异常，返回"未安装 + 连接失败"
       log.debug("Install probe: database unreachable: {}", dbError);
       return new InstallSnapshot(false, null, dbError, STATE_NOT_INSTALLED, false, 0, Map.of(), 0);
@@ -181,8 +191,11 @@ public class InstallStatusService {
 
   private boolean tableExists(String tableName) {
     try {
+      // TABLE_SCHEMA = 'PUBLIC' 兼容 H2（测试内存库）：H2 的 information_schema 里
+      // 一律是 PUBLIC schema，DATABASE() 永远不匹配；MySQL 无 PUBLIC schema，双条件互不干扰
       Boolean exists = jdbcTemplate.queryForObject(
-          "SELECT COUNT(*) > 0 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
+          "SELECT COUNT(*) > 0 FROM information_schema.TABLES "
+              + "WHERE UPPER(TABLE_NAME) = UPPER(?) AND (TABLE_SCHEMA = DATABASE() OR TABLE_SCHEMA = 'PUBLIC')",
           Boolean.class,
           tableName
       );
@@ -196,7 +209,7 @@ public class InstallStatusService {
   private int countTables() {
     try {
       Integer count = jdbcTemplate.queryForObject(
-          "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()",
+          "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() OR TABLE_SCHEMA = 'PUBLIC'",
           Integer.class
       );
       return count == null ? 0 : count;

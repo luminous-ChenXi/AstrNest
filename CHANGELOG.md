@@ -1,5 +1,17 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-10-06 (3)
+
+### 批次五：核心链路回归测试 + 探针 H2 兼容
+
+- **新增 `AuthFlowIntegrationTest`（5 例，MockMvc + H2 全链路）**：首个注册用户 ADMIN /
+  后续 USER、用户名唯一拒绝、公开档案不含 email（P0-2 回归）、令牌版本 +1 后旧 JWT 被拒
+  （P0-6 回归）、改密接口自增版本并换哈希——后端测试 39 → 44 全绿
+- **安装状态探针 H2 兼容**：`SELECT VERSION()` 是 MySQL 专属函数，H2 下探针把内存库误判为
+  "数据库不可达"→ 全站 503；改为 `SELECT 1` 通用可达性探测 + 版本函数按方言降级（H2VERSION）；
+  `information_schema` 查表补 `PUBLIC` schema 兼容（MySQL 无 PUBLIC，互不干扰）
+- 该修复让此前"只有 MySQL 才能跑测试"的隐性约束解除，CI 的 H2 口径完整成立
+
 ## [Unreleased] - 2026-10-06 (2)
 
 ### 批次四：CI/CD 工程化
