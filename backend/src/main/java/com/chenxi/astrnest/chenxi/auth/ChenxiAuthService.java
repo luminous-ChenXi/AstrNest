@@ -138,6 +138,12 @@ public class ChenxiAuthService {
     consumeVerificationCode(normalizedEmail, ChenxiEmailScene.PASSWORD_RESET, code);
     UserAccount user = userAccountRepository.findByEmail(normalizedEmail)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "账号不存在"));
+    // 影子账号口令通道封死（审计复查）：SSO 账号密码由身份源管理——放行会造成
+    // 「邮箱找回改密 → tokenVersion+1 → SSO 登录仍签发 ver=0 令牌被拒」的永久锁死
+    if (user.getIdentitySource() != null && !"local".equals(user.getIdentitySource())) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+          "该账号通过外部身份源登录，密码由身份源管理，无法在此重置");
+    }
     user.setPassword(passwordEncoder.encode(newPassword));
     // 找回密码即吊销：令牌版本 +1，盗号者手里的旧 JWT 立即失效
     user.setTokenVersion(user.getTokenVersion() + 1);

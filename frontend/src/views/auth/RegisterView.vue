@@ -106,12 +106,13 @@ const validateEmail = (_rule, value, callback) => {
   callback()
 }
 
-const usernamePattern = /^[A-Za-z0-9_.-]{1,20}$/
+const usernamePattern = /^[A-Za-z0-9_.-]{4,32}$/
 const validateUsername = (_rule, value, callback) => {
   if (!value) return callback(new Error('请输入用户名'))
   const trimmed = value.trim()
   if (trimmed.length === 0) return callback(new Error('请输入用户名'))
-  if (trimmed.length > 20) return callback(new Error('用户名需在 20 个字符以内'))
+  if (trimmed.length < 4) return callback(new Error('用户名至少 4 个字符'))
+  if (trimmed.length > 32) return callback(new Error('用户名需在 32 个字符以内'))
   if (!usernamePattern.test(trimmed)) return callback(new Error('仅允许字母、数字、下划线、点、短横线'))
   callback()
 }
@@ -149,6 +150,8 @@ const handleSendCode = async () => {
     return
   }
   await sendCode({ email: form.email, captchaToken: form.captchaToken })
+  // 认证令牌一次性消费：发送成功即失效，重发需重新完成人机验证
+  form.captchaToken = ''
 }
 
 const handleNextStep = async () => {

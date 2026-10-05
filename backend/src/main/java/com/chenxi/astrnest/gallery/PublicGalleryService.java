@@ -110,7 +110,8 @@ public class PublicGalleryService {
 
   @Transactional(readOnly = true)
   public List<PublicGalleryItemResponse> getTopLikedImages(int limit) {
-    List<UploadRecord> records = uploadRecordRepository.findTop3ByPublicAccessibleTrueAndViolationFalseOrderByLikeCountDesc();
+    List<UploadRecord> records = uploadRecordRepository.findTopPublicImages(
+        org.springframework.data.domain.PageRequest.of(0, limit));
     List<Long> recordIds = records.stream().map(UploadRecord::getId).toList();
     Map<Long, List<ChenxiTagResponse>> tagMap = resolveTags(recordIds);
 
@@ -121,7 +122,6 @@ public class PublicGalleryService {
             null,
             tagMap.getOrDefault(record.getId(), List.of())
         ))
-        .limit(limit)
         .toList();
   }
 

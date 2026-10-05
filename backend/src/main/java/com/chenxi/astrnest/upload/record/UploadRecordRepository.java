@@ -132,7 +132,30 @@ public interface UploadRecordRepository extends JpaRepository<UploadRecord, Long
       @Param("albumId") Long albumId,
       Pageable pageable);
 
-  List<UploadRecord> findTop3ByPublicAccessibleTrueAndViolationFalseOrderByLikeCountDesc();
+  /** 热门图片（审计复查点②）：对齐画廊 spec 的相册公开性条件——位于私有相册的公开图不上榜，防私有相册元数据外泄 */
+  @Query("""
+      select r from UploadRecord r
+      where r.publicAccessible = true and r.violation = false
+        and (not exists (select 1 from AlbumMedia am where am.mediaUuid = r.mediaUuid)
+             or exists (select 1 from AlbumMedia am where am.mediaUuid = r.mediaUuid
+                        and am.album.isPublic = true))
+      order by r.likeCount desc
+      """)
+  List<UploadRecord> findTopPublicImages(Pageable pageable);
+
+  /** 公开档案统计口径（审计复查点③）：只计公开∧非违规，私图/违规图不进匿名可见的计数 */
+  @Query("""
+      select new com.chenxi.astrnest.upload.record.dto.UserUsageAggregate(
+          r.user.id,
+          count(r),
+          coalesce(sum(r.size),0),
+          coalesce(sum(r.likeCount),0)
+      )
+      from UploadRecord r
+      where r.user.id in :userIds and r.publicAccessible = true and r.violation = false
+      group by r.user.id
+      """)
+  List<UserUsageAggregate> aggregatePublicUsageByUserIds(@Param("userIds") Collection<Long> userIds);
 
   /** 浏览量原子自增：先读后写在并发下丢更新（审计 P1-13）；计数失败不影响媒体访问 */
   @Modifying

@@ -127,13 +127,18 @@ public class AlbumService {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权访问此图集");
     }
 
+    // 可见性硬不变量（审计复查点①）：非属主看公开相册也只允许露出公开∧非违规的图——
+    // 此前整包返回全部 media 的 publicUrl/thumbnailUrl，等于把相册内私图直链送给任意登录用户
+    boolean ownerOrAdmin = user != null && album.getUser() != null
+        && (album.getUser().getId().equals(user.getId()) || isAdmin(user));
+
     List<AlbumMedia> albumMedias = albumMediaRepository.findByAlbumIdOrderBySortOrderAsc(album.getId());
     Map<String, UploadRecord> recordsByUuid = findRecordsByUuid(
         albumMedias.stream().map(AlbumMedia::getMediaUuid).toList());
     List<AlbumMediaResponse> mediaResponses = new ArrayList<>();
     for (AlbumMedia media : albumMedias) {
       UploadRecord record = recordsByUuid.get(media.getMediaUuid());
-      if (record != null) {
+      if (record != null && (ownerOrAdmin || isPublicVisible(record))) {
         mediaResponses.add(convertToMediaResponse(media, record));
       }
     }

@@ -4,6 +4,7 @@ const TOKEN_KEY = 'astrnest_auth_token'
 const TOKEN_TYPE_KEY = 'astrnest_auth_token_type'
 const PROFILE_KEY = 'astrnest_auth_profile'
 const EXPIRES_AT_KEY = 'astrnest_auth_expires_at'
+// 兜底 TTL：后端下发 expiresIn（秒）时优先使用，避免后端调小 access-token-days 后前端仍按 30 天显示已登录
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 // 旧版登录返回 "Basic xxx" 形式的整串 token，需原样发送；
@@ -47,9 +48,10 @@ export const useAuthStore = defineStore('auth', {
     displayName: (state) => state.profile?.displayName || state.profile?.username || '未登录',
   },
   actions: {
-    setSession(token, profile, tokenType) {
+    setSession(token, profile, tokenType, expiresInSeconds = null) {
       const resolvedTokenType = tokenType || resolveTokenType(token)
-      const expiresAt = Date.now() + SESSION_TTL_MS
+      const expiresAt = Date.now()
+        + (Number.isFinite(expiresInSeconds) && expiresInSeconds > 0 ? expiresInSeconds * 1000 : SESSION_TTL_MS)
       this.token = token
       this.tokenType = resolvedTokenType
       this.profile = profile
@@ -176,6 +178,7 @@ export const useAuthStore = defineStore('auth', {
 
     touchSession() {
       if (!this.token) return
+      // 活跃保活沿用兜底 TTL：滑动续期由 refreshSession 处理
       const expiresAt = Date.now() + SESSION_TTL_MS
       this.expiresAt = expiresAt
       localStorage.setItem(EXPIRES_AT_KEY, String(expiresAt))

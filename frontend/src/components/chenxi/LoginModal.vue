@@ -107,7 +107,7 @@ const handleSsoLogin = async () => {
 }
 
 const completeLogin = (data, successText = '登录成功！') => {
-  auth.setSession(data.token, data.profile)
+  auth.setSession(data.token, data.profile, data.tokenType, data.expiresIn)
   toast('success', successText)
   emit('login-success')
   handleClose()

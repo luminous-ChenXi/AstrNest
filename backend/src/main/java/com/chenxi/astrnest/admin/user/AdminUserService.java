@@ -92,7 +92,7 @@ public class AdminUserService {
   @Transactional(readOnly = true)
   public PublicUserProfileResponse publicProfile(Long userId) {
     UserAccount user = requireUser(userId);
-    UserUsageAggregate usage = usageFor(userId);
+    UserUsageAggregate usage = publicUsageFor(userId);
     return new PublicUserProfileResponse(
         user.getId(),
         user.getDisplayName(),
@@ -144,6 +144,14 @@ public class AdminUserService {
 
   private UserUsageAggregate usageFor(Long userId) {
     return usageMap(List.of(userId)).getOrDefault(userId, new UserUsageAggregate(userId, 0, 0, 0));
+  }
+
+  /** 公开档案专用：只聚合公开∧非违规的上传（uploadCount/storageBytes 对匿名可见，不应计入私图） */
+  private UserUsageAggregate publicUsageFor(Long userId) {
+    return uploadRecordRepository.aggregatePublicUsageByUserIds(List.of(userId))
+        .stream()
+        .findFirst()
+        .orElse(new UserUsageAggregate(userId, 0, 0, 0));
   }
 
   private Map<Long, UserUsageAggregate> usageMap(Collection<Long> userIds) {

@@ -55,7 +55,7 @@ onMounted(async () => {
       return
     }
     const session = await exchangeCode(cfg, { code, codeVerifier })
-    auth.setSession(session.token, session.profile, session.tokenType)
+    auth.setSession(session.token, session.profile, session.tokenType, session.expiresIn)
     ElMessage.success('登录成功！')
     router.replace(returnTo)
   } catch (error) {

@@ -87,6 +87,10 @@ public class ChenxiAuthController {
   @PostMapping("/register")
   public Map<String, String> register(@Valid @RequestBody RegisterAccountRequest request, HttpServletRequest httpRequest) {
     String ip = clientIpResolver.resolve(httpRequest);
+    // 批量建号防护：每号 200MB 配额，单步注册（无验证码场景）此前完全无限流
+    if (rateLimiter.tryAcquire("register:" + ip, 10, java.time.Duration.ofMinutes(1))) {
+      throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "注册过于频繁，请稍后再试");
+    }
     authProtectionService.ensureRegisterAllowed(request.username(), ip);
     try {
       authService.registerUser(request.email(), request.code(), request.linkToken(),

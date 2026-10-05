@@ -22,10 +22,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
+  /** 登录端点进程内限流：兜底防超大密码体反复触发 BCrypt(12) 打满 CPU（账号锁定由防爆破服务承担） */
+  private static final int LOGIN_LIMIT_PER_MINUTE = 30;
+  private static final java.time.Duration LOGIN_RATE_WINDOW = java.time.Duration.ofMinutes(1);
+
   private final AuthService authService;
+  private final com.chenxi.astrnest.common.ClientIpResolver clientIpResolver;
+  private final com.chenxi.astrnest.common.InMemoryRateLimiter rateLimiter;
 
   @PostMapping("/login")
   public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+    String ip = clientIpResolver.resolve(httpRequest);
+    if (rateLimiter.tryAcquire("login:" + ip, LOGIN_LIMIT_PER_MINUTE, LOGIN_RATE_WINDOW)) {
+      throw new org.springframework.web.server.ResponseStatusException(
+          org.springframework.http.HttpStatus.TOO_MANY_REQUESTS, "请求过于频繁，请稍后再试");
+    }
     return authService.login(request, httpRequest);
   }
 

@@ -239,7 +239,7 @@ public class InstallSetupService {
     if (username == null) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "用户名不能为空");
     }
-    if (!username.matches("^[A-Za-z0-9_.-]{3,32}$")) {
+    if (!username.matches("^[A-Za-z0-9_.-]{4,32}$")) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
           "用户名需 3-32 位，仅允许字母、数字、下划线、点、短横线");
     }

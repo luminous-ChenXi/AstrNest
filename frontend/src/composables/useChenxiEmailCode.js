@@ -21,7 +21,8 @@ export function useChenxiEmailCode(sendHandler) {
     sending.value = true
     try {
       await sendHandler(payload)
-      ElMessage.success('验证码已发送到邮箱，请在 5 分钟内完成验证')
+      // 有效期按场景不同（注册 30 分钟 / 找回 5 分钟），文案不再写死
+      ElMessage.success('验证码已发送，请查收邮箱')
       startCountdown()
     } catch (error) {
       ElMessage.error(error.response?.data?.message || '验证码发送失败')

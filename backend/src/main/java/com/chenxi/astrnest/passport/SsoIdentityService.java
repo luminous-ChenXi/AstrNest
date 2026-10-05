@@ -100,7 +100,8 @@ public class SsoIdentityService {
         new UsernamePasswordAuthenticationToken(user.getUsername(), null, authorities(user));
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-    String token = jwtTokenService.generateToken(user.getId(), user.getUsername());
+    // 带令牌版本：影子账号被「找回密码」动过 tokenVersion 后，签发 ver=0 会全部被过滤器拒绝
+    String token = jwtTokenService.generateToken(user.getId(), user.getUsername(), user.getTokenVersion());
     UserProfileResponse profile = userAccountService.getCurrentProfile();
     log.info("SSO 登录成功：userId={}, username={}, source={}", user.getId(), user.getUsername(), user.getIdentitySource());
     return LoginResponse.complete(token, profile, "Bearer", jwtTokenService.ttlSeconds());
@@ -209,7 +210,10 @@ public class SsoIdentityService {
 
   /** 用户名白名单化：去除空白与控制字符，截断到列长，保证与本地用户名同规则存储。 */
   private String sanitizeUsername(String value) {
-    String cleaned = value.replaceAll("[\\s\\p{Cntrl}]+", "");
+    // 与本地注册同一口径（^[A-Za-z0-9_.-]+$）：剔除空白/控制字符后再剥白名单外字符，
+    // 中文/HTML 元字符等不得经 SSO 绕过本地用户名规则入库
+    String cleaned = value.replaceAll("[\\s\\p{Cntrl}]+", "")
+        .replaceAll("[^A-Za-z0-9_.-]", "");
     return truncate(cleaned, USERNAME_MAX_LENGTH);
   }
 

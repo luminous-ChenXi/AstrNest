@@ -1,5 +1,33 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-10-06 (5)
+
+### 业务链路二轮复查修复（图片权限矩阵 + 注册登录链路）
+
+- **【高】公开相册私图直链泄露**：`GET /api/albums/{albumUuid}` 此前对公开相册整包返回全部媒体
+  的 publicUrl/thumbnailUrl——任意登录用户拿到 albumUuid 即可获得相册内所有私图/违规图直链，
+  击穿"私图靠 UUID 不可枚举保护"不变量；现按 owner||admin 旁路 + 逐图公开∧非违规过滤，
+  与公开相册端点同构
+- **【高】SSO 影子账号永久锁死**：找回密码可命中 SSO 影子号改密并 +tokenVersion，
+  而 SSO 登录签发的是 ver=0 令牌 → 该 SSO 用户从此每次登录全部 401；
+  现找回密码拒绝非 local 账号，SSO 签发改带真实令牌版本
+- **【高】账号级防爆破被变体绕过**：锁定键只 trim 不小写，`User`/`user`/邮箱 变体各算独立窗口；
+  统一小写归一
+- **【中】热门图片与画廊口径对齐**：top3 此前不过滤相册公开性，私有相册的名称/slug 会经
+  匿名热榜外泄；改 JPQL 子查询（无相册 ∨ 相册公开），并修正 limit 参数失效
+- **【中】公开档案统计口径**：uploadCount/storageBytes 不再把私图/违规图计入匿名可见的统计
+- **【中】批量建号/BCrypt DoS 防护**：/register 与 /login 加进程内限流（10/30 次/分/IP）；
+  LoginRequest 密码加 64 位上限（防超大密码体反复触发 BCrypt(12)）
+- **【中】用户名白名单三处归一**：注册 4-32 白名单为准，安装向导 3→4 对齐，SSO sanitize
+  剥除白名单外字符（中文/元字符不再能经 SSO 绕过入库）
+- **评论功能定论**：全仓库从未有过评论链路（点赞 upload_likes 是唯一互动形态）；
+  正式移除 `interactions` 表残留（install-schema/init.sql/init_windows.sql 三处）；
+  顺带修复 init.sql `users.email NOT NULL` 与实体可空、注册允许无邮箱的漂移
+  （否则 init.sql 库上无邮箱单步注册必失败）
+- **前端**：注册页用户名校验对齐 4-32；发码成功即清一次性 captchaToken（60s 重发不再必 400）；
+  验证码文案去掉写死的"5 分钟"；check-email 参数 encodeURIComponent；
+  会话过期时间优先用后端 expiresIn（丢弃写死 30 天）
+
 ## [Unreleased] - 2026-10-06 (4)
 
 ### 收尾清理与隐私增强

@@ -206,7 +206,9 @@ public class AuthProtectionService {
   }
 
   private String normalize(String value) {
-    return value == null ? "" : value.trim();
+    // 小写归一：登录支持用户名/邮箱且 DB 排序规则大小写不敏感，
+    // 否则 User/user/邮箱 等变体各算各的失败窗口，账号维度锁定被绕过
+    return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
   }
 
   private String normalizeIp(String ip) {

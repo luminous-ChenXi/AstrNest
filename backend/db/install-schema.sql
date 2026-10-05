@@ -446,24 +446,7 @@ CREATE TABLE IF NOT EXISTS announcements (
   CONSTRAINT fk_announcements_author_user FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
--- 【已废弃】用户互动表（历史遗留，无对应 JPA 实体；保留以兼容 init.sql 安装的外部依赖）。
--- 计划下版本 DROP TABLE，请勿在新代码中引用。
-CREATE TABLE IF NOT EXISTS interactions (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  user_id BIGINT NOT NULL,
-  media_id BIGINT NOT NULL,
-  media_uuid CHAR(36) NULL,
-  type ENUM('like','favorite','view','download') NOT NULL,
-  client_ip VARCHAR(45) NULL,
-  user_agent TEXT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY idx_user_media_type (user_id, media_id, type),
-  KEY idx_interactions_media_type (media_id, type),
-  KEY idx_interactions_user_created (user_id, created_at),
-  CONSTRAINT fk_interactions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT fk_interactions_media FOREIGN KEY (media_id) REFERENCES upload_records(id) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
-
+-- interactions 表已随 v1.3 清理移除（评论/互动功能从未实装，点赞走 upload_likes）。
 -- ---------------------------------------------------------------------------
 -- 【已废弃】兼容视图（列以本脚本实际创建的表为准）。计划下版本 DROP VIEW，
 -- 请勿在新代码中引用（应用侧已无任何实体/查询依赖）。

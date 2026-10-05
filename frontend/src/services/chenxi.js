@@ -10,7 +10,7 @@ export const resetChenxiPassword = (payload) => http.post('/api/auth/chenxi/pass
 export const fetchMailConfig = () => http.get('/api/admin/chenxi/mail-config')
 export const updateMailConfig = (payload) => http.put('/api/admin/chenxi/mail-config', payload)
 export const testMailConfig = (targetEmail) => http.post('/api/admin/chenxi/mail-config/test', { targetEmail })
-export const checkEmailAvailability = (email) => http.get(`/api/auth/chenxi/check-email?email=${email}`)
+export const checkEmailAvailability = (email) => http.get(`/api/auth/chenxi/check-email?email=${encodeURIComponent(email)}`)
 export const fetchMailTemplates = () => http.get('/api/admin/chenxi/mail-templates')
 export const createMailTemplate = (payload) => http.post('/api/admin/chenxi/mail-templates', payload)
 export const updateMailTemplate = (id, payload) => http.put(`/api/admin/chenxi/mail-templates/${id}`, payload)
