@@ -70,6 +70,9 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
       log.warn("Failed to align users.token_version default: {}", exception.getMessage());
     }
 
+    // 公告乐观锁版本（审计 P2-12）：存量公告按 0 补齐
+    ensureColumnExists("announcements", "version", "BIGINT NOT NULL DEFAULT 0 AFTER id");
+
     // 验证码/图形验证码列宽 6/16 → 64：明文改 SHA-256 哈希入库后需要 64 位十六进制
     widenColumnIfSmaller("chenxi_email_token", "code", 64);
     widenColumnIfSmaller("chenxi_captcha_ticket", "captcha_code", 64);

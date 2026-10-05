@@ -337,6 +337,10 @@ public class PublicGalleryService {
       if (isAbsoluteUrl(thumbnail)) {
         return thumbnail;
       }
+      // thumbnailUrl 存的已是公开路径（/upload/...）：再当 objectKey 拼前缀会产生 /upload/upload/ 双前缀
+      if (thumbnail.trim().startsWith("/")) {
+        return thumbnail.trim();
+      }
       return publicAssetUrlResolver.buildLocalPublicUrl(thumbnail);
     }
     if (StringUtils.hasText(record.getThumbnailStoragePath())) {

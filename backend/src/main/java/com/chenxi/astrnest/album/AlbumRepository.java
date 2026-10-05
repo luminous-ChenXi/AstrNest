@@ -38,4 +38,21 @@ public interface AlbumRepository extends JpaRepository<Album, Long> {
    * 查询所有公开图集
    */
   List<Album> findByIsPublicTrue();
+
+  /**
+   * 热门图集聚合（审计 P2-13）：图集内公开未违规媒体的点赞总和 + 媒体数，按点赞降序。
+   * 此前为全表载入公开图集/媒体/上传记录后内存求和排序；分页参数用于取 Top N。
+   */
+  @org.springframework.data.jpa.repository.Query(value = """
+      select am.album_id,
+             count(*) as media_count,
+             coalesce(sum(case when r.is_public = 1 and r.is_violation = 0 then r.like_count else 0 end), 0) as total_likes
+      from album_media am
+      join albums a on a.id = am.album_id
+      left join upload_records r on r.media_uuid = am.media_uuid
+      where a.is_public = 1
+      group by am.album_id
+      order by total_likes desc
+      """, nativeQuery = true)
+  List<Object[]> aggregateFeatured(org.springframework.data.domain.Pageable pageable);
 }

@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -131,6 +132,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(NoResourceFoundException.class)
   public ResponseEntity<ApiErrorResponse> handleNoResourceFound(NoResourceFoundException ex) {
     return buildResponse("资源不存在", HttpStatus.NOT_FOUND);
+  }
+
+  /** 乐观锁冲突（公告等并发编辑）：后提交者收到 409 而不是静默覆盖他人改动 */
+  @ExceptionHandler(OptimisticLockingFailureException.class)
+  public ResponseEntity<ApiErrorResponse> handleOptimisticLock(OptimisticLockingFailureException ex) {
+    return buildResponse("内容已被他人更新，请刷新后重试", HttpStatus.CONFLICT);
   }
 
   @ExceptionHandler(Exception.class)

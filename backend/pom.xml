@@ -108,6 +108,12 @@
       <version>${tencent.cos-api.version}</version>
     </dependency>
 
+    <!-- 服务端富文本清洗（审计 P1-11）：footer 白名单过滤、公告 Markdown 原始 HTML 转义 -->
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.18.3</version>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

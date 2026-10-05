@@ -1,6 +1,7 @@
 package com.chenxi.astrnest.user;
 
 import com.chenxi.astrnest.ai.AiLabel;
+import com.chenxi.astrnest.common.HtmlSanitizer;
 import com.chenxi.astrnest.passport.SsoIdentityService;
 import com.chenxi.astrnest.security.dto.UserProfileResponse;
 import com.chenxi.astrnest.security.user.UserAccount;
@@ -177,8 +178,9 @@ public class UserPortalService {
     // 影子账号资料只读：SSO 用户资料以身份源为准，禁止本地修改
     requireLocalIdentity(user);
     user.setDisplayName(request.displayName());
-    user.setAvatarUrl(cleanText(request.avatarUrl()));
-    user.setWebsite(cleanText(request.website()));
+    // 头像/主页走协议白名单（审计 P1-11）：javascript:/data: 等危险协议不入库，非法值直接清空
+    user.setAvatarUrl(HtmlSanitizer.externalUrl(request.avatarUrl()));
+    user.setWebsite(HtmlSanitizer.externalUrl(request.website()));
     user.setSignature(cleanText(request.signature()));
     user.setLocation(cleanText(request.location()));
     userAccountRepository.save(user);
@@ -304,6 +306,10 @@ public class UserPortalService {
     if (StringUtils.hasText(thumbnail)) {
       if (isAbsoluteUrl(thumbnail)) {
         return thumbnail;
+      }
+      // thumbnailUrl 存的已是公开路径（/upload/...）：再当 objectKey 拼前缀会产生 /upload/upload/ 双前缀
+      if (thumbnail.trim().startsWith("/")) {
+        return thumbnail.trim();
       }
       return publicAssetUrlResolver.buildLocalPublicUrl(thumbnail);
     }

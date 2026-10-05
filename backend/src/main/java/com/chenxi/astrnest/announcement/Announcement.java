@@ -11,6 +11,7 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,6 +25,11 @@ public class Announcement {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+
+  /** 乐观锁版本（审计 P2-12）：并发编辑由"后提交者静默覆盖"改为后提交者收到 409 */
+  @Version
+  @Column(nullable = false)
+  private long version;
 
   @Column(nullable = false, length = 180)
   private String title;

@@ -476,61 +476,40 @@ public class AlbumService {
    */
   @Transactional(readOnly = true)
   public List<AlbumFeaturedResponse> getFeaturedAlbums() {
-    List<Album> publicAlbums = albumRepository.findByIsPublicTrue();
-    if (publicAlbums.isEmpty()) {
+    // 聚合下沉数据库（审计 P2-13）：此前捞全部公开图集 + 全部媒体 + 全部上传记录内存求和排序
+    List<Object[]> rows = albumRepository.aggregateFeatured(org.springframework.data.domain.PageRequest.of(0, 3));
+    if (rows.isEmpty()) {
       return new ArrayList<>();
     }
 
-    // 批量取回所有公开图集的媒体与上传记录，避免逐图集/逐媒体查询（N+1）
-    List<Long> albumIds = publicAlbums.stream().map(Album::getId).toList();
-    Map<Long, List<AlbumMedia>> mediasByAlbum = albumMediaRepository.findByAlbumIdIn(albumIds)
-        .stream()
-        .collect(Collectors.groupingBy(media -> media.getAlbum().getId()));
-
-    List<String> allMediaUuids = mediasByAlbum.values().stream()
-        .flatMap(List::stream)
-        .map(AlbumMedia::getMediaUuid)
-        .toList();
-    Map<String, UploadRecord> recordsByUuid = findRecordsByUuid(allMediaUuids);
+    Map<Long, Object[]> rowsByAlbumId = new java.util.LinkedHashMap<>();
+    for (Object[] row : rows) {
+      rowsByAlbumId.put(((Number) row[0]).longValue(), row);
+    }
+    Map<Long, Album> albumsById = albumRepository.findAllById(rowsByAlbumId.keySet()).stream()
+        .collect(Collectors.toMap(Album::getId, album -> album));
 
     List<AlbumFeaturedResponse> featuredList = new ArrayList<>();
-
-    for (Album album : publicAlbums) {
-      List<AlbumMedia> medias = mediasByAlbum.getOrDefault(album.getId(), List.of());
-
-      // 计算图集内所有图片的喜欢数总和
-      long totalLikes = 0;
-      for (AlbumMedia media : medias) {
-        UploadRecord record = recordsByUuid.get(media.getMediaUuid());
-        // 只统计公开可见且未违规的图片
-        if (record != null && record.isPublicAccessible() && !record.isViolation()) {
-          totalLikes += record.getLikeCount();
-        }
+    for (Map.Entry<Long, Object[]> entry : rowsByAlbumId.entrySet()) {
+      Album album = albumsById.get(entry.getKey());
+      if (album == null) {
+        continue;
       }
-
-      // 只返回有图片的图集
-      if (!medias.isEmpty()) {
-        AlbumFeaturedResponse response = new AlbumFeaturedResponse();
-        response.setId(album.getId());
-        response.setAlbumUuid(album.getAlbumUuid());
-        response.setPathSlug(album.getPathSlug());
-        response.setName(album.getName());
-        response.setDescription(album.getDescription());
-        response.setCoverImageUuid(album.getCoverImageUuid());
-        response.setMediaCount((long) medias.size());
-        response.setTotalLikes(totalLikes);
-        response.setUsername(album.getUser() != null ? album.getUser().getUsername() : null);
-        response.setCreatedAt(album.getCreatedAt());
-
-        featuredList.add(response);
-      }
+      Object[] row = entry.getValue();
+      AlbumFeaturedResponse response = new AlbumFeaturedResponse();
+      response.setId(album.getId());
+      response.setAlbumUuid(album.getAlbumUuid());
+      response.setPathSlug(album.getPathSlug());
+      response.setName(album.getName());
+      response.setDescription(album.getDescription());
+      response.setCoverImageUuid(album.getCoverImageUuid());
+      response.setMediaCount(((Number) row[1]).longValue());
+      response.setTotalLikes(((Number) row[2]).longValue());
+      response.setUsername(album.getUser() != null ? album.getUser().getUsername() : null);
+      response.setCreatedAt(album.getCreatedAt());
+      featuredList.add(response);
     }
-
-    // 按喜欢数总和降序排序，取前3个
-    return featuredList.stream()
-        .sorted((a, b) -> Long.compare(b.getTotalLikes(), a.getTotalLikes()))
-        .limit(3)
-        .collect(Collectors.toList());
+    return featuredList;
   }
 
   /** 按 mediaUuid 批量取回上传记录，一次查询替代逐条 findByMediaUuid（N+1） */

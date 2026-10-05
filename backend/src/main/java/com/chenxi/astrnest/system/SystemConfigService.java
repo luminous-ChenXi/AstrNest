@@ -1,6 +1,7 @@
 package com.chenxi.astrnest.system;
 
 import com.chenxi.astrnest.chenxi.mail.ChenxiMailConfigService;
+import com.chenxi.astrnest.common.HtmlSanitizer;
 import com.chenxi.astrnest.security.user.UserAccountRepository;
 import com.chenxi.astrnest.system.dto.PublicSystemConfigResponse;
 import com.chenxi.astrnest.system.dto.SystemConfigResponse;
@@ -306,7 +307,8 @@ public class SystemConfigService {
     if (!StringUtils.hasText(footerHtml)) {
       return null;
     }
-    return footerHtml.trim();
+    // 白名单清洗（审计 P1-11）：footer 是注入全站的唯一 HTML 通道，服务端不清洗则防护全押前端 DOMPurify
+    return HtmlSanitizer.richText(footerHtml);
   }
 
   private String trimToNull(String value) {

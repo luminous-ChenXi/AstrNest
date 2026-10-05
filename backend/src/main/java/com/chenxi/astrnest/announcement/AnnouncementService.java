@@ -3,6 +3,7 @@ package com.chenxi.astrnest.announcement;
 import com.chenxi.astrnest.announcement.dto.AnnouncementPageResponse;
 import com.chenxi.astrnest.announcement.dto.AnnouncementRequest;
 import com.chenxi.astrnest.announcement.dto.AnnouncementResponse;
+import com.chenxi.astrnest.common.HtmlSanitizer;
 import com.chenxi.astrnest.security.user.UserAccount;
 import com.chenxi.astrnest.security.user.UserAccountRepository;
 import com.chenxi.astrnest.security.user.UserRole;
@@ -95,7 +96,8 @@ public class AnnouncementService {
   private void applyRequest(Announcement announcement, AnnouncementRequest request, boolean isCreate) {
     String normalizedTitle = request.title() != null ? request.title().trim() : null;
     String normalizedSummary = trimToLength(request.summary(), 320);
-    String normalizedContent = request.contentMarkdown() != null ? request.contentMarkdown().trim() : null;
+    // 服务端清洗（审计 P1-11）：转义 Markdown 源里的原始 HTML，防存储型 XSS（前端 DOMPurify 之外的服务端纵深）
+    String normalizedContent = HtmlSanitizer.markdownSource(request.contentMarkdown());
     AnnouncementLevel level = request.level() != null ? request.level() : AnnouncementLevel.NOTICE;
     AnnouncementStatus status = request.status() != null ? request.status() : AnnouncementStatus.DRAFT;
 

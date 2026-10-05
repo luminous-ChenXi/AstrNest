@@ -1,5 +1,23 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-10-06
+
+### 批次三余项：内容与展示链路
+
+- **缩略图双前缀修复**：图片/视频列表的 `thumbnailUrl` 出现 `/upload/upload/...`——
+  库里存的是公开路径，组装响应时又被当 objectKey 拼了一次 `/upload` 前缀；
+  用户端与公开画廊两处同步修复
+- **热门图集下沉数据库（P2-13）**：此前捞全部公开图集+媒体+上传记录内存求和排序，
+  改原生 SQL 聚合（`SUM(CASE...)` + `GROUP BY` + Top 3），规模化不再性能退化
+- **公告乐观锁（P2-12）**：`announcements.version` + JPA `@Version`，
+  管理员并发编辑由"后提交者静默覆盖"改为后提交者收到 409；schema 双通道 + 存量对齐
+- **jsoup 服务端清洗（P1-11）**：新增 `HtmlSanitizer`——
+  footer HTML 走 jsoup 白名单（剥 script/事件属性）；公告 Markdown 源整体 HTML 转义
+  （纯字符串处理不破坏 Markdown 结构，代价是公告不再支持内嵌原始 HTML）；
+  用户资料 avatarUrl/website 走协议白名单（http/https/站内相对路径，
+  `javascript:`/`data:` 一律拒绝入库）——服务端纵深不再全押前端 DOMPurify
+- **测试**：新增 `HtmlSanitizerTest`（6），后端测试 33 → 39 全绿
+
 ## [Unreleased] - 2026-10-05 (4)
 
 ### 修复冒烟测试发现的问题
