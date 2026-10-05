@@ -1645,7 +1645,8 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- interactions 表已随 v1.3 清理移除（评论/互动功能从未实装，点赞走 upload_likes）。CREATE TABLE IF NOT EXISTS auth_lock_states (
+-- interactions 表已随 v1.3 清理移除（评论/互动功能从未实装，点赞走 upload_likes）。
+CREATE TABLE IF NOT EXISTS auth_lock_states (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   username VARCHAR(191) NOT NULL DEFAULT '',
   ip VARCHAR(64) NOT NULL DEFAULT '',

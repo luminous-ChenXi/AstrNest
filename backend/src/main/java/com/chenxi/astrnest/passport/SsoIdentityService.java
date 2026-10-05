@@ -181,6 +181,10 @@ public class SsoIdentityService {
       base = "sso_" + sub;
     }
     base = sanitizeUsername(base);
+    if (!StringUtils.hasText(base)) {
+      // 纯白名单外字符的用户名（如纯中文）剥完为空：回退随机名，禁止空用户名入库
+      base = "sso_" + Long.toHexString(System.currentTimeMillis());
+    }
     if (!userAccountRepository.existsByUsername(base)) {
       return base;
     }
