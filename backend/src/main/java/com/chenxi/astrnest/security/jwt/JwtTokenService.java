@@ -13,6 +13,8 @@ import javax.crypto.SecretKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -48,9 +50,17 @@ public class JwtTokenService {
 
   public JwtTokenService(
       @Value("${astrnest.jwt.secret:}") String configuredSecret,
-      @Value("${chenxi.passport.access-token-days:30}") long accessTokenDays) {
+      @Value("${chenxi.passport.access-token-days:30}") long accessTokenDays,
+      Environment environment) {
+    boolean production = environment.acceptsProfiles(Profiles.of("prod"));
     if (StringUtils.hasText(configuredSecret) && configuredSecret.trim().length() >= MIN_SECRET_CHARS) {
       this.secretKey = Keys.hmacShaKeyFor(configuredSecret.trim().getBytes(StandardCharsets.UTF_8));
+    } else if (production) {
+      // 与 compose 的数据库密码同等待遇：生产环境密钥缺失直接启动失败，
+      // 杜绝"临时随机密钥"静默上线（重启全员掉线 / 多实例密钥不一致）
+      throw new IllegalStateException(
+          "生产环境必须配置 astrnest.jwt.secret（环境变量 ASTRNEST_JWT_SECRET，至少 " + MIN_SECRET_CHARS
+              + " 字符，可用 openssl rand -base64 48 生成）");
     } else {
       log.warn("astrnest.jwt.secret 未配置或长度不足 {} 字符，已生成临时随机密钥；"
           + "生产必须配置 ASTRNEST_JWT_SECRET，否则重启后所有 token 失效", MIN_SECRET_CHARS);

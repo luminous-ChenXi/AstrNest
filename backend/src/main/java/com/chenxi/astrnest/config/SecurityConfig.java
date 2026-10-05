@@ -108,7 +108,8 @@ public class SecurityConfig {
             .requestMatchers("/api/user/**").hasAnyRole("ADMIN", "USER");
             authorize.anyRequest().authenticated();
         })
-        .httpBasic(Customizer.withDefaults())
+        // httpBasic 已移除：Basic 通道的认证失败不经过 AuthProtectionService 防爆破锁定，
+        // 等于给暴力破解留了无限速旁路；机器对机器场景由 API Key（X-API-Key）承担
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         // frameOptions 保持 disable：/embed/** 面向站外 iframe 分享（前端提供「嵌入代码」复制），
         // 不能写 SAMEORIGIN/DENY。全局 X-Frame-Options:SAMEORIGIN 由 GlobalSecurityHeaderFilter

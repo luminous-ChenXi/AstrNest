@@ -86,8 +86,8 @@ public class GlobalExceptionHandler {
       return "文件过大：超出存储服务允许的文件大小限制";
     }
     
-    // 默认错误
-    return "文件上传失败：" + ex.getMessage();
+    // 默认错误（不带 ex.getMessage()，防止内部细节泄露）
+    return "文件上传失败，请检查存储配置或稍后重试";
   }
 
   @ExceptionHandler(StorageObjectNotFoundException.class)
@@ -135,8 +135,9 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiErrorResponse> handleOther(Exception ex) {
+    // 详情只进日志：ex.getMessage() 可能携带 SQL 片段/文件路径/内部类名，回显给客户端属信息泄露
     log.error("未处理异常: {}", ex.getMessage(), ex);
-    return buildResponse("服务器内部错误: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    return buildResponse("服务器内部错误，请稍后重试或联系管理员", HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
   private ResponseEntity<ApiErrorResponse> buildResponse(String message, HttpStatus status) {

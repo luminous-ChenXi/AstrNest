@@ -15,6 +15,12 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     ports:
       # 仅绑定本机回环，避免 MySQL 直接暴露公网；外部访问走 backend 连接
       - "127.0.0.1:3306:3306"
@@ -28,11 +34,15 @@ services:
     env_file:
       - ./.env
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
       ASTRNEST_DB_URL: ${ASTRNEST_DB_URL:-jdbc:mysql://mysql:3306/astrnest?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
       ASTRNEST_DB_USERNAME: ${ASTRNEST_DB_USERNAME:-astrnest}
       ASTRNEST_DB_PASSWORD: ${ASTRNEST_DB_PASSWORD:?请在 .env 中设置 ASTRNEST_DB_PASSWORD}
+      # JWT 密钥与数据库密码同等待遇：缺失拒绝启动（.env.example 有生成指引）
+      ASTRNEST_JWT_SECRET: ${ASTRNEST_JWT_SECRET:?请在 .env 中设置 ASTRNEST_JWT_SECRET（openssl rand -base64 48 生成）}
+      CHENXI_INSTALL_TOKEN: ${CHENXI_INSTALL_TOKEN:-}
       ASTRNEST_STORAGE_ROOT: ${ASTRNEST_STORAGE_ROOT:-/storage/upload}
       ASTRNEST_STORAGE_PUBLIC: ${ASTRNEST_STORAGE_PUBLIC:-/upload}
       ASTRNEST_ASSET_DOMAIN: ${ASTRNEST_ASSET_DOMAIN:-}
@@ -40,10 +50,6 @@ services:
       PUBLIC_ASSET_URL: ${PUBLIC_ASSET_URL:-https://your-domain.example/upload}
       BACKEND_API_PUBLIC_URL: ${BACKEND_API_PUBLIC_URL:-https://api.your-domain.example}
       ASTRNEST_STORAGE_STRATEGY: ${ASTRNEST_STORAGE_STRATEGY:-LOCAL}
-      ASTRNEST_ADMIN_USERNAME: ${ASTRNEST_ADMIN_USERNAME:-admin}
-      ASTRNEST_ADMIN_PASSWORD: ${ASTRNEST_ADMIN_PASSWORD:?请在 .env 中设置 ASTRNEST_ADMIN_PASSWORD（部署后立即修改）}
-      ASTRNEST_ADMIN_DISPLAY: ${ASTRNEST_ADMIN_DISPLAY:-超级管理员}
-      ASTRNEST_ADMIN_EMAIL: ${ASTRNEST_ADMIN_EMAIL:-admin@example.com}
       ASTRNEST_API_KEY_HEADER: ${ASTRNEST_API_KEY_HEADER:-X-API-Key}
       ASTRNEST_API_DEFAULT_QUOTA: ${ASTRNEST_API_DEFAULT_QUOTA:-1000}
       ASTRNEST_MULTIPART_MAX_FILE_SIZE: ${ASTRNEST_MULTIPART_MAX_FILE_SIZE:-20MB}

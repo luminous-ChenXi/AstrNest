@@ -388,10 +388,19 @@ public class UploadService {
   }
 
   /**
-   * 存储前端传来的视频封面
+   * 存储前端传来的视频封面。封面与主文件走同一条校验管道：历史上封面绕过
+   * ChenxiMediaInspector，任意扩展名/内容的文件可借 videoCovers 落盘并被同源直出
+   * （存储型 XSS 面）。校验不通过时不中断上传，回退 FFmpeg 截帧。
    */
   private VideoThumbnailResult storeFrontendCover(MultipartFile coverFile, StorageContext context) {
     try {
+      MediaInspection coverInspection = mediaInspector.inspect(coverFile);
+      if (coverInspection.category() != MediaCategory.IMAGE) {
+        log.warn("视频封面仅支持图片格式，已忽略并回退 FFmpeg 截帧: {}", safeName(coverFile.getOriginalFilename()));
+        return null;
+      }
+      long maxImageBytes = systemConfigService.currentMaxUploadBytes();
+      mediaInspector.enforceSizeLimit(coverFile, MediaCategory.IMAGE, maxImageBytes, maxImageBytes);
       StoredObject coverStored = storageService.store(coverFile, context);
       String coverUrl = publicAssetUrlResolver.resolveStoredObject(coverStored);
       return new VideoThumbnailResult(coverUrl, coverStored.objectKey());

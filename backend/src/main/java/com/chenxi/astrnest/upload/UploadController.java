@@ -8,12 +8,14 @@ import com.chenxi.astrnest.upload.record.UploadRecordService;
 import com.chenxi.astrnest.system.SystemConfigService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -85,9 +87,13 @@ public class UploadController {
     Resource resource = storageService.loadAsResource(normalizedKey);
     uploadRecordService.recordFetch(normalizedKey);
     MediaType contentType = detectContentType(resource);
+    // filename 走 RFC 6266 编码：文件名含引号/换行等字符时不再破坏响应头
+    ContentDisposition disposition = ContentDisposition.builder("inline")
+        .filename(Objects.requireNonNullElse(resource.getFilename(), "file"), StandardCharsets.UTF_8)
+        .build();
     return ResponseEntity.ok()
         .contentType(Objects.requireNonNull(contentType))
-        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + resource.getFilename())
+        .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
         .body(resource);
   }
 

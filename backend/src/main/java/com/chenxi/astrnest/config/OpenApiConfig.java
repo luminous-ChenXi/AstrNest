@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
   private static final String BEARER_AUTH = "bearerAuth";
-  private static final String BASIC_AUTH = "basicAuth";
+  private static final String API_KEY_AUTH = "apiKeyAuth";
 
   @Bean
   public OpenAPI astrnestOpenAPI() {
@@ -26,8 +26,8 @@ public class OpenApiConfig {
             .description("现代化图床/媒体平台 API。基础路径 `/api/**`。鉴权以 Bearer JWT 为主通道："
                 + "调用 `POST /api/auth/login` 获取 `token`（JWT，默认 30 天不活动过期，可用 `chenxi.passport.access-token-days` 配置），"
                 + "后续请求携带 `Authorization: Bearer <JWT>`；过期后重新登录获取。"
-                + "HTTP Basic（`Authorization: Basic <base64(user:password)>`）作为兼容通道保留，"
-                + "便于 API 插件等非交互场景。管理员接口需额外权限。")
+                + "机器对机器场景（API 插件、脚本上传）使用 API Key：管理端签发，请求头 `X-API-Key: ik_...`。"
+                + "管理员接口需额外权限。")
             .contact(new Contact().name("AstrNest Team")))
         .components(new Components()
             .addSecuritySchemes(BEARER_AUTH, new SecurityScheme()
@@ -35,13 +35,14 @@ public class OpenApiConfig {
                 .scheme("bearer")
                 .bearerFormat("JWT")
                 .description("主通道。`POST /api/auth/login` 返回的 JWT，格式 `Authorization: Bearer <JWT>`。"))
-            .addSecuritySchemes(BASIC_AUTH, new SecurityScheme()
-                .type(SecurityScheme.Type.HTTP)
-                .scheme("basic")
-                .description("兼容通道。`Authorization: Basic <base64(username:password)>`，行为与 JWT 通道一致。")))
+            .addSecuritySchemes(API_KEY_AUTH, new SecurityScheme()
+                .type(SecurityScheme.Type.APIKEY)
+                .in(SecurityScheme.In.HEADER)
+                .name("X-API-Key")
+                .description("机器通道。管理端 `/api/keys` 签发的 API Key（`ik_` 前缀），仅可用于 `POST /api/uploads/**`。")))
         .security(List.of(
             new SecurityRequirement().addList(BEARER_AUTH),
-            new SecurityRequirement().addList(BASIC_AUTH)))
+            new SecurityRequirement().addList(API_KEY_AUTH)))
         .externalDocs(new ExternalDocumentation()
             .description("项目 README 与部署说明")
             .url("https://github.com/luminous-ChenXi/astrnest"));

@@ -22,8 +22,8 @@ WORKDIR /app
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV JAVA_OPTS=""
 
-# 复制构建产物
-COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
+# 复制构建产物（通配 jar 名，版本号变更不再破坏构建）
+COPY --from=build /app/target/backend-*.jar app.jar
 
 # 创建非root用户
 # application-prod.yml 将日志写入 /var/log/astrnest/application.log，
@@ -36,8 +36,8 @@ USER spring
 # 暴露端口
 EXPOSE 8081
 
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# 健康检查（start-period 覆盖 JVM + Spring Boot 冷启动，5s 会把正常慢启动误判为 unhealthy）
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=5 \
   CMD curl -f http://localhost:8081/actuator/health || exit 1
 
 # 启动应用

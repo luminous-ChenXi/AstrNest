@@ -1,6 +1,7 @@
 package com.chenxi.astrnest.storage.upyun;
 
 import com.chenxi.astrnest.storage.StorageContext;
+import com.chenxi.astrnest.storage.StorageObjectKeys;
 import com.chenxi.astrnest.storage.StorageProperties;
 import com.chenxi.astrnest.storage.StorageStrategy;
 import com.chenxi.astrnest.storage.StoredObject;
@@ -126,12 +127,9 @@ public class UpyunStorageHandler implements StorageHandler {
     return restManager;
   }
 
+  /** 对象 key 统一「日期目录 + 随机文件名」：put 覆盖语义下防止跨用户同名互相覆盖，并降低直链可枚举性 */
   private String buildObjectKey(MultipartFile file) {
-    ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
-    String year = String.format("%04d", now.getYear());
-    String month = String.format("%02d", now.getMonthValue());
-    String fileName = resolveFileName(file);
-    return year + "/" + month + "/" + fileName;
+    return StorageObjectKeys.datedPrefix() + "/" + StorageObjectKeys.randomFileName(file);
   }
 
   private String resolveFileName(MultipartFile file) {

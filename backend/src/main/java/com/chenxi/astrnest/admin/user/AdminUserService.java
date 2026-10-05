@@ -96,7 +96,6 @@ public class AdminUserService {
     return new PublicUserProfileResponse(
         user.getId(),
         user.getDisplayName(),
-        user.getEmail(),
         user.getAvatarUrl(),
         user.getSignature(),
         usage.uploadCount(),

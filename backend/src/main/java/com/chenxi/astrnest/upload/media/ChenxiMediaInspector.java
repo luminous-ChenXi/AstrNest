@@ -230,9 +230,24 @@ public class ChenxiMediaInspector {
     return header.length >= 12 && startsWith(header, RIFF) && startsWithAt(header, AVI, 8);
   }
 
+  /**
+   * SVG 魔数判定：兼容「UTF-8 BOM」「&lt;?xml 声明」前缀（此前只认裸 &lt;svg 开头，
+   * 带 XML 声明的合法 SVG 反被拒）。仍以 &lt;svg 标签出现为准，不做内容消毒——
+   * SVG 的脚本中和依赖服务端响应头的 CSP sandbox。
+   */
   private boolean looksLikeSvg(byte[] header) {
-    String prefix = new String(header, StandardCharsets.UTF_8).trim().toLowerCase(Locale.ROOT);
-    return prefix.startsWith("<svg");
+    String prefix = new String(header, StandardCharsets.UTF_8);
+    if (prefix.startsWith("\uFEFF")) {
+      prefix = prefix.substring(1);
+    }
+    String lower = prefix.trim().toLowerCase(Locale.ROOT);
+    if (lower.startsWith("<?xml")) {
+      int declarationEnd = lower.indexOf("?>");
+      if (declarationEnd >= 0) {
+        lower = lower.substring(declarationEnd + 2).trim();
+      }
+    }
+    return lower.startsWith("<svg");
   }
 
   private boolean startsWith(byte[] data, byte[] prefix) {

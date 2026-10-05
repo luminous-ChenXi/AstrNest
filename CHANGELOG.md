@@ -1,5 +1,32 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-10-05
+
+### 安全止血（第二轮全链路审计 P0 修复，报告见 docs/audit-report-2026-10-05.md）
+
+- **视频封面校验补口**：`videoCovers` 封面文件此前完全绕过 `ChenxiMediaInspector`（任意扩展名/内容
+  可落盘并被同源直出，存储型 XSS 面）；现封面与主文件走同一校验管道（扩展名/MIME/魔数/大小），
+  校验不通过自动回退 FFmpeg 截帧
+- **公开用户档案不再返回邮箱**：`GET /api/public/users/{id}`（匿名可达）移除 email 字段，
+  前端公开主页同步移除 mailto 展示——防止未认证批量收割注册邮箱
+- **对象 key 统一「日期目录 + 随机文件名」**：本地与 S3/OSS/又拍/OneDrive 全部后端不再用
+  「年/月/原始文件名」——对象存储 put 覆盖语义下同名文件会跨用户互相覆盖，且直链可枚举；
+  原始文件名仍保存在 upload_records 与 API 响应中用于展示（新增 `StorageObjectKeys` 统一生成）
+- **移除 HTTP Basic 兼容通道**：Basic 认证失败不经过防爆破锁定，等于给暴力破解留无限速旁路；
+  机器场景由 API Key 承担，Swagger 文档同步改为 Bearer + X-API-Key 双方案
+- **JWT 密钥生产强制**：prod profile 下 `astrnest.jwt.secret` 缺失或不足 32 字符直接拒绝启动
+  （此前只打 WARN 并用临时随机密钥——重启全员掉线）；`.env.example` 补 `ASTRNEST_JWT_SECRET`，
+  compose 注入并加 `:?` 空值断言
+- **安装向导令牌保护**：部署时可配置 `CHENXI_INSTALL_TOKEN`，向导全部写操作必须携带
+  `X-Chenxi-Install-Token` 请求头，防止公网部署窗口期被陌生人抢注第一个用户（自动 ADMIN）接管站点；
+  安装页新增令牌输入框，留空=不启用（本地/内网部署兼容）
+- **快赢项**：500 响应不再回显内部异常消息；`Content-Disposition` filename 走 RFC 6266 编码；
+  SVG 魔数兼容 `<?xml` 声明（带声明的合法 SVG 不再被拒）；关闭 OSIV；删除 `.env.example` 的
+  SMTP 死配置与 compose 的 `ASTRNEST_ADMIN_*` 死变量；compose MySQL 健康检查 + backend
+  `depends_on: service_healthy`（消除首启竞态）；Dockerfile 健康检查 start-period 5s→60s、jar 名通配化
+- **测试**：新增 `ChenxiMediaInspectorTest`（6）、`StorageObjectKeysTest`（6）、`InstallTokenGuardTest`（4），
+  后端测试 17 → 33 全绿
+
 ## [Unreleased] - 2026-09-27
 
 ### 安装向导对齐与 N1 管理员私密保障

@@ -98,9 +98,6 @@ onMounted(() => {
                 {{ profile && profile.signature ? profile.signature : '这位用户还没有留下任何介绍。' }}
               </p>
               <div class="mt-4 flex flex-wrap gap-3 text-sm text-body-soft">
-                <a v-if="profile && profile.email" :href="`mailto:${profile.email}`" class="rounded-full border border-body px-4 py-1.5">
-                  {{ profile.email }}
-                </a>
                 <span class="rounded-full border border-body px-4 py-1.5">ID：{{ route.params.userId }}</span>
               </div>
             </div>

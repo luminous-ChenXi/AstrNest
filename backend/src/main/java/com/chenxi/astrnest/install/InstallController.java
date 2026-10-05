@@ -1,5 +1,6 @@
 package com.chenxi.astrnest.install;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,10 +17,13 @@ import org.springframework.web.server.ResponseStatusException;
  * <p>流程对齐统一规范：环境检测 → 数据库配置 → 初始化（建表）→ 站点配置 → 管理员创建 → 完成。
  * 其中"数据库配置"由部署环境（ASTRNEST_DB_URL/USERNAME/PASSWORD）承载，向导内只做连接确认。</p>
  *
- * <p>四重防护保证安全：</p>
+ * <p>防护保证安全：</p>
  * <ul>
  *   <li>SecurityConfig：/api/install/** permitAll（匿名可探测状态）；</li>
  *   <li>InstallGuardFilter：未安装时拦截其余 /api/** 返回 503；</li>
+ *   <li>本 Controller：部署时配置了 CHENXI_INSTALL_TOKEN 的，写操作必须携带
+ *       X-Chenxi-Install-Token 请求头（InstallTokenGuard，防止公网部署窗口期被抢注），
+ *       未配置则放行（本地/内网部署兼容）；</li>
  *   <li>本 Controller：防重装锁命中（install.lock 文件或完成标记）后所有写操作端点一律 403
  *       （防止装完后被重放调用），步骤顺序不满足时返回 409；</li>
  *   <li>前端路由守卫：已安装/已锁定时把 /install 访问弹离。</li>
@@ -35,6 +39,7 @@ public class InstallController {
   private final InstallSiteConfigService installSiteConfigService;
   private final InstallDatabaseTestService installDatabaseTestService;
   private final InstallResetService installResetService;
+  private final InstallTokenGuard installTokenGuard;
 
   /** 任何时候都可访问（安装完成后也返回 installed/locked:true 供前端判断） */
   @GetMapping("/status")
@@ -48,7 +53,8 @@ public class InstallController {
    * 与运行时连接完全隔离（一次性短连接），并回显运行时连接串供部署者比对。
    */
   @PostMapping("/database/test")
-  public InstallDbTestResponse testDatabase(@Valid @RequestBody InstallDbTestRequest request) {
+  public InstallDbTestResponse testDatabase(@Valid @RequestBody InstallDbTestRequest request, HttpServletRequest httpRequest) {
+    installTokenGuard.check(httpRequest);
     ensureWizardUnlocked();
     return installDatabaseTestService.test(request);
   }
@@ -58,13 +64,15 @@ public class InstallController {
    * 仅「未完成站点」（users 表不存在或没有用户）可调用，已有用户的正常站点一律 403。
    */
   @PostMapping("/reset")
-  public InstallResetResponse reset() {
+  public InstallResetResponse reset(HttpServletRequest httpRequest) {
+    installTokenGuard.check(httpRequest);
     return installResetService.reset();
   }
 
   /** 初始化数据库表结构（仅 schemaState != INSTALLED 时允许，幂等） */
   @PostMapping("/database")
-  public InstallDatabaseResponse installDatabase() {
+  public InstallDatabaseResponse installDatabase(HttpServletRequest httpRequest) {
+    installTokenGuard.check(httpRequest);
     ensureWizardUnlocked();
     if (InstallStatusService.STATE_INSTALLED.equals(installStatusService.getSnapshot().schemaState())) {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "数据库已包含 AstrNest 表结构，无需重复安装");
@@ -76,7 +84,8 @@ public class InstallController {
 
   /** 保存站点初始配置（需已完成初始化建表；可多次调用，未提供的字段保持默认） */
   @PostMapping("/site-config")
-  public InstallSiteConfigResponse saveSiteConfig(@Valid @RequestBody InstallSiteConfigRequest request) {
+  public InstallSiteConfigResponse saveSiteConfig(@Valid @RequestBody InstallSiteConfigRequest request, HttpServletRequest httpRequest) {
+    installTokenGuard.check(httpRequest);
     ensureWizardUnlocked();
     String schemaState = installStatusService.getSnapshot().schemaState();
     if (InstallStatusService.STATE_NOT_INSTALLED.equals(schemaState)) {
@@ -88,7 +97,8 @@ public class InstallController {
 
   /** 创建初始管理员（仅 schemaState == EMPTY 时允许） */
   @PostMapping("/admin")
-  public InstallAdminResponse createAdmin(@RequestBody InstallAdminRequest request) {
+  public InstallAdminResponse createAdmin(@RequestBody InstallAdminRequest request, HttpServletRequest httpRequest) {
+    installTokenGuard.check(httpRequest);
     ensureWizardUnlocked();
     if (!InstallStatusService.STATE_EMPTY.equals(installStatusService.getSnapshot().schemaState())) {
       throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -107,7 +117,8 @@ public class InstallController {
    * 否则 finish 自身永远 403。
    */
   @PostMapping("/finish")
-  public InstallFinishResponse finish() {
+  public InstallFinishResponse finish(HttpServletRequest httpRequest) {
+    installTokenGuard.check(httpRequest);
     if (installStatusService.isLocked()) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "系统已完成安装，安装向导已关闭");
     }

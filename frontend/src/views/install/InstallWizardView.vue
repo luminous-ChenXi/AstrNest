@@ -26,9 +26,11 @@ import {
   createInstallAdmin,
   finishInstall,
   getInstallError,
+  getInstallToken,
   resetInstallState,
   runDatabaseInstall,
   saveSiteConfig,
+  setInstallToken,
   testDatabaseConnection,
 } from '../../services/install'
 import { useInstallStore } from '../../stores/install'
@@ -44,6 +46,10 @@ const loading = ref(true)
 const currentStep = ref(0)
 const alreadyInstalled = ref(false)
 const installError = ref(null)
+
+// 安装令牌：服务端配置 CHENXI_INSTALL_TOKEN 后，向导写操作必须携带 X-Chenxi-Install-Token
+const installTokenInput = ref(getInstallToken())
+watch(installTokenInput, (value) => setInstallToken(value))
 
 const installingDb = ref(false)
 const databaseResult = ref(null)
@@ -511,6 +517,23 @@ const goLogin = async () => {
               <a :href="DOC_URL" target="_blank" rel="noreferrer">CONFIG_GUIDE</a>。修复后点击「重新检测」。
             </div>
           </el-alert>
+
+          <div class="install-token-box">
+            <el-form label-position="top">
+              <el-form-item label="安装令牌（可选）">
+                <el-input
+                  v-model="installTokenInput"
+                  placeholder="部署时配置了 CHENXI_INSTALL_TOKEN 则必填，否则留空"
+                  autocomplete="off"
+                  show-password
+                />
+                <div class="muted" style="margin-top: 4px">
+                  公网部署时建议在服务端配置安装令牌（.env 的 CHENXI_INSTALL_TOKEN），
+                  防止安装完成前被陌生人抢注管理员；此处填写后会自动附加到后续每一步安装请求。
+                </div>
+              </el-form-item>
+            </el-form>
+          </div>
 
           <div class="actions">
             <el-button :icon="Refresh" :loading="loading" @click="refreshStatus(true)">重新检测</el-button>

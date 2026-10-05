@@ -8,6 +8,38 @@ const installHttp = axios.create({
   timeout: 20000,
 })
 
+// 安装令牌（CHENXI_INSTALL_TOKEN）：服务端配置后，向导写操作必须携带
+// X-Chenxi-Install-Token 请求头，防止公网部署窗口期被陌生人抢注管理员
+const INSTALL_TOKEN_STORAGE_KEY = 'astrnest.install.token'
+
+export const getInstallToken = () => {
+  try {
+    return localStorage.getItem(INSTALL_TOKEN_STORAGE_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+
+export const setInstallToken = (token) => {
+  try {
+    if (token && token.trim()) {
+      localStorage.setItem(INSTALL_TOKEN_STORAGE_KEY, token.trim())
+    } else {
+      localStorage.removeItem(INSTALL_TOKEN_STORAGE_KEY)
+    }
+  } catch {
+    /* localStorage 不可用（隐私模式等）时仅内存外失效，不影响本次会话内的请求头注入 */
+  }
+}
+
+installHttp.interceptors.request.use((config) => {
+  const token = getInstallToken()
+  if (token) {
+    config.headers['X-Chenxi-Install-Token'] = token
+  }
+  return config
+})
+
 const extractMessage = (error, fallback) => {
   const data = error?.response?.data
   if (data && typeof data === 'object' && data.message) return data.message
