@@ -86,8 +86,10 @@ public class UserAccount {
    * 令牌版本：改密/找回密码等敏感操作后 +1，使该用户已签发的全部 JWT 失效
    * （JWT 带 ver claim，JwtAuthenticationFilter 比对不一致即拒绝）——
    * 补齐「改密码后踢掉旧会话（含被盗 token）」的服务端吊销能力。
+   * columnDefinition 带默认值：Hibernate ddl-auto 建表时，安装向导的原生 INSERT（不含此列）才不会失败。
    */
-  @Column(name = "token_version", nullable = false)
+  @Column(name = "token_version", nullable = false,
+      columnDefinition = "BIGINT NOT NULL DEFAULT 0")
   private long tokenVersion = 0L;
 
   @Column(name = "daily_upload_limit")

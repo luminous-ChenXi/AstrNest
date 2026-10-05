@@ -62,6 +62,13 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
 
     // 令牌版本（JWT 服务端吊销：改密/找回密码 +1 使该用户旧令牌全部失效）
     ensureColumnExists("users", "token_version", "BIGINT NOT NULL DEFAULT 0 AFTER email_verified");
+    // 兼容由 Hibernate ddl-auto 建出的无默认值列（历史 dev 库）：统一补默认值，
+    // 否则安装向导的原生 INSERT（列清单不含 token_version）在严格模式下报 1364
+    try {
+      jdbcTemplate.execute("ALTER TABLE users MODIFY COLUMN token_version BIGINT NOT NULL DEFAULT 0");
+    } catch (Exception exception) {
+      log.warn("Failed to align users.token_version default: {}", exception.getMessage());
+    }
 
     // 验证码/图形验证码列宽 6/16 → 64：明文改 SHA-256 哈希入库后需要 64 位十六进制
     widenColumnIfSmaller("chenxi_email_token", "code", 64);

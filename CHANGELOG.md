@@ -1,5 +1,15 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-10-05 (4)
+
+### 修复冒烟测试发现的问题
+
+- **token_version 默认值缺失**：dev 库的 users 表由 Hibernate ddl-auto 建出，
+  `token_version` 无默认值导致安装向导的原生 INSERT 在严格模式下报 1364；
+  实体补 `columnDefinition = "BIGINT NOT NULL DEFAULT 0"`，
+  SchemaAlignmentRunner 对存量库统一 `MODIFY ... DEFAULT 0` 兜底
+  （Docker MySQL 8.4 + 全新库安装向导全链路实测通过）
+
 ## [Unreleased] - 2026-10-05 (3)
 
 ### 上传与统计链路（审计批次三·首批）
