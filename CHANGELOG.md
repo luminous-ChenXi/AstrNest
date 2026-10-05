@@ -1,5 +1,17 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-10-05 (3)
+
+### 上传与统计链路（审计批次三·首批）
+
+- **浏览量原子自增**：`recordFetch` 先读后写在并发下丢更新，改 `UPDATE ... SET invoke_count = invoke_count + 1`
+  原子语句；计数失败不影响媒体访问（对齐 AlbumRepository 既有范式）
+- **访客上传复活（P1-8）**：`POST /api/uploads` 放行匿名，由控制器内 `guestUploadEnabled` 开关 +
+  IP 配额裁决——此前安全链要求必须登录，安装向导里的「允许访客上传」是完全不可达的死功能
+- **随机图短链 N+1 修复**：逐条 `findByMediaUuid` 改 `findByMediaUuidIn` 批量取回可见性
+- **视频嵌入违规拦截（P2-16）**：`/embed/video/{uuid}` 拒绝违规（violation）与未公开视频，
+  此前 UUID 泄露即可绕过列表层过滤嵌播任意状态视频
+
 ## [Unreleased] - 2026-10-05 (2)
 
 ### 认证链路加固（审计批次二：P0-6 + P1 系列）

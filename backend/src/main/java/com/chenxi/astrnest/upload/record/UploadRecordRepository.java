@@ -9,6 +9,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -132,4 +133,9 @@ public interface UploadRecordRepository extends JpaRepository<UploadRecord, Long
       Pageable pageable);
 
   List<UploadRecord> findTop3ByPublicAccessibleTrueAndViolationFalseOrderByLikeCountDesc();
+
+  /** 浏览量原子自增：先读后写在并发下丢更新（审计 P1-13）；计数失败不影响媒体访问 */
+  @Modifying
+  @Query("UPDATE UploadRecord r SET r.invokeCount = r.invokeCount + 1, r.lastAccessAt = :now WHERE r.objectKey = :objectKey")
+  int incrementInvokeCount(@Param("objectKey") String objectKey, @Param("now") Instant now);
 }

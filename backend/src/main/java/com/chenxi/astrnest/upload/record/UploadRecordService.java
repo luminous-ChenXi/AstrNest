@@ -167,14 +167,14 @@ public class UploadRecordService {
     return uploadRecordRepository.totalSizeByUser(userId);
   }
 
+  /** 浏览量原子自增（审计 P1-13：先读后写在并发下丢更新；写失败不影响媒体访问） */
   @Transactional
   public void recordFetch(String objectKey) {
-        uploadRecordRepository.findByObjectKey(objectKey)
-        .ifPresent(record -> {
-          record.setInvokeCount(record.getInvokeCount() + 1);
-          record.setLastAccessAt(Instant.now());
-          uploadRecordRepository.save(record);
-        });
+    try {
+      uploadRecordRepository.incrementInvokeCount(objectKey, Instant.now());
+    } catch (Exception exception) {
+      // 计数属尽力而为：直链服务本身不因统计失败而失败
+    }
   }
 
   @Transactional

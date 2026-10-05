@@ -236,12 +236,14 @@ public class AlbumService {
     }
 
     List<AlbumMedia> medias = albumMediaRepository.findByAlbumIdOrderBySortOrderAsc(album.getId());
-    List<AlbumMedia> visibleMedias = new ArrayList<>();
-    for (AlbumMedia media : medias) {
-      uploadRecordRepository.findByMediaUuid(media.getMediaUuid())
-          .filter(this::isPublicVisible)
-          .ifPresent(record -> visibleMedias.add(media));
-    }
+    // 批量取回全部候选媒体的可见性（此前逐条 findByMediaUuid，N+1）
+    Map<String, UploadRecord> visibleByUuid = uploadRecordRepository.findByMediaUuidIn(
+            medias.stream().map(AlbumMedia::getMediaUuid).toList()).stream()
+        .filter(this::isPublicVisible)
+        .collect(Collectors.toMap(UploadRecord::getMediaUuid, record -> record));
+    List<AlbumMedia> visibleMedias = medias.stream()
+        .filter(media -> visibleByUuid.containsKey(media.getMediaUuid()))
+        .toList();
 
     if (visibleMedias.isEmpty()) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "图集中暂无公开图片");
@@ -250,8 +252,7 @@ public class AlbumService {
     AlbumMedia randomMedia = pickRandomMedia(visibleMedias)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "无法获取图片"));
 
-    UploadRecord uploadRecord = uploadRecordRepository.findByMediaUuid(randomMedia.getMediaUuid())
-        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "图片不存在"));
+    UploadRecord uploadRecord = visibleByUuid.get(randomMedia.getMediaUuid());
 
     albumRepository.incrementAccessCount(album.getId());
 

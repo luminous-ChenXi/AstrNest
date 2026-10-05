@@ -103,7 +103,10 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.GET, "/picture/**").permitAll()
             .requestMatchers(new AntPathRequestMatcher("/api/public/assets/**", "GET"), new AntPathRequestMatcher("/api/public/assets/**", "HEAD")).permitAll()
             .requestMatchers(new AntPathRequestMatcher("/upload/**", "GET"), new AntPathRequestMatcher("/upload/**", "HEAD")).permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/uploads/**").hasAnyRole("ADMIN", "API_CLIENT", "USER")
+            // 访客上传由 UploadController 内部裁决（guestUploadEnabled 开关 + GuestUploadService IP 配额）：
+            // 此前这里要求必须登录，匿名请求在过滤器层即 401，安装向导里的「允许访客上传」是不可达的死功能。
+            // 默认配置关闭访客上传时，匿名请求在控制器内得到明确 403
+            .requestMatchers(HttpMethod.POST, "/api/uploads/**").permitAll()
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .requestMatchers("/api/user/**").hasAnyRole("ADMIN", "USER");
             authorize.anyRequest().authenticated();

@@ -35,6 +35,10 @@ public class VideoEmbedController {
     if (record.getMediaCategory() != MediaCategory.VIDEO) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "仅支持视频嵌入");
     }
+    // 违规/未公开视频不给嵌播（此前 UUID 泄露即可绕过列表层过滤嵌播任意状态视频）
+    if (record.isViolation() || !record.isPublicAccessible()) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "视频不存在或不可嵌入");
+    }
     String videoUrl = Optional.ofNullable(publicAssetUrlResolver.resolve(record))
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "视频链接无效"));
     String poster = resolvePoster(record, videoUrl);
