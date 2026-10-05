@@ -1,5 +1,18 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-10-06 (4)
+
+### 收尾清理与隐私增强
+
+- **移除 init-admin 脚本族（P1-17）**：`init-admin.bat/.cn.bat/.sh/.py` 整体删除——
+  Windows 全量初始化分支空密码、Linux 分支密码错位、脚本改写仓库 SQL 污染版本库等缺陷，
+  其能力已被六步安装向导完整覆盖；README/README_EN/CONFIG_GUIDE/.env.example/db SQL 注释同步更新，
+  管理员创建唯一入口收敛为安装向导（兜底：首个注册用户自动 ADMIN）
+- **JPEG EXIF/GPS 隐私剥离（P3）**：新增 `JpegExifStripper`——上传落盘前标记段级剥离
+  APP1（EXIF/XMP，含 GPS 定位）、APP13（IPTC）、COM（注释），保留 JFIF/ICC，
+  不重编码无画质损失，解析异常 fail-open 保留原文件；主上传与视频封面两条路径都接入，
+  新增 `JpegExifStripperTest`（5 例）——测试 44 → 49 全绿
+
 ## [Unreleased] - 2026-10-06 (3)
 
 ### 批次五：核心链路回归测试 + 探针 H2 兼容

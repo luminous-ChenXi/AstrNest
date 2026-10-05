@@ -27,7 +27,7 @@ WordPress的安装流程（存在安全隐患）：
 | 项目 | 必填内容 | 修改位置 |
 | --- | --- | --- |
 | 数据库 | 主机、端口、库名、账号、密码 | `.env` / `backend/src/main/resources/application.yml` / `docker-compose.yml` (`mysql`/`backend`) / `backend/db/init.sql` |
-| 管理员 | 用户名、初始密码、昵称、邮箱 | 可视化安装向导（推荐）或根目录 `init-admin` 脚本；初始化 SQL **不预置**管理员，未走向导时首个注册用户自动成为 ADMIN |
+| 管理员 | 用户名、初始密码、昵称、邮箱 | 可视化安装向导（唯一入口）；初始化 SQL **不预置**管理员，未走向导时首个注册用户自动成为 ADMIN |
 | 上传路径 | 本地磁盘目录、对外访问前缀 | `.env` (`ASTRNEST_STORAGE_ROOT`/`ASTRNEST_STORAGE_PUBLIC`)，必要时 Nginx 反代 `/upload/**` |
 | 站点域名 | 站点主页、图片直链、API 域名 | `.env` (`PUBLIC_SITE_URL`/`PUBLIC_ASSET_URL`/`BACKEND_API_PUBLIC_URL`/`ASTRNEST_ASSET_DOMAIN`)，后台“系统配置”里的 `asset_domain` |
 | 腾讯云 AI 审核 | SecretId/SecretKey、Region、Bucket、场景、阈值 | 后台「系统配置 > AI 智能审核」或 `.env` 中的 `ASTRNEST_AI_*` 兜底 |
@@ -56,7 +56,7 @@ WordPress的安装流程（存在安全隐患）：
   - 生产环境：添加 `https://yourdomain.com`、`https://www.yourdomain.com`
   - ⚠️ **生产环境严禁使用 `*`**，必须显式指定允许的域名
 - **数据库**：`ASTRNEST_DB_URL`、`ASTRNEST_DB_USERNAME`、`ASTRNEST_DB_PASSWORD`；可选池参数：`ASTRNEST_DB_MIN_IDLE`、`ASTRNEST_DB_MAX_POOL_SIZE`。
-- **管理员账号**：通过 `init-admin.bat` (Windows) 或 `init-admin.sh` (Linux/macOS) 脚本设置，自动加密并写入数据库初始化文件。
+- **管理员账号**：通过可视化安装向导创建（原 init-admin 脚本族已于 v1.3 移除）。
 - **上传/存储**：`ASTRNEST_STORAGE_ROOT`、`ASTRNEST_STORAGE_PUBLIC`；切换云存储时填写对应密钥（COS/OSS/S3/Upyun/OneDrive 等）到环境变量，勿写入代码。
 - **邮件发信**：`SMTP_HOST`、`SMTP_PORT`、`SMTP_USERNAME`、`SMTP_PASSWORD`、`SMTP_FROM`（建议使用授权码/应用专用密码）。
 - **API/直链域名**：`PUBLIC_SITE_URL`、`PUBLIC_ASSET_URL`、`BACKEND_API_PUBLIC_URL`、`ASTRNEST_ASSET_DOMAIN`、前端 `VITE_API_BASE_URL`、`VITE_PUBLIC_ASSET_BASE`。
@@ -125,52 +125,13 @@ astrnest:
 
 AstrNest 提供了自动化脚本来简化数据库初始化和管理员账号配置。
 
-#### 4.0 推荐使用自动化脚本（强烈推荐）
+#### 4.0 管理员账号创建（已收敛到可视化安装向导）
 
-**Windows 用户**：
-```bash
-# 方式1：双击运行（推荐）
-init-admin-cn.bat
-
-# 方式2：命令行执行
-python init-admin.py
-```
-
-**Linux / macOS 用户**：
-```bash
-# 添加执行权限后运行
-chmod +x init-admin.sh
-./init-admin.sh
-```
-
-**脚本功能（4 步流程）**：
-1. **自动检测系统**：根据操作系统（Windows/Linux/macOS）自动选择对应的 SQL 文件
-2. **Root 账号配置**：输入 MySQL root 账号信息，测试连接
-3. **应用用户配置**：
-   - 自动检查 `astrnest` 用户是否存在
-   - 如果已存在，提供 3 个选项：
-     - 使用现有用户（验证密码）
-     - 重新设置密码（修改现有用户密码）
-     - 退出
-   - 使用 root 账号创建数据库和 `astrnest` 用户
-4. **管理员账号配置**：设置管理员用户名、邮箱、密码
-5. **SQL 初始化**：
-   - 自动使用 bcrypt 加密管理员密码
-   - **Windows**：更新 `init_windows.sql`（不包含 CREATE USER/GRANT）
-   - **Linux/macOS**：更新 `init.sql`（包含完整权限设置）
-   - 使用 `astrnest` 用户执行 SQL 文件，创建表结构和初始数据
-
-**平台差异处理**：
-- **Windows**：脚本自动创建数据库和用户（因为 init_windows.sql 不包含 CREATE USER/GRANT）
-- **Linux/macOS**：SQL 文件中已包含 CREATE USER/GRANT，脚本只创建数据库
-- **Ubuntu 24+**：自动创建 Python 虚拟环境（系统禁止在 base 环境安装包）
-
-**脚本优势**：
-- ✅ 自动处理用户存在性检查和密码验证
-- ✅ 自动创建数据库和应用用户
-- ✅ 密码自动 bcrypt 加密
-- ✅ 使用应用用户（而非 root）执行 SQL，更安全
-- ✅ 交互式引导，无需手动编辑 SQL 文件
+> **v1.3 变更**：原 `init-admin.bat/.sh/.py` 自动化脚本族已移除——存在 Windows 全量初始化分支
+> 空密码、Linux 分支密码错位等缺陷，且其全部能力（建库确认、建表、建管理员）已被
+> 六步可视化安装向导覆盖且更安全。管理员创建方式：
+> 1. **可视化安装向导（推荐）**：首次启动浏览器打开站点即进入；
+> 2. **兜底**：未走向导时，第一个完成注册的用户自动成为 ADMIN。
 
 #### 4.1 手动执行 SQL 文件（备选方案）
 
@@ -385,7 +346,7 @@ cd backend
 
 ### 12. 收尾检查
 - `.env`、`application.yml`、`frontend/.env*` 均已替换真实地址/账号。
-- 部署初始化方式确认：Docker Compose 挂载 `init.sql` 自动初始化，或使用可视化安装向导（见 4.3）。管理员账号通过向导或根目录 `init-admin` 脚本创建；未走向导时第一个注册的用户自动成为管理员。
+- 部署初始化方式确认：Docker Compose 挂载 `init.sql` 自动初始化，或使用可视化安装向导（见 4.3）。管理员账号通过安装向导创建；未走向导时第一个注册的用户自动成为管理员。
 - 访问健康检查：`http://{server}:8081/actuator/health` 应为 `UP`；`/upload/{yyyy}/{MM}/...` 能返回 200/404（不应 502）。
 
 ### 12.1 ⚠️ 重要坑点：Windows 本地开发环境变量配置不生效

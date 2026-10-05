@@ -211,7 +211,7 @@ The `frontend` container only proxies `/api/` — it does **not** serve `/upload
 
 **Requirements**: Java 21, MySQL 8.0+, Node.js 18+ (build time only), Nginx; optional FFmpeg (video thumbnails).
 
-**1) Create the database and grant rights** (as root; or run the bundled `init-admin.py` / `init-admin.sh` / `init-admin-cn.bat` for an interactive walkthrough):
+**1) Create the database and grant rights** (as root):
 
 ```sql
 CREATE DATABASE IF NOT EXISTS astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
@@ -308,7 +308,7 @@ server {
 
 For HTTPS/HTTP2 and security headers see CONFIG_GUIDE.md section 13.2; layer them onto the server block above with a 443 listener.
 
-**5) Initialization and the administrator**: with the backend running against an empty database, open the site in a browser → the **six-step wizard** described above appears (here step 3 "Initialize" actually creates the tables; everything else is identical). Alternatively run `mysql -u root -p astrnest < backend/db/init.sql` and create the admin with an `init-admin` script; as a last resort, **the first user to register automatically becomes the administrator** (the init SQL ships no preset admin).
+**5) Initialization and the administrator**: with the backend running against an empty database, open the site in a browser → the **six-step wizard** described above appears (here step 3 "Initialize" actually creates the tables; everything else is identical). Alternatively run `mysql -u root -p astrnest < backend/db/init.sql`; as a last resort, **the first user to register automatically becomes the administrator** (the init SQL ships no preset admin).
 
 **6) Upgrades**: `git pull` → rebuild both ends → restart the backend and replace `dist/` → if the schema changed, re-run `backend/db/init.sql` (idempotent column additions, never destroys data).
 

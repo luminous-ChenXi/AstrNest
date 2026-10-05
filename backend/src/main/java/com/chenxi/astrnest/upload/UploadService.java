@@ -22,7 +22,9 @@ import com.chenxi.astrnest.upload.dto.AiReviewFeedback;
 import com.chenxi.astrnest.upload.dto.UploadBatchResponse;
 import com.chenxi.astrnest.upload.dto.UploadBatchResponse.SkippedFileInfo;
 import com.chenxi.astrnest.upload.dto.UploadResponse;
+import com.chenxi.astrnest.upload.media.ByteArrayMultipartFile;
 import com.chenxi.astrnest.upload.media.ChenxiMediaInspector;
+import com.chenxi.astrnest.upload.media.JpegExifStripper;
 import com.chenxi.astrnest.upload.media.ChenxiMediaInspector.MediaInspection;
 import com.chenxi.astrnest.upload.media.MediaCategory;
 import com.chenxi.astrnest.upload.media.VideoThumbnailService;
@@ -42,6 +44,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import java.io.IOException;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -145,6 +148,7 @@ public class UploadService {
     }
     MediaInspection inspection = mediaInspector.inspect(file);
     mediaInspector.enforceSizeLimit(file, inspection.category(), maxImageBytes, maxVideoBytes);
+    file = stripJpegMetadata(file, inspection);
     String originalName = safeName(file.getOriginalFilename());
     StorageContext context = StorageContext.localPublicContext(mediaInspector.contextMetadata(inspection.category()));
     StoredObject stored = storageService.store(file, context);
@@ -388,6 +392,32 @@ public class UploadService {
   }
 
   /**
+   * JPEG EXIF/GPS 隐私剥离（审计 P3）：定位/设备信息随直链对外发布即泄露。
+   * 标记段级剥离、不重编码、无画质损失；非 JPEG 或解析失败一律保留原文件（fail-open）。
+   */
+  private MultipartFile stripJpegMetadata(MultipartFile file, MediaInspection inspection) {
+    if (inspection.category() != MediaCategory.IMAGE
+        || !StringUtils.hasText(inspection.contentType())
+        || !inspection.contentType().startsWith("image/jpeg")) {
+      return file;
+    }
+    try {
+      byte[] original = file.getBytes();
+      byte[] stripped = JpegExifStripper.strip(original);
+      if (stripped == original) {
+        return file;
+      }
+      log.info("已剥离 EXIF/GPS 元数据: {} ({} -> {} 字节)",
+          safeName(file.getOriginalFilename()), original.length, stripped.length);
+      return new ByteArrayMultipartFile(file.getName(), file.getOriginalFilename(),
+          file.getContentType(), stripped);
+    } catch (IOException exception) {
+      log.warn("EXIF 剥离读取失败，保留原文件: {}", exception.getMessage());
+      return file;
+    }
+  }
+
+  /**
    * 存储前端传来的视频封面。封面与主文件走同一条校验管道：历史上封面绕过
    * ChenxiMediaInspector，任意扩展名/内容的文件可借 videoCovers 落盘并被同源直出
    * （存储型 XSS 面）。校验不通过时不中断上传，回退 FFmpeg 截帧。
@@ -401,6 +431,7 @@ public class UploadService {
       }
       long maxImageBytes = systemConfigService.currentMaxUploadBytes();
       mediaInspector.enforceSizeLimit(coverFile, MediaCategory.IMAGE, maxImageBytes, maxImageBytes);
+      coverFile = stripJpegMetadata(coverFile, coverInspection);
       StoredObject coverStored = storageService.store(coverFile, context);
       String coverUrl = publicAssetUrlResolver.resolveStoredObject(coverStored);
       return new VideoThumbnailResult(coverUrl, coverStored.objectKey());

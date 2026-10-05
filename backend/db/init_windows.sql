@@ -1766,7 +1766,7 @@ FROM upload_record_tags;
 
 -- 角色种子（若已存在则更新描述）
 -- 管理员获取方式：第一个注册的用户自动成为 ADMIN（应用内置逻辑），
--- 或运行 init-admin.py / init-admin.sh 脚本创建。不再内置任何默认管理员账号。
+-- 或使用可视化安装向导创建。不再内置任何默认管理员账号。
 INSERT INTO roles (id, name, description) VALUES
     (1, 'ADMIN', '管理员'),
     (2, 'USER', '用户')

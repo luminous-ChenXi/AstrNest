@@ -210,7 +210,7 @@ Compose 的 `frontend` 容器只反代 `/api/`，**不托管 `/upload/**`**，�
 
 **环境要求**：Java 21、MySQL 8.0+、Node.js 18+（仅构建前端用）、Nginx；可选 FFmpeg（视频缩略图）。
 
-**1) 建库与授权**（root 执行；或直接运行仓库根目录的 `init-admin.py` / `init-admin.sh` / `init-admin-cn.bat` 交互式完成建库+管理员）：
+**1) 建库与授权**（root 执行）：
 
 ```sql
 CREATE DATABASE IF NOT EXISTS astrnest CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
@@ -307,7 +307,7 @@ server {
 
 HTTPS/HTTP2 与安全响应头样例见 [CONFIG_GUIDE.md](CONFIG_GUIDE.md) 第 13.2 节，在上述 server 块基础上叠加 443 监听即可。
 
-**5) 初始化与管理员**：后端起来后（空库）浏览器打开站点 → 自动进入上文**六步安装向导**（本路线第 3 步「初始化」会真正建表，其余步骤相同）。不习惯向导也可以 `mysql -u root -p astrnest < backend/db/init.sql` 建表后用 `init-admin` 脚本创建管理员；兜底：**第一个完成注册的用户自动成为管理员**（初始化 SQL 不再预置任何管理员）。
+**5) 初始化与管理员**：后端起来后（空库）浏览器打开站点 → 自动进入上文**六步安装向导**（本路线第 3 步「初始化」会真正建表，其余步骤相同）。不习惯向导也可以 `mysql -u root -p astrnest < backend/db/init.sql` 建表；兜底：**第一个完成注册的用户自动成为管理员**（初始化 SQL 不再预置任何管理员）。
 
 **6) 升级**：`git pull` → 重新构建前后端 → 重启后端并覆盖 `dist/` → 如表结构有变更，重复执行 `backend/db/init.sql`（幂等补列，不破坏已有数据）。
 
