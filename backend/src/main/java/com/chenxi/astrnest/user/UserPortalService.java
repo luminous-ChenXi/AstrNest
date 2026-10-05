@@ -197,6 +197,8 @@ public class UserPortalService {
       throw new BadCredentialsException("当前密码不正确");
     }
     user.setPassword(passwordEncoder.encode(request.newPassword()));
+    // 改密即吊销：令牌版本 +1，该用户全部旧 JWT（含可能被盗的会话）立即失效
+    user.setTokenVersion(user.getTokenVersion() + 1);
     userAccountRepository.save(user);
   }
 

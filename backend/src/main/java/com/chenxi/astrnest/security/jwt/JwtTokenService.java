@@ -37,6 +37,8 @@ public class JwtTokenService {
   private static final Logger log = LoggerFactory.getLogger(JwtTokenService.class);
 
   static final String CLAIM_UID = "uid";
+  /** 令牌版本 claim：服务端吊销依据（改密 +1），历史令牌无此 claim 视为版本 0 */
+  public static final String CLAIM_VER = "ver";
   /** 令牌用途标记：purpose=2fa 表示「密码已通过、等待二步验证」的过渡令牌，不可用于访问 API */
   public static final String CLAIM_PURPOSE = "purpose";
   public static final String PURPOSE_TWO_FACTOR = "2fa";
@@ -72,16 +74,31 @@ public class JwtTokenService {
         StringUtils.hasText(configuredSecret) ? "配置项 astrnest.jwt.secret" : "临时随机密钥");
   }
 
-  /** 为指定用户签发 JWT（sub=用户名，uid=用户 id，iat/exp 由 TTL 推算）。 */
+  /** 为指定用户签发 JWT（sub=用户名，uid=用户 id，iat/exp 由 TTL 推算），令牌版本按 0 处理。 */
   public String generateToken(Long userId, String username) {
+    return generateToken(userId, username, 0L);
+  }
+
+  /**
+   * 签发 JWT 并携带令牌版本（claim ver）：改密/找回密码等敏感操作后服务端版本 +1，
+   * 旧版本令牌在过滤器处被拒——这是 JWT 的服务端吊销机制，防止改密后旧会话（含被盗 token）续命。
+   */
+  public String generateToken(Long userId, String username, long tokenVersion) {
     Instant now = Instant.now();
     return Jwts.builder()
         .subject(username)
         .claim(CLAIM_UID, userId)
+        .claim(CLAIM_VER, tokenVersion)
         .issuedAt(Date.from(now))
         .expiration(Date.from(now.plus(ttl)))
         .signWith(secretKey)
         .compact();
+  }
+
+  /** 读取令牌版本（claim ver）；历史令牌无该 claim 视为 0，保持向后兼容。 */
+  public long tokenVersionOf(Claims claims) {
+    Number version = claims.get(CLAIM_VER, Number.class);
+    return version == null ? 0L : version.longValue();
   }
 
   /**

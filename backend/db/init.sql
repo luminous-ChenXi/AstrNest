@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS users (
   used_storage BIGINT NOT NULL DEFAULT 0 COMMENT '已用存储(字节)',
   daily_upload_limit INT NULL DEFAULT 100,
   active TINYINT(1) NOT NULL DEFAULT 1,
+  token_version BIGINT NOT NULL DEFAULT 0 COMMENT '令牌版本：改密+1吊销旧JWT',
   login_ip_history VARCHAR(1024),
   last_login_ip VARCHAR(64),
   last_login_at DATETIME NULL,

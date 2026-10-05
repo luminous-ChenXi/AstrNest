@@ -30,13 +30,8 @@ public class DatabaseUserDetailsService implements UserDetailsService {
     Collection<GrantedAuthority> authorities = user.getRoles().stream()
         .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
         .collect(Collectors.toSet());
-    return org.springframework.security.core.userdetails.User
-        .withUsername(user.getUsername())
-        .password(user.getPassword())
-        .authorities(authorities)
-        .accountLocked(!user.isActive())
-        .disabled(!user.isActive())
-        .build();
+    // 携带 tokenVersion：JwtAuthenticationFilter 据此比对 JWT ver claim（改密吊销旧令牌）
+    return new ChenxiUserDetails(user, authorities);
   }
 
   private Optional<UserAccount> findByPrincipal(String principal) {

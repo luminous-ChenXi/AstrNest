@@ -32,7 +32,8 @@ public class ChenxiEmailToken {
   @Column(nullable = false, length = 40)
   private ChenxiEmailScene scene;
 
-  @Column(nullable = false, length = 6)
+  /** SHA-256 哈希入库（64 位十六进制）：DB 泄露不等于可用凭证；比较时对入参做同样哈希后恒定时间比对 */
+  @Column(nullable = false, length = 64)
   private String code;
 
   @Column(name = "expires_at", nullable = false)

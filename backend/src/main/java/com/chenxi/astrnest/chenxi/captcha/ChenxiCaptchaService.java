@@ -4,8 +4,10 @@ import com.chenxi.astrnest.chenxi.captcha.ChenxiCaptchaImageFactory.CaptchaImage
 import com.chenxi.astrnest.chenxi.captcha.dto.ChenxiCaptchaChallengeResponse;
 import com.chenxi.astrnest.chenxi.captcha.dto.ChenxiCaptchaVerifyRequest;
 import com.chenxi.astrnest.chenxi.captcha.dto.ChenxiCaptchaVerifyResponse;
+import com.chenxi.astrnest.common.Digests;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +33,8 @@ public class ChenxiCaptchaService {
     ticket.setId(UUID.randomUUID().toString().replaceAll("-", ""));
     ticket.setExpectedOffset(0d);
     ticket.setTolerance(0d);
-    ticket.setCaptchaCode(payload.code());
+    // 码只存哈希（大小写不敏感口径：统一小写后哈希），明文仅出现在图片里
+    ticket.setCaptchaCode(Digests.sha256Hex(payload.code().toLowerCase(Locale.ROOT)));
     ticket.setAttempts(0);
     ticket.setExpiresAt(Instant.now().plusSeconds(CHALLENGE_EXPIRE_SECONDS));
     ticket.setVerificationTokenExpires(Instant.now().plusSeconds(CERTIFICATION_EXPIRE_SECONDS));
@@ -71,7 +74,9 @@ public class ChenxiCaptchaService {
     if (ticket.getCaptchaCode() == null) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "验证码无效，请刷新");
     }
-    if (!ticket.getCaptchaCode().equalsIgnoreCase(submitted)) {
+    // 恒定时间比较：入参统一小写后哈希，与库存哈希比对
+    if (!Digests.constantTimeEquals(ticket.getCaptchaCode(),
+        Digests.sha256Hex(submitted.toLowerCase(Locale.ROOT)))) {
       ticket.setAttempts(ticket.getAttempts() + 1);
       if (ticket.getAttempts() >= MAX_ATTEMPTS) {
         ticket.setExpiresAt(now.minusSeconds(1));

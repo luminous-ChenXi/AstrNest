@@ -27,7 +27,7 @@ public class ChenxiCaptchaTicket {
   @Column(nullable = false)
   private double tolerance;
 
-  @Column(name = "captcha_code", length = 16)
+  @Column(name = "captcha_code", length = 64)
   private String captchaCode;
 
   @Column(nullable = false)

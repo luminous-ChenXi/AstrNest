@@ -1,5 +1,27 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-10-05 (2)
+
+### 认证链路加固（审计批次二：P0-6 + P1 系列）
+
+- **JWT 服务端吊销（P0-6）**：users 表新增 `token_version`，JWT 携带 `ver` claim，
+  `JwtAuthenticationFilter` 与数据库实时比对——**改密码/找回密码后该用户全部旧令牌立即失效**
+  （含可能已被盗的会话）；schema 三通道同步（install-schema.sql / init.sql / SchemaAlignmentRunner），
+  新增 `ChenxiUserDetails` 携带版本信息
+- **验证码/链接令牌哈希入库（P1-2）**：邮箱验证码、注册链接令牌、图形验证码改为只存 SHA-256
+  （列宽 6/16→64 双通道扩容），明文仅随邮件/图片出现一次；比较改 `MessageDigest.isEqual` 恒定时间
+- **邮箱枚举收敛（P1-3）**：注册发码/找回发码对不存在/已存在邮箱一律返回中性文案不再报错；
+  `check-email` 与验证码图片端点加进程内滑动窗口限流（10/20 次/分/IP，新增 `InMemoryRateLimiter`）
+- **爆破锁定补漏（P1-4/P1-5）**：注册/找回密码成功不再清零 IP 维度锁定（堵住"注册小号自助解锁"旁路），
+  新增 `recordRegistrationSuccess` 只清账号维度；注册失败接入 `recordRegisterFailure`（原死代码）；
+  `CAPTCHA_IP` 锁（10 次失败锁 24h）纳入评估（原先只写不读）
+- **游客点赞去客户端头（P1-19）**：访客身份一律服务端 IP+UA 指纹派生，不再信任自报
+  `X-Chenxi-Visitor` 头（随机换头即可无限刷赞并操纵热门排行）
+- **注册用户名白名单（P1-20）**：`^[A-Za-z0-9_.-]+$`，与安装向导同一口径
+- **数据保鲜（P1-5）**：新增 `SystemDataHousekeeping` 每日 04:30 清理邮件验证码（>1 天）、
+  验证码票据（>1 天）、图集访问日志（>30 天）、安全日志（>90 天）与过期上传记录（按 autoCleanupDays），
+  顺带清理限流器空窗口——此前四张表只增不删
+
 ## [Unreleased] - 2026-10-05
 
 ### 安全止血（第二轮全链路审计 P0 修复，报告见 docs/audit-report-2026-10-05.md）

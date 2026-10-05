@@ -151,11 +151,11 @@ public class PublicGalleryLikeService {
     return null;
   }
 
-  @SuppressWarnings("null")
+  /**
+   * 访客身份一律服务端派生（IP+UA 指纹）。此前优先采信客户端自报的 X-Chenxi-Visitor 头——
+   * 随机换 token 即可无限换身份刷赞，进而操纵按 likeCount 排序的两个热门排行。
+   */
   private String deriveVisitorToken(String explicitToken, String requesterIp, String userAgent) {
-    if (StringUtils.hasText(explicitToken)) {
-      return explicitToken.trim();
-    }
     String fingerprint = (StringUtils.hasText(requesterIp) ? requesterIp : "127.0.0.1") + "|" + (userAgent == null ? "ua" : userAgent);
     byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
     return DigestUtils.md5DigestAsHex(fingerprintBytes);

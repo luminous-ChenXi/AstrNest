@@ -132,7 +132,7 @@ public class AuthService {
       SecurityContextHolder.getContext().setAuthentication(
           new UsernamePasswordAuthenticationToken(user.getUsername(), null, List.of()));
     }
-    String token = jwtTokenService.generateToken(user.getId(), user.getUsername());
+    String token = jwtTokenService.generateToken(user.getId(), user.getUsername(), user.getTokenVersion());
     // 复用既有装配逻辑：profile 角色从数据库实时读取（SecurityContext 已在登录时设置）
     UserProfileResponse profile = userAccountService.getCurrentProfile();
     return LoginResponse.complete(token, profile, "Bearer", jwtTokenService.ttlSeconds());

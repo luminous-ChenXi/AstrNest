@@ -13,4 +13,7 @@ public interface ChenxiEmailTokenRepository extends JpaRepository<ChenxiEmailTok
   long countByEmailAndSceneAndCreatedAtAfter(String email, ChenxiEmailScene scene, Instant after);
 
   Optional<ChenxiEmailToken> findTopByLinkTokenAndConsumedFalseOrderByCreatedAtDesc(String linkToken);
+
+  /** 保鲜清理：删除过期验证码记录（码只存哈希，过期后无任何价值） */
+  long deleteByExpiresAtBefore(java.time.Instant threshold);
 }

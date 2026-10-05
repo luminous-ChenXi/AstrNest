@@ -15,4 +15,7 @@ public interface SecurityLogEntryRepository extends JpaRepository<SecurityLogEnt
 
   @Query("select e.username as username, count(e) as cnt from SecurityLogEntry e where e.eventType = :eventType and e.username is not null group by e.username order by cnt desc")
   List<Object[]> findTopUsernames(@Param("eventType") String eventType, Pageable pageable);
+
+  /** 保鲜清理：安全日志保留 90 天 */
+  long deleteByCreatedAtBefore(java.time.Instant threshold);
 }

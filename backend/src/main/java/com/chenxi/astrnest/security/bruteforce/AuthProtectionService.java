@@ -61,6 +61,23 @@ public class AuthProtectionService {
     }
   }
 
+  /** 图形验证码环节的 IP 锁评估（CAPTCHA_IP：10 次失败锁 24h）——此前只写不评估，属死锁 */
+  public void ensureCaptchaAllowed(String ip) {
+    GuardOutcome blocked = evaluateLock("", normalizeIp(ip), LockDimension.CAPTCHA_IP);
+    if (blocked != null && blocked.blocked) {
+      throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, blocked.message);
+    }
+  }
+
+  /**
+   * 注册/找回密码成功后的计数清理：只清「账号+IP」维度，<b>不清 IP_ONLY</b>。
+   * 此前注册成功会调用 recordLoginSuccess 把 IP 维度爆破锁定一并清零——开放注册期间，
+   * 攻击者在被锁 IP 上注册任意小号即可自助解锁继续爆破（lockout bypass）。
+   */
+  public void recordRegistrationSuccess(String username, String ip) {
+    clearState(normalize(username), normalizeIp(ip), LockDimension.USER_IP);
+  }
+
   public void recordRegisterFailure(String username, String ip) {
     applyFailure(normalize(username), normalizeIp(ip), LockDimension.USER_IP, USER_SHORT_THRESHOLD, USER_LONG_THRESHOLD, "REGISTER_FAIL");
     applyFailure("", normalizeIp(ip), LockDimension.IP_ONLY, IP_SHORT_THRESHOLD, IP_LONG_THRESHOLD, "REGISTER_FAIL");

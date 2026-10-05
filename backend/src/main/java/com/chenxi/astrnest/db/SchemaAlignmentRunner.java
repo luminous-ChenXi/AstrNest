@@ -60,6 +60,13 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
     // 存量用户按「已验证」补齐——历史注册流程本身强制邮箱验证码
     ensureColumnExists("users", "email_verified", "BIT(1) NOT NULL DEFAULT b'1' AFTER active");
 
+    // 令牌版本（JWT 服务端吊销：改密/找回密码 +1 使该用户旧令牌全部失效）
+    ensureColumnExists("users", "token_version", "BIGINT NOT NULL DEFAULT 0 AFTER email_verified");
+
+    // 验证码/图形验证码列宽 6/16 → 64：明文改 SHA-256 哈希入库后需要 64 位十六进制
+    widenColumnIfSmaller("chenxi_email_token", "code", 64);
+    widenColumnIfSmaller("chenxi_captcha_ticket", "captcha_code", 64);
+
     // 注册验证链接令牌（注册邮件「点链接验证」入口，与验证码同生共死）
     ensureColumnExists("chenxi_email_token", "link_token", "VARCHAR(64) NULL AFTER captcha_token");
 
@@ -365,6 +372,38 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
       log.info("Added missing column {}.{}", tableName, columnName);
     } catch (Exception exception) {
       log.warn("Failed to add column {}.{}: {}", tableName, columnName, exception.getMessage());
+    }
+  }
+
+  /** 列宽不足时扩容（如验证码列 6/16 → 64：明文改 SHA-256 哈希入库后需要 64 位十六进制） */
+  private void widenColumnIfSmaller(String tableName, String columnName, int targetLength) {
+    if (!columnExists(tableName, columnName)) {
+      return;
+    }
+    Integer currentLength = jdbcTemplate.queryForObject(
+        "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS "
+            + "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+        Integer.class,
+        tableName,
+        columnName
+    );
+    if (currentLength == null || currentLength >= targetLength) {
+      return;
+    }
+    try {
+      String isNullable = jdbcTemplate.queryForObject(
+          "SELECT IS_NULLABLE FROM information_schema.COLUMNS "
+              + "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+          String.class,
+          tableName,
+          columnName
+      );
+      String nullClause = "NO".equalsIgnoreCase(isNullable) ? "NOT NULL" : "NULL";
+      jdbcTemplate.execute("ALTER TABLE " + tableName + " MODIFY COLUMN " + columnName
+          + " VARCHAR(" + targetLength + ") " + nullClause);
+      log.info("Widened column {}.{} to VARCHAR({})", tableName, columnName, targetLength);
+    } catch (Exception exception) {
+      log.warn("Failed to widen column {}.{}: {}", tableName, columnName, exception.getMessage());
     }
   }
 

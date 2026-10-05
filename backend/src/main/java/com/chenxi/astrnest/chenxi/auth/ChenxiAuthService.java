@@ -2,6 +2,7 @@ package com.chenxi.astrnest.chenxi.auth;
 
 import com.chenxi.astrnest.chenxi.captcha.ChenxiCaptchaService;
 import com.chenxi.astrnest.chenxi.mail.ChenxiMailService;
+import com.chenxi.astrnest.common.Digests;
 import com.chenxi.astrnest.security.user.UserAccount;
 import com.chenxi.astrnest.security.user.UserAccountRepository;
 import com.chenxi.astrnest.security.user.UserRole;
@@ -43,20 +44,24 @@ public class ChenxiAuthService {
     ensureRegistrationEnabled();
     captchaService.consumeCertificationOrThrow(captchaToken);
     String normalizedEmail = normalizeEmail(email);
-    if (userAccountRepository.existsByEmail(normalizedEmail)) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "该邮箱已绑定账号，可直接登录");
+    // 邮箱枚举防护（ASVS 2.1）：已注册邮箱不发送也不报错，对外统一「已发送」文案
+    if (!userAccountRepository.existsByEmail(normalizedEmail)) {
+      sendEmailCode(normalizedEmail, ChenxiEmailScene.REGISTER, captchaToken);
+    } else {
+      log.info("Register code requested for existing email (suppressed for anti-enumeration)");
     }
-    sendEmailCode(normalizedEmail, ChenxiEmailScene.REGISTER, captchaToken);
   }
 
   @Transactional
   public void requestResetCode(String email, String captchaToken) {
     captchaService.consumeCertificationOrThrow(captchaToken);
     String normalizedEmail = normalizeEmail(email);
-    if (!userAccountRepository.existsByEmail(normalizedEmail)) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "未找到该邮箱对应的账号");
+    // 同上：不存在的邮箱不发报错，防止借找回密码探测注册情况
+    if (userAccountRepository.existsByEmail(normalizedEmail)) {
+      sendEmailCode(normalizedEmail, ChenxiEmailScene.PASSWORD_RESET, captchaToken);
+    } else {
+      log.info("Reset code requested for unknown email (suppressed for anti-enumeration)");
     }
-    sendEmailCode(normalizedEmail, ChenxiEmailScene.PASSWORD_RESET, captchaToken);
   }
 
   /**
@@ -134,6 +139,8 @@ public class ChenxiAuthService {
     UserAccount user = userAccountRepository.findByEmail(normalizedEmail)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "账号不存在"));
     user.setPassword(passwordEncoder.encode(newPassword));
+    // 找回密码即吊销：令牌版本 +1，盗号者手里的旧 JWT 立即失效
+    user.setTokenVersion(user.getTokenVersion() + 1);
     userAccountRepository.save(user);
   }
 
@@ -151,18 +158,20 @@ public class ChenxiAuthService {
     ChenxiEmailToken token = new ChenxiEmailToken();
     token.setEmail(email);
     token.setScene(scene);
-    token.setCode(generateCode());
+    // 验证码/链接令牌只存 SHA-256 哈希，明文仅随邮件发出一次（DB 泄露不等于可用凭证）
+    String plainCode = generateCode();
+    String plainLinkToken = scene == ChenxiEmailScene.REGISTER ? generateLinkToken() : null;
+    token.setCode(Digests.sha256Hex(plainCode));
     long ttlMinutes = scene == ChenxiEmailScene.REGISTER ? REGISTER_TOKEN_MINUTES : RESET_TOKEN_MINUTES;
     token.setExpiresAt(now.plus(ttlMinutes, ChronoUnit.MINUTES));
     token.setResendAvailableAt(now.plus(60, ChronoUnit.SECONDS));
     token.setCaptchaToken(captchaToken);
-    if (scene == ChenxiEmailScene.REGISTER) {
+    if (plainLinkToken != null) {
       // 注册场景附带链接令牌：邮件中同时给出 6 位验证码与「点链接完成验证」入口
-      token.setLinkToken(generateLinkToken());
+      token.setLinkToken(Digests.sha256Hex(plainLinkToken));
     }
     emailTokenRepository.save(token);
-    mailService.sendVerificationMail(email, token.getCode(), scene,
-        scene == ChenxiEmailScene.REGISTER ? token.getLinkToken() : null);
+    mailService.sendVerificationMail(email, plainCode, scene, plainLinkToken);
   }
 
   private void ensureRegistrationEnabled() {
@@ -190,8 +199,9 @@ public class ChenxiAuthService {
    * 「点链接」与「输码」殊途同归——都收敛到同一条验证码记录上。
    */
   private String consumeRegisterLinkToken(String linkToken, String rawEmail) {
+    // 链接令牌入库为哈希：按「入参哈希」查询比对
     ChenxiEmailToken token = emailTokenRepository
-        .findTopByLinkTokenAndConsumedFalseOrderByCreatedAtDesc(linkToken.trim())
+        .findTopByLinkTokenAndConsumedFalseOrderByCreatedAtDesc(Digests.sha256Hex(linkToken.trim()))
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "注册链接无效或已被使用，请改用邮箱验证码"));
     Instant now = Instant.now();
     if (token.getExpiresAt().isBefore(now)) {
@@ -221,7 +231,8 @@ public class ChenxiAuthService {
       emailTokenRepository.save(token);
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "验证码已失效，请重新获取");
     }
-    if (!token.getCode().equalsIgnoreCase(code)) {
+    // 恒定时间比较：入参 SHA-256 后与库存哈希比对（6 位数字码本身无大小写差异）
+    if (!Digests.constantTimeEquals(token.getCode(), Digests.sha256Hex(code == null ? "" : code.trim()))) {
       token.setAttempts(token.getAttempts() + 1);
       if (token.getAttempts() >= 5) {
         token.setConsumed(true);

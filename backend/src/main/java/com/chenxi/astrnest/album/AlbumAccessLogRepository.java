@@ -23,4 +23,7 @@ public interface AlbumAccessLogRepository extends JpaRepository<AlbumAccessLog, 
       "WHERE album_id = :albumId GROUP BY media_uuid ORDER BY count DESC LIMIT :limit",
       nativeQuery = true)
   List<Object[]> findMostAccessedMedia(@Param("albumId") Long albumId, @Param("limit") int limit);
+
+  /** 保鲜清理：图集访问日志保留 30 天（当前无报表消费，防无限膨胀） */
+  long deleteByAccessedAtBefore(java.time.Instant threshold);
 }
