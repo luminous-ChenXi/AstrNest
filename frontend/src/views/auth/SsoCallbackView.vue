@@ -31,7 +31,7 @@ onMounted(async () => {
   clearSsoSession()
 
   if (idpError) {
-    fail('身份源拒绝了本次登录：' + idpError)
+    fail(`身份源拒绝了本次登录：${  idpError}`)
     return
   }
   if (!code) {

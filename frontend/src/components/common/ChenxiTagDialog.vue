@@ -13,7 +13,7 @@
         placeholder="搜索现有标签"
         clearable
         @clear="performSearch"
-        @keyup.enter.native="performSearch"
+        @keyup.enter="performSearch"
       >
         <template #suffix>
           <el-button link type="primary" @click="performSearch">搜索</el-button>
@@ -60,7 +60,7 @@
           v-model="newTagName"
           placeholder="输入新的标签名称"
           maxlength="60"
-          @keyup.enter.native="handleCreate"
+          @keyup.enter="handleCreate"
         />
         <el-button type="primary" :loading="creating" class="gradient-btn" @click="handleCreate">新增标签</el-button>
       </div>

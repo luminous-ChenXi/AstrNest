@@ -552,8 +552,8 @@ const {
 
 const numberFormatter = new Intl.NumberFormat('zh-CN')
 const formatNumber = (num) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)  }M`
+  if (num >= 1000) return `${(num / 1000).toFixed(1)  }k`
   return num.toString()
 }
 
@@ -575,7 +575,7 @@ const activeSourceItems = computed(() => (isSearchActive.value ? searchResults.v
 const formattedTotalImages = computed(() => {
   const num = totalImages.value
   if (num >= 10000) {
-    return (num / 10000).toFixed(1) + '万'
+    return `${(num / 10000).toFixed(1)  }万`
   }
   return num.toLocaleString()
 })
@@ -763,14 +763,6 @@ const loadMoreText = computed(() => {
 
 const setFilter = (filterId) => {
   activeFilter.value = filterId
-}
-
-const activateChannel = (channelId) => {
-  activeChannel.value = channelId
-  const target = channelTabs.find((channel) => channel.id === channelId)
-  if (target?.filter) {
-    setFilter(target.filter)
-  }
 }
 
 const selectHashtag = (tag) => {

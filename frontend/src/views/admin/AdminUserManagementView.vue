@@ -196,7 +196,7 @@ onMounted(() => {
           placeholder="搜索用户名 / 昵称 / 邮箱"
           clearable
           class="max-w-md"
-          @keyup.enter.native="loadUsers"
+          @keyup.enter="loadUsers"
         />
         <el-button class="refresh-btn" :loading="loading" @click="loadUsers">刷新</el-button>
       </div>
@@ -314,7 +314,7 @@ onMounted(() => {
               class="jump-input"
               type="number"
               placeholder="页码"
-              @keyup.enter.native="applyJump"
+              @keyup.enter="applyJump"
             />
             <el-button size="small" type="primary" plain @click="applyJump">确认</el-button>
           </div>

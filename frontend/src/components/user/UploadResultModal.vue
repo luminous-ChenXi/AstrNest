@@ -103,7 +103,7 @@ const buildResponsivePlayerSnippet = (item) => {
     }
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"><${'/'}script>
 <script>
   ;(function () {
     const initPlayer = () => {
@@ -133,7 +133,7 @@ const buildResponsivePlayerSnippet = (item) => {
       initPlayer()
     }
   })()
-<\/script>`
+<${'/'}script>`
 }
 
 const aiMetaForItem = (item) => {

@@ -1,5 +1,24 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-10-06 (2)
+
+### 批次四：CI/CD 工程化
+
+- **修复 CI 后端测试必红（P1-14，GitHub 上 commit 的 ❌）**：CI 曾注入 MySQL 连接串但
+  测试配置硬编码 H2 驱动，互相矛盾——删除 MySQL service 与环境变量注入，测试回归 H2 口径
+  （与 README 一致；真 MySQL 验证由 Docker 冒烟承担）
+- **前端 lint 进 CI**：`.eslintrc.cjs`（legacy）+ ESLint 9 组合本来就是坏的（`--ignore-path` 已被
+  移除），迁移为 `eslint.config.mjs`（flat config，flat/essential + js.recommended + prettier
+  skip-formatting，browser/node/chrome globals），并修复既有代码的全部 lint error
+  （`.native` 修饰符 ×3、嵌入页 `<\/script>` 改插值拼接、删除引用未定义变量的死函数 activateChannel）
+- **新增 Release 工作流（P1-16）**：推送 `v*` tag 自动产出——后端 jar、前端 dist zip、扩展 zip
+  附加到 GitHub Release，并发布 GHCR 镜像（backend/frontend，语义化版本 + latest）
+- **CI 杂项**：Node 18（已 EOL）→ 22；`setup-java` 自带 maven 缓存替代手动 cache；
+  workflow 级 `permissions: contents: read` + concurrency 取消过时任务；docker 构建加 gha 缓存、
+  镜像命名统一为 astrnest-*
+- **删除死工作流 deploy-docs.yml**：它依赖被 .gitignore 忽略的 `AstrNest-docs/`（fresh clone 必失败，
+  审计 P1-15）；文档站仍可本地构建
+
 ## [Unreleased] - 2026-10-06
 
 ### 批次三余项：内容与展示链路

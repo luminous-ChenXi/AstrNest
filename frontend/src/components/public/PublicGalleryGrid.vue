@@ -100,7 +100,7 @@
             class="jump-input"
             type="number"
             placeholder="页码"
-            @keyup.enter.native="applyJump"
+            @keyup.enter="applyJump"
           />
           <el-button size="small" type="primary" plain @click="applyJump">确认</el-button>
         </div>
