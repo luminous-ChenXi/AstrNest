@@ -1,5 +1,20 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-10-07
+
+### 审计收尾：文档分发 / Flyway 方案 / 预览图口径
+
+- **部署文档入库（P1-15）**：文档站的五篇部署指南（原 `AstrNest-docs/docs/zh/deploy/`，
+  该目录被 .gitignore 忽略、从不随仓库分发）收录进 `docs/deploy/`——端口全线订正为实际
+  **8081**、示例管理员密码中性化、每篇顶部加时效声明（`ASTRNEST_ADMIN_*` 环境变量方式已被
+  安装向导取代）；新增目录 README 说明权威顺序（README.md 为准）
+- **Flyway 迁移方案（P2-24）**：新增 `docs/flyway-migration-plan.md` 评估稿——
+  四通道现状梳理、V1 基线 + 增量迁移 + 存量库 baseline 切换、SchemaAlignmentRunner 退役路径、
+  风险清单（H2/MySQL 方言、安装向导时序）与验收清单；**仅方案未动代码**，实施需确认切换窗口
+- **相册预览图 uuid 口径对齐（复查点④）**：公开相册详情与登录态相册详情两处，
+  非属主的 `previewImageUuids` 现按「公开∧非违规」过滤，与列表/medias 接口同口径
+- 收尾验证：后端 49 测试全绿；前端 build 通过、lint 0 error
+
 ## [Unreleased] - 2026-10-06 (5)
 
 ### 业务链路二轮复查修复（图片权限矩阵 + 注册登录链路）

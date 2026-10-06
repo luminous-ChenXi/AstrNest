@@ -145,6 +145,14 @@ public class AlbumService {
 
     AlbumDetailResponse response = new AlbumDetailResponse();
     response.setAlbum(convertToResponse(album));
+    // 预览图 uuid 与可见性口径对齐（审计复查点④）：非属主语境只保留公开∧非违规的 uuid
+    if (!ownerOrAdmin && response.getAlbum().getPreviewImageUuids() != null) {
+      response.getAlbum().getPreviewImageUuids()
+          .removeIf(uuid -> {
+            UploadRecord record = recordsByUuid.get(uuid);
+            return record == null || !isPublicVisible(record);
+          });
+    }
     response.setMedias(mediaResponses);
     response.setTotalMedia((long) mediaResponses.size());
 
@@ -430,6 +438,17 @@ public class AlbumService {
         ? albumMediaRepository.countByAlbumId(album.getId())
         : uploadRecordRepository.countByAlbumIdAndPublicAccessibleTrueAndViolationFalse(album.getId());
     response.setMediaCount(publicMediaCount);
+
+    // 预览图 uuid 与可见性口径对齐（审计复查点④）：非属主语境只保留公开∧非违规的 uuid
+    if (!isOwnerOrAdmin && response.getPreviewImageUuids() != null && !response.getPreviewImageUuids().isEmpty()) {
+      Map<String, UploadRecord> previewRecords = findRecordsByUuid(response.getPreviewImageUuids());
+      response.setPreviewImageUuids(response.getPreviewImageUuids().stream()
+          .filter(uuid -> {
+            UploadRecord record = previewRecords.get(uuid);
+            return record != null && isPublicVisible(record);
+          })
+          .toList());
+    }
 
     if (album.getCoverImageUuid() != null) {
       Optional<UploadRecord> coverRecord = uploadRecordRepository.findByMediaUuid(album.getCoverImageUuid());

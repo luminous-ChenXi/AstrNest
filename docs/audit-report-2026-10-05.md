@@ -9,9 +9,11 @@
 >   Release 工作流（v* tag → jar/dist/扩展 + GHCR 镜像）、Node 22、缓存与 permissions、删死工作流——完成
 > - 批次五（测试补齐·首轮）：✅ AuthFlowIntegrationTest 5 例（注册角色/唯一性/P0-2/P0-6 回归）+
 >   安装探针 H2 兼容修复，后端 44 测试全绿
-> - 未尽事项：Schema 四通道 → Flyway（P2-24）、init-admin 脚本族废弃（P1-17）、
->   文档站分发与端口订正（P1-15 文档侧）、SVG CSP 云存储部署要求（P1-12 文档侧）、
->   EXIF 隐私剥离（P3）、CI 修绿后在 ruleset 勾选 Require status checks
+> - 未尽事项（2026-10-07 更新）：
+>   - ✅ P1-15 部署文档入库（docs/deploy/，端口订正+时效声明）、P2-24 Flyway 方案评估稿（docs/flyway-migration-plan.md，实施待确认窗口）、复查点④ previewImageUuids 过滤——均已完成
+>   - ⏳ Flyway 实际实施（方案已就绪，待确认切换窗口）；SVG CSP 云存储部署要求写入 README（P1-12 文档侧）；EXIF 剥离已做（JpegExifStripper）；init-admin 已废弃（P1-17）
+>   - 📝 产品决策待定：直链不校验 is_public 的"UUID 防线"口径写进文档；管理端解除违规强制 publicAccessible=true 的语义说明；访客上传默认私且无账号可改公开的行为说明
+>   - 📝 CI 修绿后（已绿）在 ruleset 勾选 Require status checks
 > 审计日期：2026-10-05
 > 审计对象：`main` 分支 `d7edcd0`（Spring Boot 3.4.13 / Java 21 / MySQL，后端 287 个 Java 文件；Vue 3.5 + Vite 前端 55 个文件；浏览器扩展）
 > 审计方式：5 路并行代码走查（认证 / 上传存储 / 内容与统计 / CI-CD / 安全横切面）+ 本机构建测试实测 + 全部 P0 结论人工逐条复核源码
