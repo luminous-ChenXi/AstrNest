@@ -27,7 +27,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -64,6 +65,7 @@ public class SsoIdentityService {
   private final JwtTokenService jwtTokenService;
   private final UserAccountService userAccountService;
   private final UserLoginEventService userLoginEventService;
+  private final PlatformTransactionManager transactionManager;
 
   /**
    * OIDC 授权码 + PKCE 登录：后端凭 code + code_verifier 向通行证换 access_token
@@ -71,7 +73,6 @@ public class SsoIdentityService {
    *
    * @throws ResponseStatusException 401（授权码无效/已过期、凭证校验未通过）、500（环境问题）
    */
-  @Transactional
   public LoginResponse exchangeByAuthorizationCode(String code, String codeVerifier, HttpServletRequest request) {
     PassportToken token = passportClient.exchangeAuthorizationCode(code, codeVerifier);
     return exchangeByAccessToken(token.accessToken(), request);
@@ -80,9 +81,12 @@ public class SsoIdentityService {
   /**
    * 凭 access_token 完成登录（遗留路径）：自省校验 → 用户信息 → 影子账号 → 本地 JWT。
    *
+   * <p>事务边界（审计 3.3）：自省与用户信息是两次 HTTP 外呼（PassportClient 超时各 5s+），
+   * 刻意放在事务外执行——本项目已关闭 OSIV 以「避免连接被长请求占满」，事务内做外呼等于
+   * 自己持数据库连接等远程。{@link #completeSsoLogin} 的事务内只做落库与资料装配，行为不变。
+   *
    * @throws ResponseStatusException 401（凭证无效/用户信息失败）、500（缺少 USER 角色等环境问题）
    */
-  @Transactional
   public LoginResponse exchangeByAccessToken(String accessToken, HttpServletRequest request) {
     IntrospectionResult introspection = passportClient.introspect(accessToken);
     if (!Boolean.TRUE.equals(introspection.active()) || !StringUtils.hasText(introspection.sub())) {
@@ -90,21 +94,32 @@ public class SsoIdentityService {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "SSO 凭证无效");
     }
     SsoUserInfo userInfo = passportClient.fetchUserInfo(accessToken);
+    return completeSsoLogin(introspection.sub().trim(), userInfo, request);
+  }
 
-    UserAccount user = resolveShadowAccount(introspection.sub().trim(), userInfo);
-    syncShadowProfile(user, userInfo);
-    userLoginEventService.recordLogin(user, request);
+  /**
+   * 事务内的落库与令牌签发：影子账号建档/资料同步/登录事件/认证上下文装配。
+   * 用程序化事务（同 {@code InstallSetupService} 口径）而非方法级 @Transactional：
+   * 这是同类内私有调用，注解会因自调用绕过代理而失效。
+   */
+  private LoginResponse completeSsoLogin(String sub, SsoUserInfo userInfo, HttpServletRequest request) {
+    TransactionTemplate template = new TransactionTemplate(transactionManager);
+    return template.execute(status -> {
+      UserAccount user = resolveShadowAccount(sub, userInfo);
+      syncShadowProfile(user, userInfo);
+      userLoginEventService.recordLogin(user, request);
 
-    // 与本地登录一致：装配认证上下文后复用 getCurrentProfile，角色从数据库实时读取
-    UsernamePasswordAuthenticationToken authentication =
-        new UsernamePasswordAuthenticationToken(user.getUsername(), null, authorities(user));
-    SecurityContextHolder.getContext().setAuthentication(authentication);
+      // 与本地登录一致：装配认证上下文后复用 getCurrentProfile，角色从数据库实时读取
+      UsernamePasswordAuthenticationToken authentication =
+          new UsernamePasswordAuthenticationToken(user.getUsername(), null, authorities(user));
+      SecurityContextHolder.getContext().setAuthentication(authentication);
 
-    // 带令牌版本：影子账号被「找回密码」动过 tokenVersion 后，签发 ver=0 会全部被过滤器拒绝
-    String token = jwtTokenService.generateToken(user.getId(), user.getUsername(), user.getTokenVersion());
-    UserProfileResponse profile = userAccountService.getCurrentProfile();
-    log.info("SSO 登录成功：userId={}, username={}, source={}", user.getId(), user.getUsername(), user.getIdentitySource());
-    return LoginResponse.complete(token, profile, "Bearer", jwtTokenService.ttlSeconds());
+      // 带令牌版本：影子账号被「找回密码」动过 tokenVersion 后，签发 ver=0 会全部被过滤器拒绝
+      String token = jwtTokenService.generateToken(user.getId(), user.getUsername(), user.getTokenVersion());
+      UserProfileResponse profile = userAccountService.getCurrentProfile();
+      log.info("SSO 登录成功：userId={}, username={}, source={}", user.getId(), user.getUsername(), user.getIdentitySource());
+      return LoginResponse.complete(token, profile, "Bearer", jwtTokenService.ttlSeconds());
+    });
   }
 
   /** 按 sso_sub 查找影子账号；不存在则建档（唯一约束冲突时回读并发兜底）。 */

@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
@@ -138,6 +139,19 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(OptimisticLockingFailureException.class)
   public ResponseEntity<ApiErrorResponse> handleOptimisticLock(OptimisticLockingFailureException ex) {
     return buildResponse("内容已被他人更新，请刷新后重试", HttpStatus.CONFLICT);
+  }
+
+  /**
+   * 唯一键/约束冲突（注册并发竞态，审计 P1-5）：注册的 existsByUsername/existsByEmail 预检与
+   * save 落库非原子，并发撞 {@code uq_users_username / uq_users_email / uk_users_sso_sub} 等唯一键时
+   * 此前落进兜底 500。统一转 409 Conflict——请求与既有数据冲突本就是 409 的语义；
+   * SSO 侧已在 SsoIdentityService 内部回读消化，走到这里的主要是本地注册的并发窗口。
+   * 命中的具体约束名只进日志不回显（防内部信息泄露，同兜底 handler 口径）。
+   */
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+    log.warn("数据完整性冲突: {}", ex.getMessage(), ex);
+    return buildResponse("注册信息与他人冲突：用户名或邮箱可能已被占用，请调整后重试", HttpStatus.CONFLICT);
   }
 
   @ExceptionHandler(Exception.class)
