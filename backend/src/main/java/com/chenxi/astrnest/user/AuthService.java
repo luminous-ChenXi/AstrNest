@@ -46,6 +46,11 @@ import org.springframework.web.server.ResponseStatusException;
 @Slf4j
 public class AuthService {
 
+  /** 强制绑定确认：单过渡令牌尝试上限（用尽即作废该令牌） */
+  private static final int SETUP_CONFIRM_MAX_ATTEMPTS = 5;
+  /** 尝试窗口与二步验证过渡令牌 TTL（5 分钟）对齐：窗口结束令牌自身也已过期 */
+  private static final java.time.Duration SETUP_CONFIRM_ATTEMPT_WINDOW = java.time.Duration.ofMinutes(5);
+
   private final AuthenticationManager authenticationManager;
   private final JwtTokenService jwtTokenService;
   private final UserAccountRepository userAccountRepository;
@@ -55,6 +60,7 @@ public class AuthService {
   private final ClientIpResolver clientIpResolver;
   private final SystemConfigService systemConfigService;
   private final TotpAccountService totpAccountService;
+  private final com.chenxi.astrnest.common.InMemoryRateLimiter rateLimiter;
 
   @Transactional
   public LoginResponse login(LoginRequest request, HttpServletRequest httpRequest) {
@@ -87,6 +93,8 @@ public class AuthService {
   public LoginResponse verifyTwoFactor(TwoFactorVerifyRequest request, HttpServletRequest httpRequest) {
     UserAccount user = resolvePendingUser(request.tempToken());
     String ip = clientIpResolver.resolve(httpRequest);
+    // 与 /login 同口径前置防爆破评估：匿名挑战端点此前只记失败不评估，锁定形同虚设
+    authProtectionService.ensureLoginAllowed(user.getUsername(), ip);
     try {
       totpAccountService.verifyChallenge(user.getId(), request.code());
     } catch (ResponseStatusException exception) {
@@ -99,14 +107,31 @@ public class AuthService {
 
   /**
    * 强制绑定确认：校验 6 位动态码 → 绑定落库（confirmed）→ 一次性发放还原码 → 直接完成登录。
+   *
+   * <p>尝试上限：同一过渡令牌累计 5 次尝试后作废（窗口对齐令牌 5 分钟 TTL，窗口结束令牌自身也已过期），
+   * 必须重新走登录 + 2FA 流程拿新令牌——否则 6 位码在 30s 窗口内可被无限试错；
+   * 窗口内每次失败同样计入既有防爆破计数（USER_IP + IP_ONLY）。</p>
    */
   @Transactional
-  public TwoFactorSetupConfirmResponse confirmTwoFactorSetup(TwoFactorVerifyRequest request) {
+  public TwoFactorSetupConfirmResponse confirmTwoFactorSetup(TwoFactorVerifyRequest request,
+      HttpServletRequest httpRequest) {
+    String ip = clientIpResolver.resolve(httpRequest);
     UserAccount user = resolvePendingUser(request.tempToken());
-    List<String> recoveryCodes = totpAccountService.confirmSetup(user.getId(), request.code());
-    LoginResponse complete = issueCompleteResponse(user);
-    return new TwoFactorSetupConfirmResponse(
-        complete.token(), complete.profile(), complete.tokenType(), complete.expiresIn(), recoveryCodes);
+    if (rateLimiter.tryAcquire("2fa-setup:" + request.tempToken(),
+        SETUP_CONFIRM_MAX_ATTEMPTS, SETUP_CONFIRM_ATTEMPT_WINDOW)) {
+      throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+          "尝试次数过多，该二步验证会话已作废，请重新登录");
+    }
+    try {
+      List<String> recoveryCodes = totpAccountService.confirmSetup(user.getId(), request.code());
+      authProtectionService.recordLoginSuccess(user.getUsername(), ip);
+      LoginResponse complete = issueCompleteResponse(user);
+      return new TwoFactorSetupConfirmResponse(
+          complete.token(), complete.profile(), complete.tokenType(), complete.expiresIn(), recoveryCodes);
+    } catch (ResponseStatusException exception) {
+      authProtectionService.recordLoginFailure(user.getUsername(), ip);
+      throw exception;
+    }
   }
 
   // ==================== 内部装配 ====================

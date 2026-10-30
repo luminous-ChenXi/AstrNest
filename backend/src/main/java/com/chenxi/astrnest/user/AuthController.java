@@ -44,12 +44,19 @@ public class AuthController {
   @PostMapping("/2fa/verify")
   public LoginResponse verifyTwoFactor(@Valid @RequestBody TwoFactorVerifyRequest request,
       HttpServletRequest httpRequest) {
+    // 与 /login 同口径的 IP 兜底限流：挑战端点同样匿名可达，防灌爆 TOTP/还原码校验
+    String ip = clientIpResolver.resolve(httpRequest);
+    if (rateLimiter.tryAcquire("2fa-verify:" + ip, LOGIN_LIMIT_PER_MINUTE, LOGIN_RATE_WINDOW)) {
+      throw new org.springframework.web.server.ResponseStatusException(
+          org.springframework.http.HttpStatus.TOO_MANY_REQUESTS, "请求过于频繁，请稍后再试");
+    }
     return authService.verifyTwoFactor(request, httpRequest);
   }
 
   /** 强制绑定确认：6 位动态码 → 绑定落库 + 发放一次性还原码 + 直接完成登录。 */
   @PostMapping("/2fa/setup/confirm")
-  public TwoFactorSetupConfirmResponse confirmTwoFactorSetup(@Valid @RequestBody TwoFactorVerifyRequest request) {
-    return authService.confirmTwoFactorSetup(request);
+  public TwoFactorSetupConfirmResponse confirmTwoFactorSetup(@Valid @RequestBody TwoFactorVerifyRequest request,
+      HttpServletRequest httpRequest) {
+    return authService.confirmTwoFactorSetup(request, httpRequest);
   }
 }

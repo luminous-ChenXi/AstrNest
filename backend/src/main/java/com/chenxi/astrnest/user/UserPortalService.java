@@ -64,6 +64,7 @@ public class UserPortalService {
   private final UserLoginEventService userLoginEventService;
   private final PublicAssetUrlResolver publicAssetUrlResolver;
   private final ObjectMapper objectMapper;
+  private final com.chenxi.astrnest.security.bruteforce.AuthProtectionService authProtectionService;
 
   @Transactional(readOnly = true)
   public UserOverviewResponse overview(int latestCount) {
@@ -189,18 +190,23 @@ public class UserPortalService {
   }
 
   @Transactional
-  public void changePassword(ChangePasswordRequest request) {
+  public void changePassword(ChangePasswordRequest request, String ip) {
     UserAccount user = currentUser();
     // 影子账号只读：SSO 账号密码由身份源侧管理，本地口令通道不可用（建档时即为随机不可登录密码）
     requireLocalIdentity(user);
+    // 防爆破口径与登录一致：前置锁定评估 + currentPassword 失败计入防爆破锁，
+    // 否则持登录态即可对 BCrypt 哈希无限次在线试错
+    authProtectionService.ensureLoginAllowed(user.getUsername(), ip);
     // 新密码强度统一口径（审计 P2-9）：改密此前连长度下限都没有，现与注册/安装向导同规则
     PasswordPolicy.validate(request.newPassword());
     if (!request.newPassword().equals(request.confirmPassword())) {
       throw new IllegalArgumentException("两次输入的密码不一致");
     }
     if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+      authProtectionService.recordLoginFailure(user.getUsername(), ip);
       throw new BadCredentialsException("当前密码不正确");
     }
+    authProtectionService.recordLoginSuccess(user.getUsername(), ip);
     user.setPassword(passwordEncoder.encode(request.newPassword()));
     // 改密即吊销：令牌版本 +1，该用户全部旧 JWT（含可能被盗的会话）立即失效
     user.setTokenVersion(user.getTokenVersion() + 1);

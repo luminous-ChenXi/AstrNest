@@ -8,6 +8,8 @@ import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -42,6 +44,12 @@ public class AuthProtectionService {
     }
   }
 
+  /**
+   * 失败记账走 REQUIRES_NEW：调用方（login/2fa/注册/改密）统一是「记账后原样重抛」模式，
+   * 外层事务随后必然回滚——若并入外层事务，锁定/日志写入会被一并回滚，防爆破计数形同虚设
+   * （实测 6 次错密码登录后 auth_lock_states 仍为空表）。失败凭证必须独立提交。
+   */
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void recordLoginFailure(String username, String ip) {
     applyFailure(normalize(username), normalizeIp(ip), LockDimension.USER_IP, USER_SHORT_THRESHOLD, USER_LONG_THRESHOLD, "LOGIN_FAIL");
     applyFailure("", normalizeIp(ip), LockDimension.IP_ONLY, IP_SHORT_THRESHOLD, IP_LONG_THRESHOLD, "LOGIN_FAIL");
@@ -78,11 +86,13 @@ public class AuthProtectionService {
     clearState(normalize(username), normalizeIp(ip), LockDimension.USER_IP);
   }
 
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void recordRegisterFailure(String username, String ip) {
     applyFailure(normalize(username), normalizeIp(ip), LockDimension.USER_IP, USER_SHORT_THRESHOLD, USER_LONG_THRESHOLD, "REGISTER_FAIL");
     applyFailure("", normalizeIp(ip), LockDimension.IP_ONLY, IP_SHORT_THRESHOLD, IP_LONG_THRESHOLD, "REGISTER_FAIL");
   }
 
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void recordCaptchaFailure(String ip) {
     applyCaptchaFailure(normalizeIp(ip));
   }

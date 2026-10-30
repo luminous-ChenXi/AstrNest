@@ -12,6 +12,7 @@ import com.chenxi.astrnest.user.dto.UserProfileDetailResponse;
 import com.chenxi.astrnest.user.dto.UserSecuritySettingsResponse;
 import com.chenxi.astrnest.user.dto.UserUploadDetailResponse;
 import com.chenxi.astrnest.user.dto.UserUploadPageResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,8 +32,14 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasAnyRole('ADMIN','USER')")
 public class UserPortalController {
 
+  /** 改密端点进程内限流：口径与登录类端点一致（30 次/分钟/IP），兜底 BCrypt 在线爆破 */
+  private static final int PASSWORD_CHANGE_LIMIT_PER_MINUTE = 30;
+  private static final java.time.Duration PASSWORD_CHANGE_RATE_WINDOW = java.time.Duration.ofMinutes(1);
+
   private final UserPortalService userPortalService;
   private final ApiKeyProperties apiKeyProperties;
+  private final com.chenxi.astrnest.common.ClientIpResolver clientIpResolver;
+  private final com.chenxi.astrnest.common.InMemoryRateLimiter rateLimiter;
 
   @GetMapping("/overview")
   public UserOverviewResponse overview() {
@@ -82,8 +89,13 @@ public class UserPortalController {
   }
 
   @PostMapping("/security/password")
-  public void changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-    userPortalService.changePassword(request);
+  public void changePassword(@Valid @RequestBody ChangePasswordRequest request, HttpServletRequest httpRequest) {
+    String ip = clientIpResolver.resolve(httpRequest);
+    if (rateLimiter.tryAcquire("pwd-change:" + ip, PASSWORD_CHANGE_LIMIT_PER_MINUTE, PASSWORD_CHANGE_RATE_WINDOW)) {
+      throw new org.springframework.web.server.ResponseStatusException(
+          org.springframework.http.HttpStatus.TOO_MANY_REQUESTS, "请求过于频繁，请稍后再试");
+    }
+    userPortalService.changePassword(request, ip);
   }
 
   @GetMapping("/security/settings")
