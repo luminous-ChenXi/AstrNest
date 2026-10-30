@@ -1,5 +1,6 @@
 package com.chenxi.astrnest.install;
 
+import com.chenxi.astrnest.common.PasswordPolicy;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -255,14 +256,8 @@ public class InstallSetupService {
   }
 
   private void validatePassword(String password) {
-    if (password.length() < 8 || password.length() > 64) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "密码长度需在 8-64 位之间");
-    }
-    boolean hasLetter = password.matches(".*[A-Za-z].*");
-    boolean hasDigit = password.matches(".*\\d.*");
-    if (!hasLetter || !hasDigit) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "密码需同时包含字母和数字");
-    }
+    // 统一密码策略（审计 P2-9）：规则本体收敛到 PasswordPolicy，此处仅保留抛错语义
+    PasswordPolicy.validate(password);
   }
 
   // ==================== 脚本解析与执行工具 ====================

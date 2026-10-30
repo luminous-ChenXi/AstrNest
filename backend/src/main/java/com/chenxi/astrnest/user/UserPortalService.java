@@ -2,6 +2,7 @@ package com.chenxi.astrnest.user;
 
 import com.chenxi.astrnest.ai.AiLabel;
 import com.chenxi.astrnest.common.HtmlSanitizer;
+import com.chenxi.astrnest.common.PasswordPolicy;
 import com.chenxi.astrnest.passport.SsoIdentityService;
 import com.chenxi.astrnest.security.dto.UserProfileResponse;
 import com.chenxi.astrnest.security.user.UserAccount;
@@ -192,6 +193,8 @@ public class UserPortalService {
     UserAccount user = currentUser();
     // 影子账号只读：SSO 账号密码由身份源侧管理，本地口令通道不可用（建档时即为随机不可登录密码）
     requireLocalIdentity(user);
+    // 新密码强度统一口径（审计 P2-9）：改密此前连长度下限都没有，现与注册/安装向导同规则
+    PasswordPolicy.validate(request.newPassword());
     if (!request.newPassword().equals(request.confirmPassword())) {
       throw new IllegalArgumentException("两次输入的密码不一致");
     }

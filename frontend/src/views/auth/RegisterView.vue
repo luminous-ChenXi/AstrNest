@@ -118,6 +118,14 @@ const validateUsername = (_rule, value, callback) => {
   callback()
 }
 
+// 与后端统一密码策略（PasswordPolicy）同口径：8-64 位且含字母和数字
+const validatePassword = (_rule, value, callback) => {
+  if (!value) return callback(new Error('请设置登录密码'))
+  if (value.length < 8 || value.length > 64) return callback(new Error('密码长度需在 8-64 位之间'))
+  if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) return callback(new Error('密码需同时包含字母和数字'))
+  callback()
+}
+
 const rules = {
   email: [
     { validator: validateEmail, trigger: 'blur' },
@@ -125,7 +133,7 @@ const rules = {
   ],
   code: [{ required: true, message: '请输入邮箱验证码', trigger: 'blur' }],
   username: [{ validator: validateUsername, trigger: ['blur', 'change'] }],
-  password: [{ required: true, message: '请设置登录密码', trigger: 'blur' }],
+  password: [{ validator: validatePassword, trigger: ['blur', 'change'] }],
 }
 
 const { buttonLabel, canSend, sendCode } = useChenxiEmailCode((payload) => requestRegisterCode(payload))
@@ -397,7 +405,7 @@ const handleSubmit = async () => {
                 />
               </ElFormItem>
               <ElFormItem label="登录密码" prop="password" class="full-width">
-                <ElInput v-model="form.password" :prefix-icon="Lock" show-password placeholder="至少 8 位" />
+                <ElInput v-model="form.password" :prefix-icon="Lock" show-password placeholder="至少 8 位且含字母和数字" />
               </ElFormItem>
             </div>
           </section>

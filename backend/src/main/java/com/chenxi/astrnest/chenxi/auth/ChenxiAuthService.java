@@ -3,6 +3,7 @@ package com.chenxi.astrnest.chenxi.auth;
 import com.chenxi.astrnest.chenxi.captcha.ChenxiCaptchaService;
 import com.chenxi.astrnest.chenxi.mail.ChenxiMailService;
 import com.chenxi.astrnest.common.Digests;
+import com.chenxi.astrnest.common.PasswordPolicy;
 import com.chenxi.astrnest.security.user.UserAccount;
 import com.chenxi.astrnest.security.user.UserAccountRepository;
 import com.chenxi.astrnest.security.user.UserRole;
@@ -76,6 +77,8 @@ public class ChenxiAuthService {
   public void registerUser(String email, String code, String linkToken, String username,
       String displayName, String password) {
     ensureRegistrationEnabled();
+    // 密码强度统一口径（审计 P2-9）：与安装向导同规则；DTO 的 @Size 只挡长度不挡组成
+    PasswordPolicy.validate(password);
     boolean verifyRequired = systemConfigService.isEmailVerifyRequired();
 
     String normalizedEmail = null;
@@ -134,6 +137,8 @@ public class ChenxiAuthService {
 
   @Transactional
   public void resetPassword(String email, String code, String newPassword) {
+    // 找回重置的新密码同样过统一强度校验（审计 P2-9），与注册/改密同口径
+    PasswordPolicy.validate(newPassword);
     String normalizedEmail = normalizeEmail(email);
     consumeVerificationCode(normalizedEmail, ChenxiEmailScene.PASSWORD_RESET, code);
     UserAccount user = userAccountRepository.findByEmail(normalizedEmail)
