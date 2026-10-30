@@ -1,7 +1,7 @@
 <script setup>
 import { ElMessage } from 'element-plus'
 import { Lock, User, Close } from '@element-plus/icons-vue'
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import QRCode from 'qrcode'
 import { login, verifyTwoFactor, confirmTwoFactorSetup } from '../../services/auth'
@@ -20,15 +20,17 @@ const emit = defineEmits(['update:visible', 'login-success', 'closed'])
 const router = useRouter()
 const auth = useAuthStore()
 
-// SSO 按钮文案：默认中性表述；如需突出身份源品牌，可改为「使用辰汐通行证登录」等
-const SSO_BUTTON_TEXT = '使用 SSO 登录'
+// SSO 按钮文案：直呼身份源品牌，帮助用户辨识辰汐生态统一登录入口
+const SSO_BUTTON_TEXT = '使用辰汐通行证登录'
 
 const formRef = ref()
 const submitting = ref(false)
 const ssoLoading = ref(false)
-// 仅在 astrnest.sso.enabled=true 时后端返回 enabled=true，前端才显示入口
+// 仅在后端 chenxi.passport.enabled=true（且 issuer/clientId 已配置）时返回 enabled=true，前端才显示入口
 const ssoEnabled = ref(false)
 const ssoConfig = ref(null)
+// 注册引导页：优先用 config 返回的 registerUrl（issuer 根路径或显式覆盖），兜底 issuer 本身
+const ssoRegisterUrl = computed(() => ssoConfig.value?.registerUrl || ssoConfig.value?.issuer || '')
 const form = reactive({
   username: '',
   password: '',
@@ -69,6 +71,12 @@ const handleClose = () => {
 }
 
 const goToRegister = () => {
+  // 2026-10-17 生态收口：SSO 配置了主站注册地址时，注册统一去主站（建号/资料写库在主站）。
+  // 开源独立部署默认无 SSO 配置，保持本地 /register。
+  if (ssoRegisterUrl.value) {
+    window.location.href = ssoRegisterUrl.value
+    return
+  }
   // 直接跳转，不关闭弹窗（页面切换后弹窗会自动消失）
   router.push('/register')
 }
@@ -340,7 +348,7 @@ watch(() => props.visible, (newVal, oldVal) => {
                   登录
                 </ElButton>
 
-                <!-- SSO 登录入口：仅当后端 astrnest.sso.enabled=true 时显示（默认关闭） -->
+                <!-- SSO 登录入口：仅当后端 chenxi.passport.enabled=true 时显示（默认关闭=不渲染任何辰汐 UI） -->
                 <template v-if="ssoEnabled">
                   <div class="sso-divider"><span>或</span></div>
                   <ElButton
@@ -351,6 +359,18 @@ watch(() => props.visible, (newVal, oldVal) => {
                   >
                     {{ SSO_BUTTON_TEXT }}
                   </ElButton>
+                  <div class="sso-register-row">
+                    <span class="sso-register-text">没有辰汐账号？</span>
+                    <a
+                      v-if="ssoRegisterUrl"
+                      :href="ssoRegisterUrl"
+                      class="sso-register-link"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      前往辰汐通行证注册
+                    </a>
+                  </div>
                 </template>
 
                 <div class="form-footer">
@@ -822,6 +842,36 @@ watch(() => props.visible, (newVal, oldVal) => {
   color: #F9A8C8;
   border-color: #F9A8C8;
   background: #2c2c42;
+}
+
+/* SSO 注册引导行：通行证启用时才渲染，引导去主站注册辰汐账号 */
+.sso-register-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.sso-register-text {
+  color: #9ca3af;
+}
+
+.sso-register-link {
+  color: #F9A8C8;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.sso-register-link:hover {
+  color: #E87A9F;
+  text-decoration: underline;
+}
+
+.dark .sso-register-text {
+  color: #808090;
 }
 
 /* 底部链接 */

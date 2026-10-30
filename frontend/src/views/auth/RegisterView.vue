@@ -7,6 +7,7 @@ import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { debounce } from 'lodash-es'
 import ChenxiCaptchaInput from '../../components/chenxi/ChenxiCaptchaInput.vue'
 import { requestRegisterCode, registerChenxiAccount, checkEmailAvailability } from '../../services/chenxi'
+import { fetchSsoConfig } from '../../services/sso'
 import { getSystemConfig } from '../../services/system'
 import { useChenxiEmailCode } from '../../composables/useChenxiEmailCode'
 import http from '../../services/http'
@@ -207,6 +208,21 @@ onMounted(async () => {
   linkToken.value = typeof route.query.linkToken === 'string' ? route.query.linkToken : ''
   if (linkToken.value && typeof route.query.email === 'string') {
     form.email = route.query.email
+  }
+  // 2026-10-17 生态收口：SSO 配置了主站注册地址时，注册统一去主站（建号/资料写库在主站）；
+  // 本地邮件链接落地（linkToken）不跳转，避免打断已发出的验证链接。
+  // 开源独立部署默认无 SSO 配置，保持本地注册。
+  if (!linkToken.value) {
+    try {
+      const { data: sso } = await fetchSsoConfig()
+      const url = sso?.enabled ? String(sso.registerUrl || '').trim() : ''
+      if (url) {
+        window.location.replace(url)
+        return
+      }
+    } catch {
+      /* SSO 配置不可得：保持本地注册 */
+    }
   }
   try {
     const { data } = await getSystemConfig()

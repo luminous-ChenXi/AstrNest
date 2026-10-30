@@ -57,7 +57,7 @@ AstrNest 支持使用"辰汐通行证"账号一键登录本站。该功能为**�
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/auth/sso/config` | 返回登录配置（`enabled/issuer/clientId/redirectUri/scopes` + authorize/token 端点），无论是否启用都可访问。公共客户端没有密钥，这些都是可公开的"门牌"信息 |
+| GET | `/api/auth/sso/config` | 返回登录配置（`enabled/issuer/clientId/redirectUri/registerUrl/scopes` + authorize/token 端点），无论是否启用都可访问。公共客户端没有密钥，这些都是可公开的"门牌"信息 |
 | POST | `/api/auth/sso/exchange` | 请求体 `{code, codeVerifier}`（推荐，服务端交换）或遗留 `{accessToken}`；后端完成换 token、自省、userinfo、影子账号后，返回与本地登录**完全一致**的响应结构 |
 | GET | `/api/license/status` | 授权状态摘要（公开只读，默认 `enabled=false`；N2 占位） |
 
@@ -71,6 +71,7 @@ AstrNest 支持使用"辰汐通行证"账号一键登录本站。该功能为**�
 | `chenxi.passport.issuer` | `CHENXI_PASSPORT_ISSUER` | 空 | 通行证签发方地址；本地联调填通行证本机地址 |
 | `chenxi.passport.client-id` | `CHENXI_PASSPORT_CLIENT_ID` | 空 | 在通行证注册的客户端 ID |
 | `chenxi.passport.redirect-uri` | `CHENXI_PASSPORT_REDIRECT_URI` | 空 | 回调地址，必须与通行证注册的**完全一致** |
+| `chenxi.passport.register-url` | `CHENXI_PASSPORT_REGISTER_URL` | 空 | 主站注册引导地址（登录弹窗「前往主站注册」链接目标）；留空时 issuer 主机为 `passport.*` 回主站 `https://<主域>/register`，其他 issuer 回落 issuer 根路径 |
 | `chenxi.passport.scopes` | `CHENXI_PASSPORT_SCOPES` | `openid,profile` | 授权范围 |
 | `chenxi.passport.access-token-days` | `CHENXI_PASSPORT_ACCESS_TOKEN_DAYS` | `30` | 本地令牌不活动过期天数（滑动刷新） |
 

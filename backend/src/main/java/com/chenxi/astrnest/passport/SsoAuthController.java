@@ -5,6 +5,7 @@ import com.chenxi.astrnest.passport.dto.SsoConfigResponse;
 import com.chenxi.astrnest.passport.dto.SsoExchangeRequest;
 import com.chenxi.astrnest.user.dto.LoginResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,6 +64,7 @@ public class SsoAuthController {
         ssoProperties.getClientId(),
         ssoProperties.getScopes(),
         ssoProperties.getRedirectUri(),
+        registerUrl(),
         issuerBase() + "/oauth2/authorize",
         issuerBase() + "/oauth2/token"
     );
@@ -96,6 +98,33 @@ public class SsoAuthController {
   private String issuerBase() {
     String issuer = ssoProperties.getIssuer().trim();
     return issuer.endsWith("/") ? issuer.substring(0, issuer.length() - 1) : issuer;
+  }
+
+  /**
+   * 注册引导页：优先取显式配置的 register-url；否则（2026-10-17 生态收口）
+   * issuer 主机为 passport.* 时去掉子域回主站 /register（passport 域没有注册页），
+   * 其他 OIDC issuer 仍回落 issuer 根路径。
+   */
+  private String registerUrl() {
+    if (StringUtils.hasText(ssoProperties.getRegisterUrl())) {
+      return ssoProperties.getRegisterUrl().trim();
+    }
+    String base = issuerBase();
+    try {
+      URI uri = URI.create(base);
+      String host = uri.getHost();
+      if (host != null && host.startsWith("passport.")) {
+        String mainHost = host.substring("passport.".length());
+        StringBuilder url = new StringBuilder(uri.getScheme()).append("://").append(mainHost);
+        if (uri.getPort() > 0) {
+          url.append(':').append(uri.getPort());
+        }
+        return url.append("/register").toString();
+      }
+    } catch (IllegalArgumentException ignored) {
+      // issuer 不是合法 URI：保持旧口径
+    }
+    return base;
   }
 
   private void ensureExchangeAllowed(String ip) {

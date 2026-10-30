@@ -38,6 +38,12 @@ public class ChenxiPassportProperties {
   /** 授权回调地址，须与身份源侧注册的 redirect_uri 完全一致。 */
   private String redirectUri;
 
+  /**
+   * 注册引导页地址：登录弹窗「前往辰汐通行证注册」链接的目标；留空时由 issuer 根路径推导
+   * （config 接口的 {@code registerUrl} 字段返回推导/覆盖结果）。
+   */
+  private String registerUrl;
+
   /** 授权请求申请的 scope，统一规范默认 openid,profile。 */
   private List<String> scopes = List.of("openid", "profile");
 

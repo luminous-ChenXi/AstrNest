@@ -51,6 +51,8 @@ chenxi:
     issuer: ${CHENXI_PASSPORT_ISSUER:}
     client-id: ${CHENXI_PASSPORT_CLIENT_ID:}
     redirect-uri: ${CHENXI_PASSPORT_REDIRECT_URI:}
+    # 注册引导页（登录弹窗「前往辰汐通行证注册」链接目标；留空=使用 issuer 根路径）
+    register-url: ${CHENXI_PASSPORT_REGISTER_URL:}
     scopes: ${CHENXI_PASSPORT_SCOPES:openid,profile}
     # 本地令牌不活动过期天数（滑动刷新：每次携带有效令牌访问自动续期）
     access-token-days: ${CHENXI_PASSPORT_ACCESS_TOKEN_DAYS:30}

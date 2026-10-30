@@ -10,6 +10,7 @@ import java.util.List;
  * @param clientId          public client id
  * @param scopes            申请的 scope 列表
  * @param redirectUri       授权回调地址（须与身份源侧注册一致）
+ * @param registerUrl       注册引导页（register-url 配置覆盖，否则 issuer 根路径），登录页引导注册用
  * @param authorizeEndpoint 授权端点（issuer + /oauth2/authorize）
  * @param tokenEndpoint     token 端点（issuer + /oauth2/token）
  */
@@ -19,12 +20,13 @@ public record SsoConfigResponse(
     String clientId,
     List<String> scopes,
     String redirectUri,
+    String registerUrl,
     String authorizeEndpoint,
     String tokenEndpoint
 ) {
 
   /** 关闭态响应：仅返回 enabled=false，前端据此隐藏入口。 */
   public static SsoConfigResponse disabled() {
-    return new SsoConfigResponse(false, null, null, List.of(), null, null, null);
+    return new SsoConfigResponse(false, null, null, List.of(), null, null, null, null);
   }
 }

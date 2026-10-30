@@ -322,6 +322,41 @@ const skipSiteConfig = () => {
   currentStep.value = STEP.ADMIN
 }
 
+// ==================== 辰汐生态通行证（可选，展示型引导） ====================
+// chenxi.passport.* 是启动期 @ConfigurationProperties，只能由部署环境变量注入，
+// 向导没有可靠的 env/yml 持久化通道，因此这里只按表单生成环境变量清单供复制：
+// 站长粘贴到部署环境（.env / docker-compose）并重启后端即生效；不填完全不影响安装。
+
+const passportExpanded = ref([])
+const passportForm = reactive({
+  issuer: 'https://passport.luminouschenxi.com',
+  clientId: 'astrnest-web',
+  // 回调按当前站点地址推导，须与通行证侧注册的 redirect_uri 逐字符一致，可手改
+  redirectUri: `${window.location.origin}/auth/sso/callback`,
+})
+
+const passportEnvScript = computed(() =>
+  [
+    'CHENXI_PASSPORT_ENABLED=true',
+    `CHENXI_PASSPORT_ISSUER=${passportForm.issuer.trim()}`,
+    `CHENXI_PASSPORT_CLIENT_ID=${passportForm.clientId.trim()}`,
+    `CHENXI_PASSPORT_REDIRECT_URI=${passportForm.redirectUri.trim()}`,
+  ].join('\n')
+)
+
+const copyPassportEnv = async () => {
+  try {
+    await navigator.clipboard.writeText(passportEnvScript.value)
+    ElMessage.success('环境变量已复制，粘贴到部署环境并重启后端后生效')
+  } catch (error) {
+    ElMessage.warning('复制失败，请手动选择复制')
+  }
+}
+
+const skipPassportGuide = () => {
+  passportExpanded.value = []
+}
+
 /**
  * 生成 16 位强密码：保证至少含大写、小写、数字、符号各一，其余随机填充并整体洗牌。
  * 明文只在生成面板展示一次（可复制），要求在"确认密码"里二次输入；
@@ -750,6 +785,45 @@ const goLogin = async () => {
               <el-input v-model="siteForm.assetDomain" placeholder="如 https://cdn.example.com，留空使用本站域名" />
             </el-form-item>
           </el-form>
+
+          <!-- 辰汐生态通行证（可选）：默认折叠，不填不影响安装，可整体跳过 -->
+          <el-collapse v-model="passportExpanded" class="passport-collapse">
+            <el-collapse-item name="passport">
+              <template #title>
+                <span class="passport-title">
+                  辰汐生态通行证（可选）
+                  <el-tag size="small" type="info" effect="plain">默认关闭</el-tag>
+                </span>
+              </template>
+              <p class="muted passport-intro">
+                接入「辰汐通行证」后，用户可在登录弹窗使用辰汐账号一键登录本站
+                （标准 OIDC 授权码 + PKCE，公共客户端无密钥）。本步骤不写库：
+                请先在通行证侧注册公共客户端（client_id 与回调地址须逐字符一致），
+                再将下方环境变量配置到部署环境（.env / docker-compose）并重启后端。
+              </p>
+              <el-form label-position="top" class="passport-form">
+                <el-form-item label="Issuer（通行证地址）">
+                  <el-input v-model="passportForm.issuer" placeholder="https://passport.luminouschenxi.com" />
+                </el-form-item>
+                <el-form-item label="Client ID（在通行证侧注册的公共客户端）">
+                  <el-input v-model="passportForm.clientId" placeholder="astrnest-web" />
+                </el-form-item>
+                <el-form-item label="Redirect URI（授权回调地址）">
+                  <el-input v-model="passportForm.redirectUri" placeholder="已按当前站点地址推导，可按需修改" />
+                </el-form-item>
+              </el-form>
+              <div class="passport-env-box">
+                <div class="passport-env-head">
+                  <span>部署环境变量清单</span>
+                  <el-button size="small" :icon="CopyDocument" @click="copyPassportEnv">复制</el-button>
+                </div>
+                <pre class="passport-env-pre">{{ passportEnvScript }}</pre>
+              </div>
+              <div class="actions actions--start">
+                <el-button @click="skipPassportGuide">暂时跳过</el-button>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
 
           <div class="actions">
             <el-button @click="skipSiteConfig">跳过此步</el-button>
@@ -1235,6 +1309,63 @@ const goLogin = async () => {
   margin-left: 10px;
   color: var(--text-muted);
   font-size: 12px;
+}
+
+/* 辰汐生态通行证（可选）折叠面板 */
+.passport-collapse {
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 0 14px;
+}
+
+.passport-collapse :deep(.el-collapse-item__header) {
+  border-bottom: none;
+}
+
+.passport-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.passport-intro {
+  margin-bottom: 12px;
+}
+
+.passport-form {
+  max-width: 460px;
+}
+
+.passport-env-box {
+  border: 1px dashed var(--color-brand-primary, #4ecdc4);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(78, 205, 196, 0.06);
+}
+
+.passport-env-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.passport-env-pre {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--color-bg-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: all;
 }
 
 .db-status {
