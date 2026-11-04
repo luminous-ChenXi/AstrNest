@@ -10,6 +10,8 @@
   
   /* 品牌色 - 粉色为主，薄荷绿和浅蓝为辅助 */
   --color-brand-primary: #ff6b9d;
+  --color-brand-soft: #F9A8C8;
+  --color-brand-strong: #E87A9F;
   --color-brand-accent: #4ecdc4;
   --color-brand-success: #2ecc71;
   --color-brand-emerald: #2ecc71;
@@ -64,6 +66,8 @@
 
   /* Light theme specific gradients - 粉色/薄荷绿/浅蓝 */
   --bg-gradient: linear-gradient(135deg, #fff5f7 0%, #f0fdfa 50%, #f0f9ff 100%);
+  /* 品牌粉渐变（随 --color-brand-soft/strong 自动跟随主题） */
+  --bg-gradient-brand: linear-gradient(135deg, var(--color-brand-soft) 0%, var(--color-brand-strong) 100%);
   --bg-gradient-mixed: radial-gradient(circle at 15% 20%, rgba(255, 182, 193, 0.4), transparent 45%),
     radial-gradient(circle at 85% 10%, rgba(168, 230, 207, 0.35), transparent 40%),
     radial-gradient(circle at 50% 80%, rgba(135, 206, 235, 0.25), transparent 50%),
@@ -98,6 +102,10 @@
   
   /* 品牌色 - 深色模式下更柔和的粉色/薄荷绿 */
   --color-brand-primary: #ff8fab;
+  /* 品牌粉软/深两值本身已足够浅，暗色表面（登录/注册等深色卡面）上对比充分，
+     暂与亮色同值；后续若单独调暗色档，请在此配对覆盖 */
+  --color-brand-soft: #F9A8C8;
+  --color-brand-strong: #E87A9F;
   --color-brand-accent: #6ee7d8;
   --color-brand-emerald: #5eead4;
   --color-brand-mint: #a7f3d0;

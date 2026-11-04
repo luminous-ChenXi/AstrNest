@@ -112,8 +112,8 @@ watch(() => props.active, (newVal) => {
 .ring-1 {
   width: 100%;
   height: 100%;
-  border-top-color: #F9A8C8;
-  border-right-color: #F9A8C8;
+  border-top-color: var(--color-brand-soft);
+  border-right-color: var(--color-brand-soft);
   animation: spin 1.5s linear infinite;
 }
 
@@ -128,7 +128,7 @@ watch(() => props.active, (newVal) => {
 .ring-3 {
   width: 50%;
   height: 50%;
-  border-top-color: #F9A8C8;
+  border-top-color: var(--color-brand-soft);
   animation: spin 0.8s linear infinite;
 }
 
@@ -136,13 +136,13 @@ watch(() => props.active, (newVal) => {
 .logo-text {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
   z-index: 1;
 }
 
 /* 深色主题 Logo 文字 */
 :global(.dark) .logo-text {
-  color: #E87A9F;
+  color: var(--color-brand-strong);
 }
 
 /* 文字组 */
@@ -193,7 +193,7 @@ watch(() => props.active, (newVal) => {
 .progress-bar {
   height: 100%;
   width: 30%;
-  background: linear-gradient(90deg, #F9A8C8, #E87A9F);
+  background: linear-gradient(90deg, var(--color-brand-soft), var(--color-brand-strong));
   border-radius: 2px;
   animation: progress 1.5s ease-in-out infinite;
 }

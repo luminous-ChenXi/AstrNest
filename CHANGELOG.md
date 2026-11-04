@@ -1,5 +1,47 @@
 # AstrNest 更新日志
 
+## [Unreleased] - 2026-11-05 (2)
+
+### 前端颜色令牌收敛 + emoji 图标化（11-03 审计 §三/§六/§九-4/5/10）
+
+- **品牌粉三值变量化**：`#F9A8C8/#E87A9F/#EC8DAD` 散落 8 文件（LoginModal、ChenxiPageLoader、
+  AuthLayout、PublicLandingView、RegisterView、SsoCallbackView、PublicGalleryView、AlbumView，
+  共 78 处）收敛为 `--color-brand-soft` / `--color-brand-strong` / `--color-brand-primary`，
+  theme.css 亮/暗两套 :root 均已定义（软/深两值本身够浅，暗色暂与亮色同值）；
+  `#EC8DAD` 并入既有 primary（`#EC8DAD`→`#ff6b9d` 为一次有意的视觉归一）
+- **紫蓝渐变清理（4 处）**：画廊占位渐变首项（PublicGalleryView）、主题切换"跟随系统"选中态
+  （ThemeSwitcher）、用户首页配额进度条（UserHomeView）改走品牌 token；theme.css 新增
+  `--bg-gradient-brand` 渐变 token 供复用
+- **画廊/图集封面降级图单源化**：PublicGalleryView 与 AlbumView 逐字节复制的紫蓝 data-URI SVG
+  抽为 `utils/placeholderArt.js` 单一常量（`COVER_FALLBACK_ART`），两处引用同一源，
+  色板同步换品牌粉两值（data-URI 内无法引用 CSS 变量，故与令牌值同步维护）
+- **emoji 当图标清零（21 处换 SVG）**：SystemConfigView 12、AdminAnnouncementEditView 4
+  （`<option>` 内 emoji 直接删除，状态色已由行内 color 表达）、UserSecurityView 3、
+  UserNavbar 2（class 由 menu-icon-emoji 更名 menu-icon）；
+  AuthTopBar/PublicLandingView 的 ☰/✕ 符号字形按约定保留
+- 验证：frontend `npm run build`（vite）通过
+
+## [Unreleased] - 2026-11-05
+
+### SchemaAlignmentRunner DROP 护栏（afbcfbc，11-03 审计 P1-15 复核）
+
+- 回填 UPDATE 失败时**禁止继续 DROP 旧列**——旧列数据未迁移即删列等于数据永久丢失，
+  比上轮认识更危险；现改为保留旧列 + ERROR 显著报错 + 中止启动
+  （ApplicationRunner 异常即启动失败），站长修复原因后重启即重跑；
+  DROP 自身失败仍 warn（可重试）
+
+## [Unreleased] - 2026-10-30
+
+### 审计修复批：注册 409 / 密码策略统一 / 三端点频控（0ece84e / b6fe166 / 8d20992）
+
+- **直链访问模型入档（0ece84e）**：`docs/direct-link-access-model.md` 明确 objectKey 三通路
+  直吐为有意设计、两条边界与列表层过滤兜底（P1-10 以产品决策方式关闭）；同时注册并发竞态
+  转 409 友好提示、SSO 事务内外呼外移（P1-11）
+- **密码复杂度策略统一（b6fe166）**：抽 `PasswordPolicy` 对齐安装向导最严口径，
+  注册/找回/改密四处单源
+- **三端点频控补齐（8d20992）**：改密/2fa/绑定确认接入限流与账号级防爆破
+  （REQUIRES_NEW 独立事务落账），注册 409 与限流联动
+
 ## [Unreleased] - 2026-10-07
 
 ### 审计收尾：文档分发 / Flyway 方案 / 预览图口径

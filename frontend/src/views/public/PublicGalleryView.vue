@@ -390,6 +390,7 @@ import { usePublicGallery } from '../../composables/usePublicGallery'
 import { likeImage, unlikeImage, searchGalleryByTag, fetchTopLikedImages } from '../../services/gallery'
 import { useAuthStore } from '../../stores/auth'
 import { albumApi } from '../../api/album'
+import { COVER_FALLBACK_ART } from '../../utils/placeholderArt'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -434,9 +435,9 @@ const popularTags = [
   '夜景', '自然', '城市', '艺术', '科技'
 ]
 
-// 渐变占位图生成
+// 渐变占位图生成（首项走品牌粉渐变 token，随主题切换）
 const gradientPlaceholders = [
-  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'var(--bg-gradient-brand)',
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
   'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
@@ -816,8 +817,8 @@ const handleImageError = (e) => {
 // 处理封面图片加载错误
 const handleCoverError = (e) => {
   const target = e.target
-  // 加载失败时显示默认的渐变背景图
-  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect width="400" height="300" fill="url(%23grad)"/%3E%3Cdefs%3E%3ClinearGradient id="grad" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%23667eea;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23764ba2;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E'
+  // 加载失败时显示默认的渐变背景图（公共降级图，见 utils/placeholderArt.js）
+  target.src = COVER_FALLBACK_ART
 }
 
 const resolveAspectRatio = (item) => {
@@ -1221,7 +1222,7 @@ onMounted(() => {
 .tag-pulse {
   width: 8px;
   height: 8px;
-  background: #F9A8C8;
+  background: var(--color-brand-soft);
   border-radius: 50%;
   animation: pulse-glow 2s ease-in-out infinite;
 }
@@ -1234,7 +1235,7 @@ onMounted(() => {
 .tag-text {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #E87A9F;
+  color: var(--color-brand-strong);
 }
 
 .hero-title {
@@ -1247,7 +1248,7 @@ onMounted(() => {
 }
 
 .title-highlight {
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
 }
 
 .hero-desc {
@@ -1353,7 +1354,7 @@ onMounted(() => {
   gap: 0.5rem;
   padding: 0.875rem 1.5rem;
   border-radius: 12px;
-  background: #F9A8C8;
+  background: var(--color-brand-soft);
   color: white;
   font-weight: 600;
   font-size: 0.95rem;
@@ -1365,7 +1366,7 @@ onMounted(() => {
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  background: #EC8DAD;
+  background: var(--color-brand-primary);
   box-shadow: 0 8px 30px rgba(249, 168, 200, 0.45);
 }
 
@@ -1376,12 +1377,12 @@ onMounted(() => {
 
 /* 深色主题 */
 .dark .btn-primary {
-  background: #E87A9F;
+  background: var(--color-brand-strong);
   box-shadow: 0 4px 20px rgba(232, 122, 159, 0.35);
 }
 
 .dark .btn-primary:hover:not(:disabled) {
-  background: #EC8DAD;
+  background: var(--color-brand-primary);
   box-shadow: 0 8px 30px rgba(232, 122, 159, 0.45);
 }
 
@@ -1394,7 +1395,7 @@ onMounted(() => {
   border-radius: 12px;
   background: transparent;
   border: 1.5px solid rgba(249, 168, 200, 0.4);
-  color: #E87A9F;
+  color: var(--color-brand-strong);
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
@@ -1403,20 +1404,20 @@ onMounted(() => {
 }
 
 .btn-ghost:hover {
-  border-color: #F9A8C8;
-  color: #F9A8C8;
+  border-color: var(--color-brand-soft);
+  color: var(--color-brand-soft);
   background: rgba(249, 168, 200, 0.08);
 }
 
 /* 深色主题 */
 .dark .btn-ghost {
   border-color: rgba(232, 122, 159, 0.4);
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
 }
 
 .dark .btn-ghost:hover {
-  border-color: #F9A8C8;
-  color: #F9A8C8;
+  border-color: var(--color-brand-soft);
+  color: var(--color-brand-soft);
   background: rgba(232, 122, 159, 0.1);
 }
 
@@ -1623,8 +1624,8 @@ onMounted(() => {
 }
 
 .tag-pill.active {
-  background: #F9A8C8;
-  border-color: #F9A8C8;
+  background: var(--color-brand-soft);
+  border-color: var(--color-brand-soft);
   color: white;
 }
 
@@ -2379,11 +2380,11 @@ onMounted(() => {
 
 /* 深色主题 */
 .dark .tag-text {
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
 }
 
 .dark .title-highlight {
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
 }
 
 .dark .tag-pill {
@@ -2397,8 +2398,8 @@ onMounted(() => {
 }
 
 .dark .tag-pill.active {
-  background: #E87A9F;
-  border-color: #E87A9F;
+  background: var(--color-brand-strong);
+  border-color: var(--color-brand-strong);
 }
 
 .dark .hero-tag {

@@ -390,7 +390,7 @@ onBeforeUnmount(() => {
 .quota-progress {
   height: 100%;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #7c3aed, #f472b6);
+  background: var(--bg-gradient-brand);
   transition: width 0.3s ease;
 }
 

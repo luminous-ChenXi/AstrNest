@@ -285,7 +285,7 @@ const diagnosticBlocks = computed(() => [
       '调用 API 时务必附带 Authorization 头或配置 X-API-Key',
       '若通过内网访问，请确认配置的域名/端口在 CORS 白名单中',
     ],
-    icon: '🔒',
+    icon: 'lock',
   },
   {
     title: '413 请求体过大',
@@ -295,7 +295,7 @@ const diagnosticBlocks = computed(() => [
       '管理员可即时调整上传上限并重新尝试',
       '若客户端频繁触发，可在日志中排查异常脚本',
     ],
-    icon: '📦',
+    icon: 'package',
   },
 ])
 
@@ -332,11 +332,17 @@ onBeforeUnmount(() => {
     </header>
 
     <!-- 消息提示 -->
-    <div v-if="errorMessage" class="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-700">
-      <span class="mr-2">❌</span>{{ errorMessage }}
+    <div v-if="errorMessage" class="flex items-start gap-2 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-700">
+      <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ errorMessage }}</span>
     </div>
-    <div v-if="successMessage" class="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-700">
-      <span class="mr-2">✅</span>{{ successMessage }}
+    <div v-if="successMessage" class="flex items-start gap-2 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-700">
+      <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ successMessage }}</span>
     </div>
 
     <!-- 加载状态 -->
@@ -375,7 +381,9 @@ onBeforeUnmount(() => {
             </div>
             <div class="config-section bg-brand-mint/10">
               <div class="flex items-start gap-3">
-                <span class="text-2xl">📁</span>
+                <svg class="w-6 h-6 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
                 <div>
                   <p class="font-semibold text-body-primary mb-1">路径说明</p>
                   <p class="text-sm text-body-soft leading-relaxed">后端会按照上传时间自动创建年份/月份文件夹，并通过 /upload/** 映射到静态资源。域名仅用于外部访问，可随时修改。</p>
@@ -497,7 +505,9 @@ onBeforeUnmount(() => {
             <!-- 开放注册 -->
             <div class="flex items-center justify-between p-4 rounded-xl bg-surface-secondary/50">
               <div class="flex items-center gap-3">
-                <span class="text-2xl">👤</span>
+                <svg class="w-6 h-6 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
                 <div>
                   <p class="font-medium text-body-primary">开放注册</p>
                   <p class="config-hint">关闭后仅管理员可创建账号，保障内网私有部署安全。</p>
@@ -516,7 +526,9 @@ onBeforeUnmount(() => {
             <!-- 访客点赞 -->
             <div class="flex items-center justify-between p-4 rounded-xl bg-brand-primary/5 border border-brand-primary/20">
               <div class="flex items-center gap-3">
-                <span class="text-2xl">❤️</span>
+                <svg class="w-6 h-6 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
                 <div>
                   <p class="font-medium text-brand-primary">访客点赞</p>
                   <p class="config-hint">允许未登录访客为图库内容点赞，昵称将以"访客"展示。</p>
@@ -535,7 +547,9 @@ onBeforeUnmount(() => {
             <!-- 访客上传 -->
             <div class="flex items-center justify-between p-4 rounded-xl bg-brand-primary/5 border border-brand-primary/20">
               <div class="flex items-center gap-3">
-                <span class="text-2xl">📤</span>
+                <svg class="w-6 h-6 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
                 <div>
                   <p class="font-medium text-body-primary">访客上传</p>
                   <p class="config-hint">允许未登录访客上传图片（无需注册登录）</p>
@@ -555,7 +569,9 @@ onBeforeUnmount(() => {
             <div class="p-4 rounded-xl bg-surface-secondary/50">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-3">
-                  <span class="text-2xl">🧹</span>
+                  <svg class="w-6 h-6 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                   <div>
                     <p class="font-medium text-body-primary">自动清理策略</p>
                     <p class="config-hint">单张图片连续 N 天无访问记录后自动下线，释放存储与 CDN 资源。</p>
@@ -598,7 +614,9 @@ onBeforeUnmount(() => {
           <div class="grid gap-4 md:grid-cols-2 mb-6">
             <div class="flex items-center justify-between p-4 rounded-xl bg-surface-secondary/50">
               <div class="flex items-center gap-3">
-                <span class="text-xl">🛡️</span>
+                <svg class="w-5 h-5 shrink-0 text-brand-sky" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
                 <div>
                   <p class="font-medium text-body-primary">违规审核</p>
                   <p class="config-hint">拦截色情/涉政/涉暴，保留审核记录。</p>
@@ -615,7 +633,9 @@ onBeforeUnmount(() => {
             </div>
             <div class="flex items-center justify-between p-4 rounded-xl bg-surface-secondary/50">
               <div class="flex items-center gap-3">
-                <span class="text-xl">🏷️</span>
+                <svg class="w-5 h-5 shrink-0 text-brand-sky" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+                </svg>
                 <div>
                   <p class="font-medium text-body-primary">自动标签</p>
                   <p class="config-hint">与用户自定义标签一并入库，增强搜索。</p>
@@ -807,7 +827,10 @@ onBeforeUnmount(() => {
     <div class="config-card">
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
-          <span class="text-2xl">🔧</span>
+          <svg class="w-6 h-6 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
           <div>
             <p class="text-xs font-medium text-brand-primary/70 uppercase tracking-wider">Diagnostics</p>
             <h2 class="text-xl font-bold text-body-primary">常见错误定位</h2>
@@ -822,7 +845,12 @@ onBeforeUnmount(() => {
           class="diagnostic-card"
         >
           <div class="flex items-start gap-3 mb-3">
-            <span class="text-2xl">{{ block.icon }}</span>
+            <svg v-if="block.icon === 'lock'" class="w-6 h-6 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <svg v-else class="w-6 h-6 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
             <div>
               <h3 class="text-lg font-bold text-body-primary">{{ block.title }}</h3>
               <p class="text-xs text-body-soft mt-1">{{ block.subtitle }}</p>

@@ -115,7 +115,7 @@ const isDefaultLayout = computed(() => layoutMode.value === 'default')
   width: 3rem;
   height: 3rem;
   border-radius: 1rem;
-  background: linear-gradient(135deg, #F9A8C8 0%, #E87A9F 50%, #D06EF6 100%);
+  background: linear-gradient(135deg, var(--color-brand-soft) 0%, var(--color-brand-strong) 50%, #D06EF6 100%);
   box-shadow: 0 4px 20px rgba(249, 168, 200, 0.3);
 }
 

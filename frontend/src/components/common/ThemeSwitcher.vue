@@ -92,9 +92,9 @@ const { mode } = useTheme()
 
 /* 自动模式选中状态 */
 .theme-btn-active-auto {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
+  background: var(--bg-gradient-brand) !important;
   color: white !important;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 2px 8px rgba(var(--color-brand-primary-rgb), 0.4);
 }
 
 /* 选中按钮在暗色主题下的样式调整 */

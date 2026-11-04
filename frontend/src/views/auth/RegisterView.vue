@@ -577,41 +577,41 @@ const handleSubmit = async () => {
 /* 粉色步骤条样式 */
 .register-steps :deep(.el-step__head.is-process),
 .register-steps :deep(.el-step__head.is-success) {
-  border-color: #F9A8C8;
+  border-color: var(--color-brand-soft);
 }
 
 .register-steps :deep(.el-step__head.is-process .el-step__icon-inner),
 .register-steps :deep(.el-step__head.is-success .el-step__icon-inner) {
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
 }
 
 .register-steps :deep(.el-step__title.is-process),
 .register-steps :deep(.el-step__title.is-success) {
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
   font-weight: 600;
 }
 
 .register-steps :deep(.el-step__line-inner) {
-  background-color: #F9A8C8;
+  background-color: var(--color-brand-soft);
 }
 
 .dark .register-steps :deep(.el-step__head.is-process),
 .dark .register-steps :deep(.el-step__head.is-success) {
-  border-color: #E87A9F;
+  border-color: var(--color-brand-strong);
 }
 
 .dark .register-steps :deep(.el-step__head.is-process .el-step__icon-inner),
 .dark .register-steps :deep(.el-step__head.is-success .el-step__icon-inner) {
-  color: #E87A9F;
+  color: var(--color-brand-strong);
 }
 
 .dark .register-steps :deep(.el-step__title.is-process),
 .dark .register-steps :deep(.el-step__title.is-success) {
-  color: #E87A9F;
+  color: var(--color-brand-strong);
 }
 
 .dark .register-steps :deep(.el-step__line-inner) {
-  background-color: #E87A9F;
+  background-color: var(--color-brand-strong);
 }
 
 .form-stage {
@@ -695,7 +695,7 @@ const handleSubmit = async () => {
 .send-code {
   min-width: auto;
   width: 100%;
-  background: #F9A8C8;
+  background: var(--color-brand-soft);
   border: none;
   color: white;
   font-weight: 600;
@@ -705,7 +705,7 @@ const handleSubmit = async () => {
 }
 
 .send-code:hover {
-  background: #EC8DAD;
+  background: var(--color-brand-primary);
   box-shadow: 0 4px 15px rgba(249, 168, 200, 0.4);
 }
 
@@ -716,8 +716,8 @@ const handleSubmit = async () => {
 
 /* 粉色主按钮 */
 .btn-primary-pink {
-  background: #F9A8C8 !important;
-  border-color: #F9A8C8 !important;
+  background: var(--color-brand-soft) !important;
+  border-color: var(--color-brand-soft) !important;
   color: white !important;
   font-weight: 600;
   display: inline-flex;
@@ -727,8 +727,8 @@ const handleSubmit = async () => {
 }
 
 .btn-primary-pink:hover {
-  background: #EC8DAD !important;
-  border-color: #EC8DAD !important;
+  background: var(--color-brand-primary) !important;
+  border-color: var(--color-brand-primary) !important;
   box-shadow: 0 8px 25px rgba(249, 168, 200, 0.4);
   transform: translateY(-2px);
 }
@@ -747,22 +747,22 @@ const handleSubmit = async () => {
 
 /* 深色主题 */
 .dark .send-code {
-  background: #E87A9F;
+  background: var(--color-brand-strong);
 }
 
 .dark .send-code:hover {
-  background: #EC8DAD;
+  background: var(--color-brand-primary);
   box-shadow: 0 4px 15px rgba(232, 122, 159, 0.4);
 }
 
 .dark .btn-primary-pink {
-  background: #E87A9F !important;
-  border-color: #E87A9F !important;
+  background: var(--color-brand-strong) !important;
+  border-color: var(--color-brand-strong) !important;
 }
 
 .dark .btn-primary-pink:hover {
-  background: #EC8DAD !important;
-  border-color: #EC8DAD !important;
+  background: var(--color-brand-primary) !important;
+  border-color: var(--color-brand-primary) !important;
   box-shadow: 0 8px 25px rgba(232, 122, 159, 0.4);
 }
 

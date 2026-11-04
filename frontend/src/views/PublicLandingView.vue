@@ -1475,7 +1475,7 @@ watch(
 }
 
 .dark .btn-primary:hover {
-  background: #EC8DAD;
+  background: var(--color-brand-primary);
   box-shadow: 0 8px 30px rgba(255, 143, 171, 0.5);
 }
 
@@ -1487,8 +1487,8 @@ watch(
 }
 
 .dark .el-button--primary:hover {
-  background: #EC8DAD !important;
-  border-color: #EC8DAD !important;
+  background: var(--color-brand-primary) !important;
+  border-color: var(--color-brand-primary) !important;
 }
 
 .dark .el-button--primary.is-plain {
@@ -1499,8 +1499,8 @@ watch(
 
 .dark .el-button--primary.is-plain:hover {
   background: rgba(255, 143, 171, 0.15) !important;
-  border-color: #EC8DAD !important;
-  color: #EC8DAD !important;
+  border-color: var(--color-brand-primary) !important;
+  color: var(--color-brand-primary) !important;
 }
 
 /* 深色主题 - 使用CSS变量背景 */

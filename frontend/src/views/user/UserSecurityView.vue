@@ -149,9 +149,24 @@ onMounted(loadSettings)
         </RouterLink>
       </div>
       <ul class="mt-4 space-y-2 text-sm text-body-muted">
-        <li>✔ 复制 Demo/上传API实例.txt 中的 cURL / JS 示例即可接入</li>
-        <li>✔ 支持密码保护、CDN 域名切换与多格式输出</li>
-        <li>✔ 分别查看调用次数与分钟级限流，发现异常可立即禁用</li>
+        <li class="flex items-start gap-2">
+          <svg class="w-4 h-4 mt-0.5 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>复制 Demo/上传API实例.txt 中的 cURL / JS 示例即可接入</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <svg class="w-4 h-4 mt-0.5 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>支持密码保护、CDN 域名切换与多格式输出</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <svg class="w-4 h-4 mt-0.5 shrink-0 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>分别查看调用次数与分钟级限流，发现异常可立即禁用</span>
+        </li>
       </ul>
     </section>
   </div>

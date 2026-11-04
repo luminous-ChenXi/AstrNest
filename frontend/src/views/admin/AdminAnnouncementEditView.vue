@@ -136,8 +136,8 @@ const submit = async () => {
               class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none focus:border-brand-primary appearance-none cursor-pointer transition-all hover:bg-white/10"
               style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23ff6b9d%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22m6 9 6 6 6-6%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px;"
             >
-              <option value="EMERGENCY" style="background: #1a1a2e; color: var(--color-brand-primary);">🔴 紧急</option>
-              <option value="NOTICE" style="background: #1a1a2e; color: var(--color-brand-accent);">🔵 注意</option>
+              <option value="EMERGENCY" style="background: #1a1a2e; color: var(--color-brand-primary);">紧急</option>
+              <option value="NOTICE" style="background: #1a1a2e; color: var(--color-brand-accent);">注意</option>
             </select>
           </div>
           <div class="space-y-1">
@@ -147,8 +147,8 @@ const submit = async () => {
               class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none focus:border-brand-primary appearance-none cursor-pointer transition-all hover:bg-white/10"
               style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%234ecdc4%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22m6 9 6 6 6-6%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px;"
             >
-              <option value="PUBLISHED" style="background: #1a1a2e; color: #2ecc71;">✅ 已发布</option>
-              <option value="DRAFT" style="background: #1a1a2e; color: #f59e0b;">📝 草稿</option>
+              <option value="PUBLISHED" style="background: #1a1a2e; color: #2ecc71;">已发布</option>
+              <option value="DRAFT" style="background: #1a1a2e; color: #f59e0b;">草稿</option>
             </select>
           </div>
         </div>

@@ -627,7 +627,7 @@ watch(() => props.visible, (newVal, oldVal) => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: linear-gradient(135deg, #FADCE9 0%, #F9A8C8 50%, #E87A9F 100%);
+  background: linear-gradient(135deg, #FADCE9 0%, var(--color-brand-soft) 50%, var(--color-brand-strong) 100%);
 }
 
 /* 背景图片容器 */
@@ -649,7 +649,7 @@ watch(() => props.visible, (newVal, oldVal) => {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: linear-gradient(135deg, #FADCE9 0%, #F9A8C8 50%, #E87A9F 100%);
+  background: linear-gradient(135deg, #FADCE9 0%, var(--color-brand-soft) 50%, var(--color-brand-strong) 100%);
 }
 
 .aurora-blob {
@@ -689,7 +689,7 @@ watch(() => props.visible, (newVal, oldVal) => {
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #FADCE9 0%, #F9A8C8 50%, #E87A9F 100%);
+  background: linear-gradient(135deg, #FADCE9 0%, var(--color-brand-soft) 50%, var(--color-brand-strong) 100%);
 }
 
 .placeholder-text {
@@ -718,7 +718,7 @@ watch(() => props.visible, (newVal, oldVal) => {
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
   margin: 0 0 0.5rem;
 }
 
@@ -743,11 +743,11 @@ watch(() => props.visible, (newVal, oldVal) => {
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #F9A8C8;
+  box-shadow: 0 0 0 1px var(--color-brand-soft);
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 2px #F9A8C8;
+  box-shadow: 0 0 0 2px var(--color-brand-soft);
 }
 
 .form-options {
@@ -758,13 +758,13 @@ watch(() => props.visible, (newVal, oldVal) => {
 
 .forgot-link {
   font-size: 0.875rem;
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .forgot-link:hover {
-  color: #E87A9F;
+  color: var(--color-brand-strong);
 }
 
 /* 登录按钮 */
@@ -772,7 +772,7 @@ watch(() => props.visible, (newVal, oldVal) => {
   width: 100%;
   height: 48px;
   border-radius: 12px;
-  background: #F9A8C8;
+  background: var(--color-brand-soft);
   border: none;
   font-size: 1rem;
   font-weight: 600;
@@ -782,7 +782,7 @@ watch(() => props.visible, (newVal, oldVal) => {
 }
 
 .btn-login:hover {
-  background: #EC8DAD;
+  background: var(--color-brand-primary);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(249, 168, 200, 0.45);
 }
@@ -822,8 +822,8 @@ watch(() => props.visible, (newVal, oldVal) => {
 }
 
 .btn-sso:hover {
-  color: #E87A9F;
-  border-color: #F9A8C8;
+  color: var(--color-brand-strong);
+  border-color: var(--color-brand-soft);
   background: #fff7fa;
 }
 
@@ -839,8 +839,8 @@ watch(() => props.visible, (newVal, oldVal) => {
 }
 
 .dark .btn-sso:hover {
-  color: #F9A8C8;
-  border-color: #F9A8C8;
+  color: var(--color-brand-soft);
+  border-color: var(--color-brand-soft);
   background: #2c2c42;
 }
 
@@ -859,14 +859,14 @@ watch(() => props.visible, (newVal, oldVal) => {
 }
 
 .sso-register-link {
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
   font-weight: 600;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .sso-register-link:hover {
-  color: #E87A9F;
+  color: var(--color-brand-strong);
   text-decoration: underline;
 }
 
@@ -893,14 +893,14 @@ watch(() => props.visible, (newVal, oldVal) => {
 .register-link {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #F9A8C8;
+  color: var(--color-brand-soft);
   text-decoration: none;
   cursor: pointer;
   transition: color 0.2s ease;
 }
 
 .register-link:hover {
-  color: #E87A9F;
+  color: var(--color-brand-strong);
 }
 
 /* 动画 */

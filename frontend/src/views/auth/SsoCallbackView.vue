@@ -115,7 +115,7 @@ const backToLogin = () => {
   height: 38px;
   margin-bottom: 0.5rem;
   border: 3px solid #e5e7eb;
-  border-top-color: #f9a8c8;
+  border-top-color: var(--color-brand-soft);
   border-radius: 50%;
   animation: sso-spin 0.8s linear infinite;
 }
@@ -158,12 +158,12 @@ const backToLogin = () => {
 .back-btn {
   margin-top: 0.75rem;
   border-radius: 10px;
-  background: #f9a8c8;
+  background: var(--color-brand-soft);
   border: none;
 }
 
 .back-btn:hover {
-  background: #ec8dad;
+  background: var(--color-brand-primary);
 }
 
 .dark .sso-callback-page {

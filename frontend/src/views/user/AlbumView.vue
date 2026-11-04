@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Folder, Image, Link, Trash2, Edit3, Eye, EyeOff, Copy, ExternalLink, AlertTriangle, Sparkles, Layers, TrendingUp, X } from 'lucide-vue-next'
 import { albumApi } from '../../api/album'
+import { COVER_FALLBACK_ART } from '../../utils/placeholderArt'
 import { useSystemStore } from '../../stores/system'
 
 const router = useRouter()
@@ -167,8 +168,8 @@ const getAlbumRandomCoverUrl = (pathSlug) => {
 // 处理封面图片加载错误
 const handleCoverError = (e) => {
   const target = e.target
-  // 加载失败时显示默认的渐变背景图
-  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect width="400" height="300" fill="url(%23grad)"/%3E%3Cdefs%3E%3ClinearGradient id="grad" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%23667eea;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23764ba2;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E'
+  // 加载失败时显示默认的渐变背景图（公共降级图，见 utils/placeholderArt.js）
+  target.src = COVER_FALLBACK_ART
 }
 
 onMounted(() => {
@@ -1341,7 +1342,7 @@ onMounted(() => {
 }
 
 :global(.dark) .page-title {
-  background: linear-gradient(135deg, #ffffff, #F9A8C8);
+  background: linear-gradient(135deg, #ffffff, var(--color-brand-soft));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1410,7 +1411,7 @@ onMounted(() => {
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #E87A9F;
+  color: var(--color-brand-strong);
   background: transparent;
   border: none;
   padding: 0;
@@ -1493,7 +1494,7 @@ onMounted(() => {
 .stat-card-icon {
   width: 20px;
   height: 20px;
-  color: #E87A9F;
+  color: var(--color-brand-strong);
 }
 
 .stat-card-info {
@@ -1505,7 +1506,7 @@ onMounted(() => {
 .stat-card-num {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #E87A9F;
+  color: var(--color-brand-strong);
 }
 
 .stat-card-label {
@@ -1533,7 +1534,7 @@ onMounted(() => {
 }
 
 .action-btn-primary {
-  background: linear-gradient(135deg, #F9A8C8 0%, #E87A9F 100%);
+  background: linear-gradient(135deg, var(--color-brand-soft) 0%, var(--color-brand-strong) 100%);
   color: white;
   box-shadow: 0 4px 15px rgba(232, 122, 159, 0.35);
 }
@@ -1583,7 +1584,7 @@ onMounted(() => {
 .section-icon {
   width: 20px;
   height: 20px;
-  color: #E87A9F;
+  color: var(--color-brand-strong);
 }
 
 /* Empty State */
