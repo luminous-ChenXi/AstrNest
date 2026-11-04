@@ -326,8 +326,16 @@ public class SchemaAlignmentRunner implements ApplicationRunner {
     try {
       jdbcTemplate.execute(updateSql);
     } catch (Exception exception) {
-      log.warn("Failed to backfill {}.{} from {}: {}", tableName, desiredName, legacyName,
-          exception.getMessage());
+      // 回填失败绝不能继续 DROP：旧列里可能还有未迁移的数据，此时 DROP = 数据永久丢失
+      // （2026-11-03 审计：原实现 warn 后照删，比认识到的更危险）。
+      // 保留旧列、中止启动并显著报错：站长修复原因（权限/锁/字符集）后重启即可重跑对齐。
+      log.error("ABORT: failed to backfill {}.{} from {}. Legacy column {} is KEPT (no data loss), "
+              + "DROP skipped and startup stopped. Fix the cause (grants/lock timeout/charset) and restart. Cause: {}",
+          tableName, desiredName, legacyName, legacyName, exception.getMessage());
+      throw new IllegalStateException(
+          "Schema alignment aborted: backfill " + tableName + "." + legacyName + " -> " + tableName
+              + "." + desiredName + " failed; legacy column kept, DROP skipped",
+          exception);
     }
     String dropSql = "ALTER TABLE " + tableName + " DROP COLUMN " + legacyName;
     try {
